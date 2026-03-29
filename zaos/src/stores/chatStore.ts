@@ -25,9 +25,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
   isThinking: false,
 
   addMessage: (message: Message) =>
-    set((state) => ({
-      messages: [...state.messages, message],
-    })),
+    set((state) => {
+      // Deduplicate: skip if message with same ID already exists
+      if (state.messages.some((m) => m.id === message.id)) {
+        return state;
+      }
+      return { messages: [...state.messages, message] };
+    }),
 
   updateMessage: (id: string, updates: Partial<Message>) =>
     set((state) => ({

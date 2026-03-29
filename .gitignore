@@ -1,0 +1,11 @@
+node_modules/
+dist/
+target/
+*.exe
+*.dll
+*.so
+*.dylib
+package-lock.json
+Cargo.lock
+.DS_Store
+Thumbs.db

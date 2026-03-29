@@ -1,7 +1,6 @@
 import React from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { invoke } from "@tauri-apps/api/core";
-import { ChevronRight } from "lucide-react";
 
 /**
  * Shows epic, phase, mode, task, and gate button
@@ -95,8 +94,7 @@ export function WorkflowSection() {
           onClick={handleValidateGate}
           className="w-full bg-green-600 hover:bg-green-700 text-white rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2"
         >
-          Validate Gate
-          <ChevronRight size={16} />
+          Validate Gate ▶
         </button>
       )}
     </div>

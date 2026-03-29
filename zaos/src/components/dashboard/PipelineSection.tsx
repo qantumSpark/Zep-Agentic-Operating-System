@@ -1,11 +1,7 @@
 import React from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { PHASE_ORDER } from "../../types/workflow";
-import { Check, Circle } from "lucide-react";
 
-/**
- * Vertical pipeline visualization: phases with state indicators
- */
 export function PipelineSection() {
   const phase = useWorkflowStore((state) => state.phase);
   const pipelineProgress = useWorkflowStore((state) => state.pipelineProgress);
@@ -17,13 +13,9 @@ export function PipelineSection() {
         const state = pipelineProgress[phaseKey] || "pending";
 
         const statusIcon =
-          state === "done" ? (
-            <Check size={16} className="text-green-400" />
-          ) : state === "active" ? (
-            <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Circle size={16} className="text-zinc-500" />
-          );
+          state === "done" ? "✅" :
+          state === "active" ? "🔄" :
+          "⬜";
 
         return (
           <div
@@ -32,7 +24,7 @@ export function PipelineSection() {
               isActive ? "bg-blue-900/30 text-blue-300" : "text-zinc-400"
             }`}
           >
-            {statusIcon}
+            <span className="text-sm">{statusIcon}</span>
             <span className="text-sm capitalize">{phaseKey}</span>
           </div>
         );

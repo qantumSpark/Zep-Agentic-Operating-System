@@ -1,16 +1,10 @@
 {
-  "default": {
-    "allow": [
-      "core:window:allow-create",
-      "core:window:allow-minimize",
-      "core:window:allow-maximize",
-      "core:window:allow-unmaximize",
-      "core:window:allow-close",
-      "core:app:allow-app-hide",
-      "core:app:allow-app-show",
-      "shell:allow-open",
-      "shell:allow-execute"
-    ],
-    "deny": []
-  }
+  "identifier": "default",
+  "description": "Default capability set for ZAOS",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "shell:allow-execute"
+  ]
 }

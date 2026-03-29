@@ -4,91 +4,64 @@ import type { CliEvent, StreamDeltaEvent, AssistantEvent, Message } from "../typ
 import { useChatStore } from "../stores/chatStore";
 
 /**
- * Hook for managing streaming text display
- * Accumulates text_delta events into the current message
+ * Hook for managing streaming text display.
+ * Listener is registered ONCE (empty deps).
+ * Uses getState() to avoid stale closures and re-registrations.
  */
 export function useStreaming() {
-  const {
-    messages,
-    streamingTextBuffer,
-    isStreaming,
-    isThinking,
-    addMessage,
-    appendStreamText,
-    setStreaming,
-    setThinking,
-    clearStreamingBuffer,
-  } = useChatStore();
-
   useEffect(() => {
     let unlistener: UnlistenFn | null = null;
     let currentMessageId: string | null = null;
+    // Track which message IDs we've already added
+    const seenMessageIds = new Set<string>();
 
     const setupListener = async () => {
       unlistener = await listen<CliEvent>("agent-event", (event) => {
+        const store = useChatStore.getState();
         const payload = event.payload;
-
         // Handle stream events (deltas)
         if (payload.type === "stream_event") {
           const streamEvent = payload as StreamDeltaEvent;
           const innerEvent = streamEvent.event;
 
-          // Text delta - accumulate text
           if (innerEvent.type === "content_block_delta") {
             const delta = innerEvent.delta as any;
             if (delta.type === "text_delta" && delta.text) {
-              appendStreamText(delta.text);
-              setStreaming(true);
+              store.appendStreamText(delta.text);
+              store.setStreaming(true);
               if (!currentMessageId) {
                 currentMessageId = `msg-${Date.now()}`;
               }
+            } else if (delta.type === "thinking_delta") {
+              store.setThinking(true);
             }
-          }
-
-          // Thinking delta
-          else if (innerEvent.type === "content_block_delta") {
-            const delta = innerEvent.delta as any;
-            if (delta.type === "thinking_delta") {
-              setThinking(true);
-            }
-          }
-
-          // Content block stop - finalize current block
-          else if (innerEvent.type === "content_block_stop") {
-            if (streamingTextBuffer && currentMessageId) {
-              // The message will be finalized when we get the assistant event
-              setStreaming(false);
-            }
-          }
-
-          // Message stop - end of turn
-          else if (innerEvent.type === "message_stop") {
-            setStreaming(false);
-            setThinking(false);
+          } else if (innerEvent.type === "content_block_stop") {
+            store.setStreaming(false);
+          } else if (innerEvent.type === "message_stop") {
+            store.setStreaming(false);
+            store.setThinking(false);
             currentMessageId = null;
           }
         }
-
         // Handle assistant event (complete message snapshot)
         else if (payload.type === "assistant") {
           const assistantEvent = payload as AssistantEvent;
           const msg = assistantEvent.message;
 
-          // Extract text content from message
+          // Deduplicate: skip if we already added this message
+          if (seenMessageIds.has(msg.id)) {
+            return;
+          }
+          seenMessageIds.add(msg.id);
+
           const textContent = msg.content
             .filter((block: any) => block.type === "text")
             .map((block: any) => block.text)
             .join("\n");
 
-          // Extract thinking if present
-          const thinkingContent = msg.content
-            .filter((block: any) => block.type === "thinking")
-            .map((block: any) => block.thinking)
-            .join("\n");
-
-          if (textContent || thinkingContent) {
-            const finalContent =
-              streamingTextBuffer || textContent;
+          if (textContent) {
+            const currentBuffer = store.getStreamingTextBuffer();
+            const finalContent = currentBuffer || textContent;
 
             const chatMessage: Message = {
               id: msg.id,
@@ -97,31 +70,12 @@ export function useStreaming() {
               timestamp: Date.now(),
             };
 
-            addMessage(chatMessage);
-            clearStreamingBuffer();
+            store.addMessage(chatMessage);
+            store.clearStreamingBuffer();
             currentMessageId = null;
           }
 
-          setStreaming(false);
-        }
-
-        // Handle user event (tool results)
-        else if (payload.type === "user") {
-          const userEvent = payload;
-          if ("message" in userEvent && userEvent.message) {
-            const msg = userEvent.message as any;
-            const resultContent =
-              msg.content?.[0]?.content || "Tool executed";
-
-            const chatMessage: Message = {
-              id: `user-${Date.now()}`,
-              role: "user",
-              content: resultContent,
-              timestamp: Date.now(),
-            };
-
-            addMessage(chatMessage);
-          }
+          store.setStreaming(false);
         }
       });
     };
@@ -133,14 +87,5 @@ export function useStreaming() {
         unlistener();
       }
     };
-  }, [
-    addMessage,
-    appendStreamText,
-    clearStreamingBuffer,
-    isStreaming,
-    isThinking,
-    setStreaming,
-    setThinking,
-    streamingTextBuffer,
-  ]);
+  }, []); // Empty deps — listener registered once
 }

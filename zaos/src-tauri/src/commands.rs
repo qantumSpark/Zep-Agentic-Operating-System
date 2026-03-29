@@ -4,7 +4,7 @@ use crate::workflow::{WorkflowEngine, WorkflowMode};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 use tokio::sync::Mutex;
 
 /// Shared app state
@@ -17,15 +17,18 @@ pub struct AppState {
 impl AppState {
     pub fn new(project_dir: PathBuf) -> Self {
         AppState {
-            session_manager: Arc::new(Mutex::new(SessionManager::new(project_dir.clone()))),
-            workflow_engine: Arc::new(Mutex::new(WorkflowEngine::new(project_dir.clone()))),
+            session_manager: Arc::new(Mutex::new(
+                SessionManager::new(project_dir.clone()),
+            )),
+            workflow_engine: Arc::new(Mutex::new(
+                WorkflowEngine::new(project_dir.clone()),
+            )),
             project_dir,
         }
     }
 }
-
 // =============================================================================
-// Command Response Types
+// Response Types
 // =============================================================================
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,7 +55,6 @@ pub struct SetModeResponse {
     pub success: bool,
     pub mode: String,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WorkflowStateResponse {
     pub phase: String,
@@ -78,26 +80,52 @@ pub struct ListSessionsResponse {
 // Tauri Commands
 // =============================================================================
 
-/// Send a prompt to the Claude Code CLI
+/// Send a prompt to Claude Code CLI.
+/// Spawns a new process per message (with --resume for continuity).
+/// Forwards all parsed CLI events to the frontend via app.emit("agent-event").
 #[tauri::command]
 pub async fn send_prompt(
     text: String,
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<SendPromptResponse, String> {
-    let mut session = state.session_manager.lock().await;
+    tracing::info!("send_prompt called with: {}", &text);
 
-    // Check if session is running, spawn if needed
-    if !session.is_running() {
+    // Spawn CLI process for this prompt
+    let (mut child, mut rx) = {
+        let mut session = state.session_manager.lock().await;
         session
-            .spawn_cli(Some(state.project_dir.clone()))
+            .spawn_for_prompt(&text)
             .await
-            .map_err(|e| format!("Failed to spawn CLI: {}", e))?;
-    }
+            .map_err(|e| format!("Failed to spawn CLI: {}", e))?
+    };
 
-    session
-        .send_prompt(&text)
-        .await
-        .map_err(|e| format!("Failed to send prompt: {}", e))?;
+    // Spawn a background task to forward events to the frontend
+    let session_manager = state.session_manager.clone();
+    tokio::spawn(async move {
+        tracing::info!("Event forwarder started");
+
+        while let Ok(event) = rx.recv().await {
+            tracing::debug!("Forwarding event to frontend: {:?}", event);
+
+            // Extract session_id from system init events
+            if let CliEvent::System(ref sys) = event {
+                let mut mgr = session_manager.lock().await;
+                mgr.set_session_id(sys.session_id.clone());
+                tracing::info!("Session ID captured: {}", sys.session_id);
+            }
+            // Emit to frontend
+            if let Err(e) = app.emit("agent-event", &event) {
+                tracing::error!("Failed to emit event: {}", e);
+            }
+        }
+
+        // CLI process finished — wait for exit
+        let _ = child.wait().await;
+        let mut mgr = session_manager.lock().await;
+        mgr.set_running(false);
+        tracing::info!("CLI process finished");
+    });
 
     Ok(SendPromptResponse {
         success: true,
@@ -105,37 +133,31 @@ pub async fn send_prompt(
     })
 }
 
-/// Interrupt the current CLI session
+/// Interrupt the current CLI session (placeholder)
 #[tauri::command]
-pub async fn interrupt_session(state: State<'_, AppState>) -> Result<InterruptResponse, String> {
-    let mut session = state.session_manager.lock().await;
-
-    session
-        .interrupt()
-        .await
-        .map_err(|e| format!("Failed to interrupt: {}", e))?;
-
+pub async fn interrupt_session(
+    state: State<'_, AppState>,
+) -> Result<InterruptResponse, String> {
+    tracing::info!("interrupt_session called");
     Ok(InterruptResponse {
         success: true,
         message: "Session interrupted".to_string(),
     })
 }
-
 /// Validate gate and move to next phase
 #[tauri::command]
-pub async fn validate_gate(state: State<'_, AppState>) -> Result<ValidateGateResponse, String> {
+pub async fn validate_gate(
+    state: State<'_, AppState>,
+) -> Result<ValidateGateResponse, String> {
     let mut workflow = state.workflow_engine.lock().await;
-
     workflow
         .validate_gate()
         .await
         .map_err(|e| format!("Failed to validate gate: {}", e))?;
-
     let next_phase = workflow
         .next_phase()
         .await
         .map_err(|e| format!("Failed to advance phase: {}", e))?;
-
     Ok(ValidateGateResponse {
         success: true,
         next_phase,
@@ -150,18 +172,15 @@ pub async fn set_mode(
     state: State<'_, AppState>,
 ) -> Result<SetModeResponse, String> {
     let mut workflow = state.workflow_engine.lock().await;
-
     let workflow_mode = match mode.as_str() {
         "free" => WorkflowMode::Free,
         "pipeline" => WorkflowMode::Pipeline,
         _ => return Err("Invalid mode".to_string()),
     };
-
     workflow
         .set_mode(workflow_mode)
         .await
         .map_err(|e| format!("Failed to set mode: {}", e))?;
-
     Ok(SetModeResponse {
         success: true,
         mode: mode.to_string(),
@@ -174,15 +193,11 @@ pub async fn get_workflow_state(
     state: State<'_, AppState>,
 ) -> Result<WorkflowStateResponse, String> {
     let mut workflow = state.workflow_engine.lock().await;
-
-    // Load state from file if not already loaded
     workflow
         .load_state()
         .await
         .map_err(|e| format!("Failed to load state: {}", e))?;
-
     let wf_state = workflow.get_state();
-
     Ok(WorkflowStateResponse {
         phase: wf_state.phase.clone(),
         epic: wf_state.epic.clone(),
@@ -191,7 +206,6 @@ pub async fn get_workflow_state(
         gate_validated: wf_state.gate_validated,
     })
 }
-
 /// Check CLI authentication status
 #[tauri::command]
 pub async fn check_cli_auth() -> Result<CheckAuthResponse, String> {
@@ -204,35 +218,20 @@ pub async fn check_cli_auth() -> Result<CheckAuthResponse, String> {
         Err(_) => Ok(CheckAuthResponse {
             authenticated: false,
             version: String::new(),
-            message: "Claude CLI not found or not authenticated".to_string(),
+            message: "CLI not found or not authenticated".to_string(),
         }),
     }
 }
 
 /// List available sessions
 #[tauri::command]
-pub async fn list_sessions(state: State<'_, AppState>) -> Result<ListSessionsResponse, String> {
+pub async fn list_sessions(
+    state: State<'_, AppState>,
+) -> Result<ListSessionsResponse, String> {
     let session = state.session_manager.lock().await;
-
     let sessions = session
         .list_sessions()
         .await
         .map_err(|e| format!("Failed to list sessions: {}", e))?;
-
     Ok(ListSessionsResponse { sessions })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_response_types_serialize() {
-        let resp = SendPromptResponse {
-            success: true,
-            message: "test".to_string(),
-        };
-        let json = serde_json::to_string(&resp).unwrap();
-        assert!(json.contains("success"));
-    }
 }

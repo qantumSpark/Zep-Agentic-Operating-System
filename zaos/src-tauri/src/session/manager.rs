@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Stdio;
 use thiserror::Error;
-use tokio::io::AsyncWriteExt;
-use tokio::process::{Child, Command};
+use tokio::io::AsyncBufReadExt;
+use tokio::process::Command;
 use tokio::sync::broadcast;
 
 #[derive(Error, Debug)]
@@ -18,46 +18,34 @@ pub enum SessionError {
     #[error("Session not spawned")]
     NotSpawned,
 
-    #[error("Write failed")]
-    WriteFailed,
-
     #[error("Parse error: {0}")]
     ParseError(String),
 }
-
 pub type Result<T> = std::result::Result<T, SessionError>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionInfo {
     pub session_id: String,
     pub project_dir: PathBuf,
-    pub cwd: String,
-    pub model: String,
-    pub tokens_input: u64,
-    pub tokens_output: u64,
-    pub duration_ms: u64,
 }
 
-/// Manages the lifecycle of a Claude Code CLI subprocess
-/// Spawns the CLI with --output-format stream-json, handles stdin/stdout communication
+/// Manages the lifecycle of Claude Code CLI subprocesses.
+/// Each user message spawns a new CLI process with -p "prompt".
+/// Session continuity is maintained via --resume <session_id>.
 pub struct SessionManager {
-    child: Option<Child>,
     session_id: Option<String>,
-    tx: broadcast::Sender<CliEvent>,
     project_dir: PathBuf,
+    is_running: bool,
 }
 
 impl SessionManager {
     pub fn new(project_dir: PathBuf) -> Self {
-        let (tx, _) = broadcast::channel(256);
         SessionManager {
-            child: None,
             session_id: None,
-            tx,
             project_dir,
+            is_running: false,
         }
     }
-
     /// Check if Claude CLI is available and authenticated
     pub async fn check_cli_auth() -> Result<String> {
         let output = Command::new("claude")
@@ -75,36 +63,49 @@ impl SessionManager {
         Ok(version.to_string())
     }
 
-    /// Spawn the Claude Code CLI with stream-json output format
-    pub async fn spawn_cli(
+    /// Set the session ID (called when we parse a system init event)
+    pub fn set_session_id(&mut self, id: String) {
+        self.session_id = Some(id);
+    }
+
+    /// Get current session ID
+    pub fn get_session_id(&self) -> Option<&str> {
+        self.session_id.as_deref()
+    }
+    /// Spawn a CLI process for a single prompt.
+    /// Returns a broadcast::Receiver to listen for parsed events.
+    /// If we have a session_id, uses --resume for continuity.
+    pub async fn spawn_for_prompt(
         &mut self,
-        project_dir: Option<PathBuf>,
-    ) -> Result<broadcast::Receiver<CliEvent>> {
-        // Determine project directory
-        let proj_dir = project_dir.unwrap_or_else(|| self.project_dir.clone());
+        prompt: &str,
+    ) -> Result<(tokio::process::Child, broadcast::Receiver<CliEvent>)> {
+        let (tx, rx) = broadcast::channel(512);
 
-        // Build CLI command
         let mut cmd = Command::new("claude");
-        cmd.arg("--output-format")
+        cmd.arg("-p")
+            .arg(prompt)
+            .arg("--output-format")
             .arg("stream-json")
-            .arg("--verbose")
-            .arg("--include-partial-messages")
-            .arg("--project-dir")
-            .arg(&proj_dir)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .arg("--verbose");
 
-        let mut child = cmd
-            .spawn()
-            .map_err(|e| {
-                tracing::error!("Failed to spawn CLI: {}", e);
-                SessionError::Io(e)
-            })?;
+        // Add resume flag if we have a previous session
+        if let Some(ref sid) = self.session_id {
+            cmd.arg("--resume").arg(sid);
+            tracing::info!("Resuming session: {}", sid);
+        }
 
-        tracing::info!("Claude CLI spawned");
+        // Set working directory instead of --project-dir
+        cmd.current_dir(&self.project_dir);
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
-        // Extract stdout for event parsing
+        let mut child = cmd.spawn().map_err(|e| {
+            tracing::error!("Failed to spawn CLI: {}", e);
+            SessionError::Io(e)
+        })?;
+        tracing::info!("Claude CLI spawned for prompt");
+        self.is_running = true;
+
+        // Take stdout for event parsing
         let stdout = child
             .stdout
             .take()
@@ -113,121 +114,39 @@ impl SessionManager {
                 "Failed to pipe stdout",
             )))?;
 
-        // Spawn event parser task
-        let tx = self.tx.clone();
+        // Spawn stderr reader for debugging
+        if let Some(stderr) = child.stderr.take() {
+            tokio::spawn(async move {
+                let reader = tokio::io::BufReader::new(stderr);
+                let mut lines = reader.lines();
+                while let Ok(Some(line)) = lines.next_line().await {
+                    tracing::warn!("[CLI stderr] {}", line);
+                }
+            });
+        }
+
+        // Spawn the JSONL parser task
+        let tx_clone = tx.clone();
         tokio::spawn(async move {
-            if let Err(e) = crate::events::parse_stream(stdout, tx).await {
+            if let Err(e) = crate::events::parse_stream(stdout, tx_clone).await {
                 tracing::error!("Event parser error: {}", e);
             }
         });
 
-        self.child = Some(child);
-
-        // Return broadcast receiver for UI to listen on
-        Ok(self.tx.subscribe())
+        Ok((child, rx))
     }
 
-    /// Send a prompt to the CLI via stdin
-    pub async fn send_prompt(&mut self, text: &str) -> Result<()> {
-        let child = self.child.as_mut().ok_or(SessionError::NotSpawned)?;
-
-        let stdin = child
-            .stdin
-            .as_mut()
-            .ok_or(SessionError::WriteFailed)?;
-
-        // Write prompt (newline-terminated)
-        stdin
-            .write_all(format!("{}\n", text).as_bytes())
-            .await
-            .map_err(|e| {
-                tracing::error!("Failed to write prompt: {}", e);
-                SessionError::WriteFailed
-            })?;
-
-        stdin.flush().await.map_err(|e| {
-            tracing::error!("Failed to flush stdin: {}", e);
-            SessionError::WriteFailed
-        })?;
-
-        tracing::debug!("Prompt sent to CLI");
-        Ok(())
+    pub fn set_running(&mut self, running: bool) {
+        self.is_running = running;
     }
 
-    /// Resume an existing session
-    pub async fn send_resume(&mut self, session_id: &str, text: &str) -> Result<()> {
-        // Build CLI command with --resume flag
-        let mut cmd = Command::new("claude");
-        cmd.arg("--output-format")
-            .arg("stream-json")
-            .arg("--verbose")
-            .arg("--include-partial-messages")
-            .arg("--resume")
-            .arg(session_id)
-            .arg("--project-dir")
-            .arg(&self.project_dir)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
-
-        let mut child = cmd.spawn().map_err(|e| {
-            tracing::error!("Failed to spawn CLI for resume: {}", e);
-            SessionError::Io(e)
-        })?;
-
-        let stdout = child.stdout.take().ok_or(SessionError::Io(
-            std::io::Error::new(std::io::ErrorKind::Other, "Failed to pipe stdout"),
-        ))?;
-
-        let tx = self.tx.clone();
-        tokio::spawn(async move {
-            if let Err(e) = crate::events::parse_stream(stdout, tx).await {
-                tracing::error!("Event parser error: {}", e);
-            }
-        });
-
-        self.child = Some(child);
-        self.session_id = Some(session_id.to_string());
-
-        // Send initial prompt
-        self.send_prompt(text).await?;
-
-        Ok(())
+    pub fn is_running(&self) -> bool {
+        self.is_running
     }
-
-    /// Interrupt the CLI subprocess (send SIGINT)
-    pub async fn interrupt(&mut self) -> Result<()> {
-        let child = self.child.as_mut().ok_or(SessionError::NotSpawned)?;
-
-        child.kill().await.map_err(|e| {
-            tracing::error!("Failed to kill CLI process: {}", e);
-            SessionError::Io(e)
-        })?;
-
-        tracing::info!("CLI process interrupted");
-        Ok(())
-    }
-
-    /// List available sessions from ~/.claude/projects/<encoded-cwd>/
+    /// List available sessions (placeholder)
     pub async fn list_sessions(&self) -> Result<Vec<String>> {
-        // This would read from ~/.claude/projects/<encoded-cwd>/*.jsonl
-        // For now, return empty list (can be enhanced later)
         tracing::debug!("list_sessions called");
         Ok(Vec::new())
-    }
-
-    /// Get the broadcast sender for the current session
-    pub fn get_event_sender(&self) -> broadcast::Sender<CliEvent> {
-        self.tx.clone()
-    }
-
-    /// Check if session is still running
-    pub fn is_running(&mut self) -> bool {
-        if let Some(ref mut child) = self.child {
-            matches!(child.try_wait(), Ok(None))
-        } else {
-            false
-        }
     }
 }
 
@@ -235,8 +154,8 @@ impl SessionManager {
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_session_manager_creation() {
+    #[test]
+    fn test_session_manager_creation() {
         let manager = SessionManager::new(PathBuf::from("/tmp"));
         assert!(!manager.is_running());
     }
