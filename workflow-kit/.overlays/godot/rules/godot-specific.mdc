@@ -1,0 +1,42 @@
+---
+description: Règles spécifiques Godot — activées sur les fichiers Godot
+globs:
+  - "**/*.gd"
+  - "**/*.tscn"
+  - "**/*.tres"
+alwaysApply: false
+---
+
+# Règles spécifiques Godot
+
+## Avant de coder
+- Lire `.overlays/godot/conventions.md` pour le style GDScript
+- Vérifier les patterns recommandés dans `.overlays/godot/patterns.md`
+
+## Vérifications obligatoires
+
+### Nodes et scènes
+- Avant de référencer un node → vérifier qu'il existe dans la scène (.tscn)
+- Utiliser `@onready var node := $RelativePath` plutôt que `get_node()` avec chemin absolu
+- Vérifier que le type du node correspond à ce qu'on attend
+
+### Signals
+- Avant de `.connect()` un signal → vérifier qu'il est déclaré sur l'émetteur
+- Toujours typer les paramètres des signaux
+- Nommer les handlers `_on_Emetteur_signal_name`
+
+### APIs Godot
+- Ne JAMAIS inventer une méthode Godot — vérifier dans la doc officielle si doute
+- Attention aux changements entre Godot 3.x et 4.x (beaucoup d'APIs renommées)
+- Si une méthode semble dépréciée → vérifier et utiliser le remplacement
+
+### Resources
+- Les Custom Resources héritent de `Resource`, pas de `Node`
+- Les `.tres` sont créés dans l'éditeur, pas par code (sauf cas spécifique)
+- Préférer `@export` pour les propriétés configurables dans l'éditeur
+
+## Patterns
+- Composition > Héritage (sauf pour les nodes natifs)
+- Autoloads limités à 5-6 max pour le state global
+- State machines pour la logique d'entités avec plusieurs comportements
+- Signals pour la communication loose-coupled entre systèmes

@@ -1,0 +1,45 @@
+---
+description: Règles spécifiques Flutter — activées sur les fichiers Dart
+globs:
+  - "**/*.dart"
+  - "pubspec.yaml"
+alwaysApply: false
+---
+
+# Règles spécifiques Flutter
+
+## Avant de coder
+- Lire `.overlays/flutter/conventions.md` pour le style Dart
+- Vérifier les patterns recommandés dans `.overlays/flutter/patterns.md`
+
+## Vérifications obligatoires
+
+### Packages et dépendances
+- Avant d'importer un package → vérifier qu'il est dans `pubspec.yaml`
+- Ne JAMAIS référencer un package non déclaré
+- Si un nouveau package est nécessaire → le signaler et ajouter à pubspec d'abord
+
+### Widgets
+- Vérifier que le widget parent accepte le type de child qu'on lui donne
+- `const` constructors partout où c'est possible
+- Pas de `build()` > 80 lignes → extraire en sous-widgets
+
+### State management
+- Utiliser UNIQUEMENT le pattern de state management choisi pour le projet (documenté dans ADR)
+- Pas de `setState()` pour du state partagé entre screens
+- Pas de mix de patterns (ex: Provider ET BLoC dans le même projet)
+
+### Navigation
+- Utiliser le système de routing choisi pour le projet
+- Pas de `Navigator.push()` en dur si un router est en place
+
+### APIs Dart/Flutter
+- Ne JAMAIS inventer une méthode Flutter/Dart — vérifier dans la doc officielle si doute
+- Attention aux APIs dépréciées — utiliser les remplacements recommandés
+- Vérifier la compatibilité avec la version minimum de Flutter du projet
+
+## Patterns
+- Feature-first architecture (chaque feature isolée avec data/domain/presentation)
+- Repository pattern pour l'accès aux données
+- Null safety strict — jamais de `!` sans justification
+- `final` par défaut pour les variables

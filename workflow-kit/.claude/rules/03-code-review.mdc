@@ -1,0 +1,38 @@
+---
+description: Checklist de review automatique — activée quand du code est modifié
+globs:
+  - "**/*.gd"
+  - "**/*.dart"
+  - "**/*.tscn"
+  - "**/*.tres"
+alwaysApply: false
+---
+
+# Règles de review de code
+
+## Après chaque modification de code, vérifier :
+
+### Conformité aux conventions
+- Le code respecte les standards définis dans `.memory/conventions.md`
+- Le naming est cohérent avec le reste du projet (pas de style mixte)
+- Les patterns utilisés sont ceux du projet, pas des patterns étrangers
+
+### Duplication et cohérence
+- Pas de duplication avec du code existant dans le projet
+- Si une fonctionnalité similaire existe déjà → la réutiliser ou l'étendre
+- Les responsabilités sont claires (pas de "god class" ou "god function")
+
+### Complétude
+- Les edge cases sont gérés ou documentés avec `# TODO:`
+- Pas de code mort ou commenté sans explication
+- Les commentaires ajoutent de la valeur (pas "incrémente i" sur `i += 1`)
+
+### Cohérence architecturale
+- Le code ne viole aucune décision documentée dans `.memory/decisions/`
+- La structure des fichiers reste cohérente avec `.memory/architecture.md`
+- Pas de couplage fort non prévu entre modules
+
+### Vérification anti-hallucination
+- Toutes les APIs et méthodes utilisées existent réellement
+- Tous les imports référencent des fichiers existants dans le projet
+- Tous les chemins de ressources et noms de nodes sont corrects
