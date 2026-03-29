@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(xargs grep:*)",
+      "Bash(find '/c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos' -name *.md -type f)",
+      "Bash(find '/c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System' -name *.json -o -name settings*)",
+      "Bash(find '/c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System' -type f \\\\\\(-name *.ts -o -name *.rs \\\\\\))",
+      "Read(//c/Users/apeze/.vscode/extensions//**)",
+      "Read(//c/Users/apeze/.vscode-insiders/**)",
+      "WebSearch",
+      "Bash(grep -oE '.{0,400}permission-prompt-tool.{0,400}' extension.js)",
+      "Bash(cargo build:*)"
+    ]
+  }
+}

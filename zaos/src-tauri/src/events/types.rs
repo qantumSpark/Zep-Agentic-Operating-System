@@ -27,6 +27,9 @@ pub enum CliEvent {
     #[serde(rename = "result")]
     Result(ResultEvent),
 
+    #[serde(rename = "control_request")]
+    ControlRequest(ControlRequest),
+
     /// For unrecognized events (forward compatibility)
     #[serde(other)]
     Unknown,
@@ -220,6 +223,16 @@ pub struct ResultEvent {
     pub usage: Value,
     #[serde(rename = "modelUsage")]
     pub model_usage: Option<Value>,
+    pub uuid: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ControlRequest {
+    pub id: String,
+    pub tool: String,
+    pub input: Value,
+    pub message: String,
+    pub session_id: String,
     pub uuid: String,
 }
 

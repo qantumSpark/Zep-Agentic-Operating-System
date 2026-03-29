@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { CliEvent, StreamDeltaEvent, AssistantEvent, Message } from "../types/events";
+import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, Message } from "../types/events";
 import { useChatStore } from "../stores/chatStore";
+import { useActionsStore } from "../stores/actionsStore";
+import { formatToolSummary } from "../utils/toolFormatters";
 
 /**
  * Hook for managing streaming text display.
@@ -11,7 +13,6 @@ import { useChatStore } from "../stores/chatStore";
 export function useStreaming() {
   useEffect(() => {
     let unlistener: UnlistenFn | null = null;
-    let currentMessageId: string | null = null;
     // Track which message IDs we've already added
     const seenMessageIds = new Set<string>();
 
@@ -25,13 +26,10 @@ export function useStreaming() {
           const innerEvent = streamEvent.event;
 
           if (innerEvent.type === "content_block_delta") {
-            const delta = innerEvent.delta as any;
-            if (delta.type === "text_delta" && delta.text) {
+            const delta = innerEvent.delta;
+            if (delta.type === "text_delta") {
               store.appendStreamText(delta.text);
               store.setStreaming(true);
-              if (!currentMessageId) {
-                currentMessageId = `msg-${Date.now()}`;
-              }
             } else if (delta.type === "thinking_delta") {
               store.setThinking(true);
             }
@@ -40,7 +38,6 @@ export function useStreaming() {
           } else if (innerEvent.type === "message_stop") {
             store.setStreaming(false);
             store.setThinking(false);
-            currentMessageId = null;
           }
         }
         // Handle assistant event (complete message snapshot)
@@ -54,28 +51,94 @@ export function useStreaming() {
           }
           seenMessageIds.add(msg.id);
 
-          const textContent = msg.content
-            .filter((block: any) => block.type === "text")
-            .map((block: any) => block.text)
-            .join("\n");
+          // Process each content block
+          for (const block of msg.content) {
+            if (block.type === "text" && block.text) {
+              const finalContent = block.text;
 
-          if (textContent) {
-            const currentBuffer = store.getStreamingTextBuffer();
-            const finalContent = currentBuffer || textContent;
+              const chatMessage: Message = {
+                id: msg.id,
+                role: "assistant",
+                content: finalContent,
+                timestamp: Date.now(),
+              };
+              store.addMessage(chatMessage);
+              store.clearStreamingBuffer();
+            } else if (block.type === "tool_use") {
+              // Create a chat message for the tool use
+              const toolMsg: Message = {
+                id: `${msg.id}-tool-${block.id}`,
+                role: "assistant",
+                content: "",
+                timestamp: Date.now(),
+                toolUse: {
+                  id: block.id,
+                  name: block.name,
+                  input: block.input,
+                },
+              };
+              store.addMessage(toolMsg);
 
-            const chatMessage: Message = {
-              id: msg.id,
-              role: "assistant",
-              content: finalContent,
-              timestamp: Date.now(),
-            };
-
-            store.addMessage(chatMessage);
-            store.clearStreamingBuffer();
-            currentMessageId = null;
+              // Feed actionsStore
+              const actionsStore = useActionsStore.getState();
+              actionsStore.addAction({
+                id: block.id,
+                type: block.name.toLowerCase(),
+                tool: block.name,
+                summary: formatToolSummary(block.name, block.input),
+                timestamp: Date.now(),
+                status: "running",
+                details: block.input,
+              });
+            } else if (block.type === "thinking" && block.thinking) {
+              const thinkMsg: Message = {
+                id: `${msg.id}-thinking`,
+                role: "assistant",
+                content: "",
+                timestamp: Date.now(),
+                thinking: block.thinking,
+              };
+              store.addMessage(thinkMsg);
+            }
           }
 
           store.setStreaming(false);
+          store.setThinking(false);
+        }
+        // Handle user event (tool results)
+        else if (payload.type === "user") {
+          const userEvent = payload as UserEvent;
+          const userMsg = userEvent.message;
+
+          if (userMsg.content) {
+            for (const result of userMsg.content) {
+              if (result.tool_use_id) {
+                // Update action status
+                const actionsStore = useActionsStore.getState();
+                const isError = result.type === "tool_error";
+                actionsStore.updateActionStatus(
+                  result.tool_use_id,
+                  isError ? "error" : "success"
+                );
+
+                // Add tool result message to chat
+                const resultMsg: Message = {
+                  id: `result-${result.tool_use_id}`,
+                  role: "system",
+                  content: "",
+                  timestamp: Date.now(),
+                  toolResult: {
+                    toolUseId: result.tool_use_id,
+                    content: typeof result.content === "string"
+                      ? result.content.slice(0, 500)
+                      : JSON.stringify(result.content).slice(0, 500),
+                    isError,
+                  },
+                };
+                store.addMessage(resultMsg);
+              }
+            }
+          }
         }
       });
     };

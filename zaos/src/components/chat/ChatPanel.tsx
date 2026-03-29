@@ -10,11 +10,14 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
  */
 export function ChatPanel() {
   const messages = useChatStore((state) => state.messages);
+  const isThinking = useChatStore((state) => state.isThinking);
+  const isStreaming = useChatStore((state) => state.isStreaming);
+  const streamingText = useChatStore((state) => state.streamingTextBuffer);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, streamingText]);
 
   return (
     <div className="flex flex-col h-full bg-zinc-900">
@@ -29,6 +32,18 @@ export function ChatPanel() {
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
+            {streamingText && (
+              <MessageBubble
+                message={{
+                  id: "streaming",
+                  role: "assistant",
+                  content: streamingText,
+                  timestamp: Date.now(),
+                  isStreaming: true,
+                }}
+              />
+            )}
+            {isThinking && !isStreaming && <ThinkingIndicator />}
             <div ref={messagesEndRef} />
           </>
         )}

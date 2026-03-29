@@ -15,19 +15,18 @@
 
 ## Epic active
 
-Aucune — en attente de definition de la prochaine epic
+Chat Complet — done, en attente de cloture
 
 ## Ce qui est fait
 
 - Backend Rust complet : Session Manager, Event Parser, Workflow Engine, 7 commandes IPC
 - Frontend React en place : Chat (send/stream/display), Workflow (gate/mode), StatusBar, SplitPane
 - Integration chat fonctionnelle : InputBar → CLI spawn → stream-json → useStreaming → affichage
+- **Epic "Chat Complet" terminee** : tool_use blocks, ThinkingIndicator, interrupt reel, actionsStore nourri, streaming live, review passee (12 corrections)
 
 ## Bugs connus
 
-- `--include-partial-messages` manquant au spawn CLI (streaming sous-optimal)
-- `interrupt_session` ne tue pas le process CLI
-- `list_sessions` retourne toujours vide
+- `list_sessions` retourne toujours vide (priorite basse)
 
 ## Blocages
 
@@ -35,5 +34,5 @@ Aucun
 
 ## Prochaines priorites
 
-1. Finir Phase 1 : tool_use blocks, ThinkingIndicator, interrupt, actionsStore
-2. Demarrer Phase 2 : dashboard temps reel
+1. Demarrer Phase 2 : dashboard temps reel (ActionsFeed, Agents, Pipeline, Memory)
+2. Tester le build complet (`npm run tauri dev`)

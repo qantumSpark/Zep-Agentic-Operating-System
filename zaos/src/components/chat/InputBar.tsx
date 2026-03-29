@@ -28,13 +28,13 @@ export function InputBar() {
     try {
       const result = await invoke("send_prompt", { text });
       console.log("send_prompt result:", result);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to send prompt:", error);
       // Show error as a chat message so user can see it
       addMessage({
         id: `error-${Date.now()}`,
         role: "assistant",
-        content: `[ERROR] ${error?.toString() || "Unknown error"}`,
+        content: `[ERROR] ${error instanceof Error ? error.message : String(error)}`,
         timestamp: Date.now(),
       });
     }
@@ -43,7 +43,7 @@ export function InputBar() {
 
   const handleStop = async () => {
     try {
-      await invoke("interrupt_cli");
+      await invoke("interrupt_session");
     } catch (error) {
       console.error("Failed to stop CLI:", error);
     }

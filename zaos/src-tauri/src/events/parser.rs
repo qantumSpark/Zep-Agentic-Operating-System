@@ -62,4 +62,17 @@ mod tests {
         let event: CliEvent = serde_json::from_str(json).unwrap();
         matches!(event, CliEvent::System(_));
     }
+
+    #[test]
+    fn test_control_request_deserialization() {
+        let json = r#"{"type":"control_request","id":"req_123","tool":"Write","input":{"file_path":"/foo/bar.ts"},"message":"Claude wants to write","session_id":"sess_1","uuid":"uuid_1"}"#;
+        let event: CliEvent = serde_json::from_str(json).unwrap();
+        match event {
+            CliEvent::ControlRequest(req) => {
+                assert_eq!(req.id, "req_123");
+                assert_eq!(req.tool, "Write");
+            }
+            _ => panic!("Expected ControlRequest variant"),
+        }
+    }
 }

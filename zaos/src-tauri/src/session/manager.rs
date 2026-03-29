@@ -36,6 +36,7 @@ pub struct SessionManager {
     session_id: Option<String>,
     project_dir: PathBuf,
     is_running: bool,
+    child_pid: Option<u32>,
 }
 
 impl SessionManager {
@@ -44,6 +45,7 @@ impl SessionManager {
             session_id: None,
             project_dir,
             is_running: false,
+            child_pid: None,
         }
     }
     /// Check if Claude CLI is available and authenticated
@@ -87,7 +89,8 @@ impl SessionManager {
             .arg("--output-format")
             .arg("stream-json")
             .arg("--verbose")
-            .arg("--include-partial-messages");
+            .arg("--include-partial-messages")
+            .arg("--dangerously-skip-permissions");
 
         // Add resume flag if we have a previous session
         if let Some(ref sid) = self.session_id {
@@ -105,6 +108,10 @@ impl SessionManager {
         })?;
         tracing::info!("Claude CLI spawned for prompt");
         self.is_running = true;
+        self.child_pid = child.id();
+        if self.child_pid.is_none() {
+            tracing::warn!("child.id() returned None — interrupt will not work for this process");
+        }
 
         // Take stdout for event parsing
         let stdout = child
@@ -144,6 +151,39 @@ impl SessionManager {
     pub fn is_running(&self) -> bool {
         self.is_running
     }
+
+    /// Interrupt the running CLI process
+    pub async fn interrupt(&mut self) -> Result<()> {
+        if let Some(pid) = self.child_pid.take() {
+            tracing::info!("Interrupting CLI process with PID: {}", pid);
+            // On Windows, use taskkill; on Unix, send SIGTERM
+            #[cfg(target_os = "windows")]
+            {
+                let _ = Command::new("taskkill")
+                    .args(["/PID", &pid.to_string(), "/T", "/F"])
+                    .output()
+                    .await;
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                // SAFETY: pid is a valid process ID obtained from Child::id().
+                // We guard against u32 > i32::MAX overflow before casting.
+                let pid_i32 = i32::try_from(pid).map_err(|_| {
+                    SessionError::ParseError(format!("PID {} exceeds i32::MAX", pid))
+                })?;
+                let ret = unsafe { libc::kill(pid_i32, libc::SIGTERM) };
+                if ret != 0 {
+                    tracing::warn!("libc::kill returned {}, errno may indicate process already exited", ret);
+                }
+            }
+            self.is_running = false;
+            Ok(())
+        } else {
+            tracing::warn!("No running CLI process to interrupt");
+            Ok(())
+        }
+    }
+
     /// List available sessions (placeholder)
     pub async fn list_sessions(&self) -> Result<Vec<String>> {
         tracing::debug!("list_sessions called");

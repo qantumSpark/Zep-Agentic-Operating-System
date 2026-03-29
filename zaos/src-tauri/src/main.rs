@@ -29,10 +29,22 @@ fn main() {
 
     tracing::info!("ZAOS startup");
 
-    // Get project directory from environment or use current directory
+    // Get project directory from environment, or derive from current dir.
+    // When run via `tauri dev`, cwd is src-tauri/. Walk up to find the repo root.
     let project_dir = std::env::var("ZAOS_PROJECT_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+        .unwrap_or_else(|_| {
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            // If cwd ends with src-tauri, go up two levels (src-tauri → zaos → repo root)
+            if cwd.ends_with("src-tauri") {
+                cwd.parent()
+                    .and_then(|p| p.parent())
+                    .map(|p| p.to_path_buf())
+                    .unwrap_or(cwd)
+            } else {
+                cwd
+            }
+        });
 
     tracing::info!("Project directory: {:?}", project_dir);
 

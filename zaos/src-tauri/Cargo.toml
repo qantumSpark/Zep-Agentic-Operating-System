@@ -21,6 +21,9 @@ thiserror = "1.0"
 async-trait = "0.1"
 dashmap = "5.5"
 
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+libc = "0.2"
+
 [profile.release]
 opt-level = "z"
 lto = true

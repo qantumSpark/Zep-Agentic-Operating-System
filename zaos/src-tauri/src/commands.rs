@@ -139,6 +139,11 @@ pub async fn interrupt_session(
     state: State<'_, AppState>,
 ) -> Result<InterruptResponse, String> {
     tracing::info!("interrupt_session called");
+    let mut session = state.session_manager.lock().await;
+    session
+        .interrupt()
+        .await
+        .map_err(|e| format!("Failed to interrupt: {}", e))?;
     Ok(InterruptResponse {
         success: true,
         message: "Session interrupted".to_string(),

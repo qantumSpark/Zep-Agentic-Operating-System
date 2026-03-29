@@ -2,6 +2,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
+import { ToolUseBlock, ToolResultBlock } from "./ToolUseBlock";
 import type { Message } from "../../types/events";
 
 interface MessageBubbleProps {
@@ -33,41 +34,75 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        {/* Content */}
-        {isAssistant ? (
-          <div className="prose prose-invert prose-sm max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code: ({ node, inline, className, children, ...props }) => {
-                  if (inline) {
-                    return (
-                      <code className="bg-zinc-900 px-1 rounded text-blue-300">
-                        {children}
-                      </code>
-                    );
-                  }
-                  return (
-                    <CodeBlock
-                      code={String(children).replace(/\n$/, "")}
-                      language={className?.replace(/language-/, "") || ""}
-                    />
-                  );
-                },
-                p: ({ children }) => <p className="my-1">{children}</p>,
-                ul: ({ children }) => (
-                  <ul className="list-disc list-inside my-1">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal list-inside my-1">{children}</ol>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+        {/* Tool use block */}
+        {message.toolUse && (
+          <ToolUseBlock
+            name={message.toolUse.name}
+            input={message.toolUse.input}
+            toolUseId={message.toolUse.id}
+          />
+        )}
+
+        {/* Tool result block */}
+        {message.toolResult && (
+          <ToolResultBlock
+            content={message.toolResult.content}
+            isError={message.toolResult.isError}
+          />
+        )}
+
+        {/* Thinking block */}
+        {message.thinking && (
+          <div className="my-1 px-3 py-2 rounded-md bg-purple-950/30 border border-purple-800/40 text-sm">
+            <div className="flex items-center gap-2 text-purple-400 mb-1">
+              <span className="text-xs font-medium">Thinking</span>
+            </div>
+            <p className="text-zinc-400 text-xs whitespace-pre-wrap">
+              {message.thinking.length > 300
+                ? message.thinking.slice(0, 300) + "..."
+                : message.thinking}
+            </p>
           </div>
-        ) : (
-          <div className="whitespace-pre-wrap break-words">{message.content}</div>
+        )}
+
+        {/* Regular text content */}
+        {message.content && !message.toolUse && !message.toolResult && !message.thinking && (
+          isAssistant ? (
+            <div className="prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code: ({ className, children, ...props }: any) => {
+                    const isInline = !className;
+                    if (isInline) {
+                      return (
+                        <code className="bg-zinc-900 px-1 rounded text-blue-300" {...props}>
+                          {children}
+                        </code>
+                      );
+                    }
+                    return (
+                      <CodeBlock
+                        code={String(children).replace(/\n$/, "")}
+                        language={className?.replace(/language-/, "") || ""}
+                      />
+                    );
+                  },
+                  p: ({ children }) => <p className="my-1">{children}</p>,
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside my-1">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal list-inside my-1">{children}</ol>
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div className="whitespace-pre-wrap break-words">{message.content}</div>
+          )
         )}
 
         {/* Timestamp */}

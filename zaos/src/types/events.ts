@@ -9,7 +9,8 @@ export type CliEvent =
   | AssistantEvent
   | UserEvent
   | RateLimitEvent
-  | ResultEvent;
+  | ResultEvent
+  | ControlRequest;
 
 // ============================================================================
 // System Event
@@ -251,6 +252,26 @@ export interface ModelUsageDetail {
 }
 
 // ============================================================================
+// Control Request/Response (permission prompt)
+// ============================================================================
+
+export interface ControlRequest {
+  type: "control_request";
+  id: string;
+  tool: string;
+  input: Record<string, unknown>;
+  message: string;
+  session_id: string;
+  uuid: string;
+}
+
+export interface ControlResponse {
+  type: "control_response";
+  id: string;
+  permission: "allow" | "deny";
+}
+
+// ============================================================================
 // Common Types
 // ============================================================================
 
@@ -290,6 +311,7 @@ export interface Message {
     isError?: boolean;
   };
   thinking?: string;
+  permissionRequest?: ControlRequest;
 }
 
 export interface Action {
