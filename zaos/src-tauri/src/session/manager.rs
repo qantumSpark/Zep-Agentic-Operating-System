@@ -86,7 +86,8 @@ impl SessionManager {
             .arg(prompt)
             .arg("--output-format")
             .arg("stream-json")
-            .arg("--verbose");
+            .arg("--verbose")
+            .arg("--include-partial-messages");
 
         // Add resume flag if we have a previous session
         if let Some(ref sid) = self.session_id {

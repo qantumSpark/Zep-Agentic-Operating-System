@@ -279,6 +279,17 @@ export interface Message {
   agent?: string; // Agent name if present
   timestamp: number;
   isStreaming?: boolean;
+  toolUse?: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  };
+  toolResult?: {
+    toolUseId: string;
+    content: string;
+    isError?: boolean;
+  };
+  thinking?: string;
 }
 
 export interface Action {

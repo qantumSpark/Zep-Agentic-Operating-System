@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { useChatStore } from "../../stores/chatStore";
 import { MessageBubble } from "./MessageBubble";
 import { InputBar } from "./InputBar";
+import { ThinkingIndicator } from "./ThinkingIndicator";
 
 /**
  * Chat panel: messages list + input bar at bottom
