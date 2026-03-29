@@ -1,32 +1,43 @@
-# Epic active : Chat Complet
+# Epic active : Interactive Permission Approvals
 
 > Milestone : 1 — Chat fonctionnel avec Claude Code CLI
 > Date de debut : 2026-03-29
-> Statut : Done — review passee
+> Statut : VALIDATED ✅
 
 ## Objectif
 
-Rendre le chat pleinement fonctionnel : afficher les tool_use blocks, le thinking, nourrir le feed d'actions, et permettre l'interruption reelle du CLI.
+Remplacer `--dangerously-skip-permissions` par des approbations interactives inline dans le chat. Passer du modele spawn-per-prompt a un process CLI long-lived avec communication bidirectionnelle via stdin/stdout.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|---|---|---|---|
-| 1 | Ajouter `--include-partial-messages` au spawn CLI | `src-tauri/src/session/manager.rs` | done | |
-| 2 | Etendre le type Message avec champs toolUse et thinking | `src/types/events.ts` | done | |
-| 3 | Parser tool_use + tool_result + thinking dans useStreaming | `src/hooks/useStreaming.ts` | done | + nourrit actionsStore |
-| 4 | Creer le composant ToolUseBlock | `src/components/chat/ToolUseBlock.tsx` | done | + ToolResultBlock |
-| 5 | Mettre a jour MessageBubble pour rendre tool_use et thinking | `src/components/chat/MessageBubble.tsx` | done | |
-| 6 | Brancher ThinkingIndicator dans ChatPanel | `src/components/chat/ChatPanel.tsx` | done | + streaming bubble + auto-scroll fix |
-| 7 | Implementer interrupt reel du process CLI | `manager.rs`, `commands.rs` | done | taskkill Windows + SIGTERM Unix |
+| 1 | Types Rust control_request/control_response | `events/types.rs` | done | + CliEvent::ControlRequest variant |
+| 2 | Parser control_request | `events/parser.rs` | done | Auto via serde, test ajoute |
+| 3 | Refactor SessionManager long-lived process | `session/manager.rs` | done | start_session + send_message + send_permission_response |
+| 4 | Adapter commands.rs + main.rs | `commands.rs`, `main.rs` | done | respond_permission command |
+| 5 | Types TypeScript | `types/events.ts` | done | ControlRequest, ControlResponse, Message.permissionRequest |
+| 6 | permissionStore Zustand | `stores/permissionStore.ts` | done | Nouveau fichier |
+| 7 | useStreaming control_request handler | `hooks/useStreaming.ts` | done | Feed permissionStore + chatStore |
+| 8 | PermissionRequestBlock composant | `components/chat/PermissionRequestBlock.tsx` | done | Approve/Deny inline, amber theme |
+| 9 | Integration MessageBubble + InputBar | `MessageBubble.tsx`, `InputBar.tsx` | done | Rendu conditionnel |
 
-## Review corrections (12 fixes appliques)
+## Changements cles
 
-- lucide-react supprime, react-markdown v9 fixe, `as any` supprime
-- libc ajoute, unsafe durci, interrupt_session corrige
-- Auto-scroll, block.text autoritaire, dead code supprime
-- formatToolSummary extrait dans `src/utils/toolFormatters.ts`
+- CLI flags: `--input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-prompt-tool stdio`
+- Supprime: `-p <prompt>`, `--dangerously-skip-permissions`, `--resume` (gere via stdin)
+- SessionManager stocke `child` + `stdin` au lieu de `child_pid`
+- Nouveau IPC: `respond_permission(id, allow)`
+
+## Validation
+
+> Tested on 2026-03-30 — VALIDATED ✅
+
+- Both **Approve** and **Deny** flows confirmed working in live app
+- File creation via Approve confirmed (CLI executes the tool after approval)
+- Deny rejection confirmed (CLI receives denial and skips execution)
+- **Key fix discovered during testing:** `control_response` format needed `subtype: "success"` and double-nested `response.response` to match the CLI's Zod schema
 
 ## Prochaine action
 
-Epic terminee. Prete pour cloture et archivage.
+COMPLETED — Epic validated and closed on 2026-03-30.

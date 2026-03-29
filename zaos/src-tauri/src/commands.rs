@@ -81,7 +81,7 @@ pub struct ListSessionsResponse {
 // =============================================================================
 
 /// Send a prompt to Claude Code CLI.
-/// Spawns a new process per message (with --resume for continuity).
+/// Starts a long-lived CLI session if not already running, then sends the message via stdin.
 /// Forwards all parsed CLI events to the frontend via app.emit("agent-event").
 #[tauri::command]
 pub async fn send_prompt(
@@ -91,41 +91,55 @@ pub async fn send_prompt(
 ) -> Result<SendPromptResponse, String> {
     tracing::info!("send_prompt called with: {}", &text);
 
-    // Spawn CLI process for this prompt
-    let (mut child, mut rx) = {
-        let mut session = state.session_manager.lock().await;
-        session
-            .spawn_for_prompt(&text)
-            .await
-            .map_err(|e| format!("Failed to spawn CLI: {}", e))?
-    };
-
-    // Spawn a background task to forward events to the frontend
     let session_manager = state.session_manager.clone();
-    tokio::spawn(async move {
-        tracing::info!("Event forwarder started");
 
-        while let Ok(event) = rx.recv().await {
-            tracing::debug!("Forwarding event to frontend: {:?}", event);
+    // Start session if not already running
+    {
+        let mut session = session_manager.lock().await;
+        if !session.is_session_started() {
+            let mut rx = session
+                .start_session()
+                .await
+                .map_err(|e| format!("Failed to start CLI session: {}", e))?;
 
-            // Extract session_id from system init events
-            if let CliEvent::System(ref sys) = event {
-                let mut mgr = session_manager.lock().await;
-                mgr.set_session_id(sys.session_id.clone());
-                tracing::info!("Session ID captured: {}", sys.session_id);
-            }
-            // Emit to frontend
-            if let Err(e) = app.emit("agent-event", &event) {
-                tracing::error!("Failed to emit event: {}", e);
-            }
+            // Spawn event forwarder (runs for the lifetime of the session)
+            let sm = session_manager.clone();
+            let app_handle = app.clone();
+            tokio::spawn(async move {
+                tracing::info!("Event forwarder started");
+
+                while let Ok(event) = rx.recv().await {
+                    tracing::debug!("Forwarding event to frontend: {:?}", event);
+
+                    // Extract session_id from system init events
+                    if let CliEvent::System(ref sys) = event {
+                        let mut mgr = sm.lock().await;
+                        mgr.set_session_id(sys.session_id.clone());
+                        tracing::info!("Session ID captured: {}", sys.session_id);
+                    }
+
+                    // Emit to frontend
+                    if let Err(e) = app_handle.emit("agent-event", &event) {
+                        tracing::error!("Failed to emit event: {}", e);
+                    }
+                }
+
+                // CLI process exited
+                let mut mgr = sm.lock().await;
+                mgr.set_running(false);
+                tracing::info!("CLI session ended");
+            });
         }
+    }
 
-        // CLI process finished — wait for exit
-        let _ = child.wait().await;
-        let mut mgr = session_manager.lock().await;
-        mgr.set_running(false);
-        tracing::info!("CLI process finished");
-    });
+    // Send the message
+    {
+        let mut session = session_manager.lock().await;
+        session
+            .send_message(&text)
+            .await
+            .map_err(|e| format!("Failed to send message: {}", e))?;
+    }
 
     Ok(SendPromptResponse {
         success: true,
@@ -149,6 +163,36 @@ pub async fn interrupt_session(
         message: "Session interrupted".to_string(),
     })
 }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PermissionResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+/// Respond to a pending permission prompt from the CLI
+#[tauri::command]
+pub async fn respond_permission(
+    id: String,
+    allow: bool,
+    tool_input: Option<serde_json::Value>,
+    state: State<'_, AppState>,
+) -> Result<PermissionResponse, String> {
+    tracing::info!("respond_permission called: id={}, allow={}", id, allow);
+    let mut session = state.session_manager.lock().await;
+    session
+        .send_permission_response(&id, allow, tool_input)
+        .await
+        .map_err(|e| format!("Failed to send permission response: {}", e))?;
+    Ok(PermissionResponse {
+        success: true,
+        message: format!(
+            "Permission {} for {}",
+            if allow { "granted" } else { "denied" },
+            id
+        ),
+    })
+}
+
 /// Validate gate and move to next phase
 #[tauri::command]
 pub async fn validate_gate(

@@ -42,7 +42,7 @@ pub async fn parse_stream(
                 let _ = tx.send(event);
             }
             Err(e) => {
-                let preview = &line[..80.min(line.len())];
+                let preview = &line[..500.min(line.len())];
                 tracing::warn!("Parse error: {} on line: {}", e, preview);
                 // Continue parsing on errors (forward compatibility)
             }
@@ -65,12 +65,12 @@ mod tests {
 
     #[test]
     fn test_control_request_deserialization() {
-        let json = r#"{"type":"control_request","id":"req_123","tool":"Write","input":{"file_path":"/foo/bar.ts"},"message":"Claude wants to write","session_id":"sess_1","uuid":"uuid_1"}"#;
+        let json = r#"{"type":"control_request","request_id":"req_123","tool":"Write","input":{"file_path":"/foo/bar.ts"},"message":"Claude wants to write","session_id":"sess_1","uuid":"uuid_1"}"#;
         let event: CliEvent = serde_json::from_str(json).unwrap();
         match event {
             CliEvent::ControlRequest(req) => {
-                assert_eq!(req.id, "req_123");
-                assert_eq!(req.tool, "Write");
+                assert_eq!(req.request_id, "req_123");
+                assert_eq!(req.tool.as_deref(), Some("Write"));
             }
             _ => panic!("Expected ControlRequest variant"),
         }

@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, Message } from "../types/events";
+import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, ControlRequest, Message } from "../types/events";
 import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
+import { usePermissionStore } from "../stores/permissionStore";
 import { formatToolSummary } from "../utils/toolFormatters";
 
 /**
@@ -139,6 +140,24 @@ export function useStreaming() {
               }
             }
           }
+        }
+        // Handle control_request (permission prompt)
+        else if (payload.type === "control_request") {
+          const controlReq = payload as ControlRequest;
+
+          // Add to permission store
+          const permStore = usePermissionStore.getState();
+          permStore.addRequest(controlReq);
+
+          // Add a system message to chat with the permission request
+          const permMsg: Message = {
+            id: `perm-${controlReq.request_id}`,
+            role: "system",
+            content: "",
+            timestamp: Date.now(),
+            permissionRequest: controlReq,
+          };
+          store.addMessage(permMsg);
         }
       });
     };

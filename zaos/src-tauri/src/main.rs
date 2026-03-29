@@ -57,6 +57,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
             commands::interrupt_session,
+            commands::respond_permission,
             commands::validate_gate,
             commands::set_mode,
             commands::get_workflow_state,

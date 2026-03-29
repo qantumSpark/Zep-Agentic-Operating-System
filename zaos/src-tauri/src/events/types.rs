@@ -228,12 +228,22 @@ pub struct ResultEvent {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ControlRequest {
-    pub id: String,
-    pub tool: String,
-    pub input: Value,
-    pub message: String,
-    pub session_id: String,
-    pub uuid: String,
+    pub request_id: String,
+    #[serde(default)]
+    pub tool: Option<String>,
+    #[serde(default)]
+    pub input: Option<Value>,
+    #[serde(default)]
+    pub message: Option<String>,
+    #[serde(default)]
+    pub session_id: Option<String>,
+    #[serde(default)]
+    pub uuid: Option<String>,
+    #[serde(default)]
+    pub subtype: Option<String>,
+    /// Catch any extra fields we don't know about yet
+    #[serde(flatten)]
+    pub extra: Value,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

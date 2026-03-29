@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
-> Derniere mise a jour : 2026-03-29
-> Statut global : **Phase 1 en cours** — Backend Rust complet, Frontend React en place, integration partielle
+> Derniere mise a jour : 2026-03-30
+> Statut global : **Phase 1 en cours** — Backend Rust complet, Frontend React en place, interactive permissions working
 
 ---
 
@@ -28,8 +28,9 @@
 - [x] Commandes IPC — send_prompt, validate_gate, set_mode, get_workflow_state, check_cli_auth
 - [x] AppState thread-safe (Arc<Mutex<>>)
 - [x] Tracing/logging configure
-- [ ] Ajouter `--include-partial-messages` au spawn CLI
-- [~] interrupt_session — commande existe mais n'envoie pas de signal au process
+- [x] Ajouter `--include-partial-messages` au spawn CLI
+- [x] interrupt_session — real implementation via stdin signal to long-lived CLI process
+- [x] Long-lived CLI process model with stdin communication (`--permission-prompt-tool stdio`)
 - [~] list_sessions — retourne toujours Vec vide
 
 ### 1.2 Frontend React
@@ -49,7 +50,7 @@
 - [x] WorkflowSection — affiche epic/phase/task, boutons validate_gate et set_mode
 - [x] CollapsibleSection — expand/collapse avec animation
 - [x] DashboardPanel — layout avec toutes les sections
-- [ ] Afficher les tool_use blocks dans le chat (Read, Write, Bash, etc.)
+- [x] Afficher les tool_use blocks dans le chat (Read, Write, Bash, etc.)
 - [ ] Brancher ThinkingIndicator dans ChatPanel (composant existe mais pas importe)
 - [ ] Nourrir actionsStore depuis les tool_use events
 - [~] AgentsSection — liste hardcodee, pas de tracking reel
@@ -68,7 +69,7 @@
 - [x] check_cli_auth : disponible (pas appele au startup)
 - [ ] Appeler check_cli_auth au demarrage et afficher le statut
 - [ ] Forwarder les tool_use events vers actionsStore
-- [ ] Implementer interrupt reel (kill process CLI)
+- [x] Implementer interrupt reel (signal via stdin to long-lived CLI process)
 
 ---
 
@@ -155,12 +156,12 @@
 
 | Phase | Total | Done | Stub | TODO | % |
 |-------|-------|------|------|------|---|
-| 1.1 Backend Rust | 13 | 10 | 2 | 1 | 77% |
-| 1.2 Frontend React | 21 | 14 | 4 | 3 | 67% |
-| 1.3 Integration | 7 | 4 | 0 | 3 | 57% |
-| **Phase 1 Total** | **41** | **28** | **6** | **7** | **68%** |
+| 1.1 Backend Rust | 15 | 13 | 1 | 0 | 87% |
+| 1.2 Frontend React | 24 | 16 | 4 | 4 | 67% |
+| 1.3 Integration | 8 | 6 | 0 | 2 | 75% |
+| **Phase 1 Total** | **47** | **35** | **5** | **6** | **74%** |
 | Phase 2 | 13 | 0 | 0 | 13 | 0% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **76** | **28** | **6** | **42** | **37%** |
+| **Total** | **82** | **35** | **5** | **41** | **43%** |

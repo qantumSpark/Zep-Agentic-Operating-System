@@ -255,20 +255,33 @@ export interface ModelUsageDetail {
 // Control Request/Response (permission prompt)
 // ============================================================================
 
+export interface ControlRequestPayload {
+  tool_name?: string;
+  input?: Record<string, unknown>;
+  description?: string;
+  [key: string]: unknown;
+}
+
 export interface ControlRequest {
   type: "control_request";
-  id: string;
-  tool: string;
-  input: Record<string, unknown>;
-  message: string;
-  session_id: string;
-  uuid: string;
+  request_id: string;
+  subtype?: string;
+  request?: ControlRequestPayload;
+  // Convenience accessors (may be null — use request.* instead)
+  tool?: string;
+  input?: Record<string, unknown>;
+  message?: string;
+  session_id?: string;
+  uuid?: string;
+  [key: string]: unknown;
 }
 
 export interface ControlResponse {
   type: "control_response";
-  id: string;
-  permission: "allow" | "deny";
+  response: {
+    request_id: string;
+    permission: "allow" | "deny";
+  };
 }
 
 // ============================================================================

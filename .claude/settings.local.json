@@ -10,7 +10,10 @@
       "Read(//c/Users/apeze/.vscode-insiders/**)",
       "WebSearch",
       "Bash(grep -oE '.{0,400}permission-prompt-tool.{0,400}' extension.js)",
-      "Bash(cargo build:*)"
+      "Bash(cargo build:*)",
+      "Bash(cargo test:*)",
+      "Bash(cargo check:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }

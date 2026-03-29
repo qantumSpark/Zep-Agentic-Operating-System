@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "./CodeBlock";
 import { ToolUseBlock, ToolResultBlock } from "./ToolUseBlock";
+import { PermissionRequestBlock } from "./PermissionRequestBlock";
 import type { Message } from "../../types/events";
 
 interface MessageBubbleProps {
@@ -65,8 +66,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
+        {/* Permission request block */}
+        {message.permissionRequest && (
+          <PermissionRequestBlock request={message.permissionRequest} />
+        )}
+
         {/* Regular text content */}
-        {message.content && !message.toolUse && !message.toolResult && !message.thinking && (
+        {message.content && !message.toolUse && !message.toolResult && !message.thinking && !message.permissionRequest && (
           isAssistant ? (
             <div className="prose prose-invert prose-sm max-w-none">
               <ReactMarkdown
