@@ -8,19 +8,20 @@
 | # | Milestone | Statut | Epics |
 |---|---|---|---|
 | 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
-| 2 | Dashboard temps reel | EN COURS | Stream A (4/4), Stream B (8/8), Stream C (0/4) |
+| 2 | Dashboard temps reel | TERMINE | Stream A (4/4), Stream B (8/8), Stream C (4/4) + trace reference |
 | 3 | Screenshots & visuels | Non commence | Screenshot manager, Gallery, GoPeak |
 | 4 | MCP Server zaos-ide | Non commence | Serveur local, Tools, .mcp.json |
 | 5 | UX Polish | Non commence | Sessions, Metriques, Notifications |
 
 ## Epic active
 
-Phase 2 — Dashboard Temps Reel EN COURS (13/17 taches — Streams A+B termines)
+Phase 2 — Dashboard Temps Reel TERMINEE (17/17 taches)
 
 ## Ce qui est fait
 
 - **Stream A (File Watchers + Pipeline) TERMINE** : FileWatcherService (notify, debounce 300ms), workflow-change emit, pipelineProgress live
 - **Stream B (Memory Reader) TERMINE** : Parsers (INDEX.md, state.md, current-epic.md, 34 tests), get_memory_state IPC, memoryStore, MemorySection dashboard, memory-change watcher
+- **Stream C (Agents Tracking) TERMINE** : agentsStore, delegation detection (Agent tool_use), AgentsSection live, trace reference
 - Infrastructure : init.rs (ensure project dirs), Vite ignore .workflow/.memory, project_dir fix
 
 ## Bugs connus
@@ -45,4 +46,5 @@ Aucun
 
 ## Prochaines priorites
 
-1. Stream C : Agents tracking (tasks 13-15, 17)
+1. Phase 2 TERMINEE — toutes les taches validees
+2. Demarrer Phase 3 : Screenshots & visuels

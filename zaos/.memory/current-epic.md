@@ -2,7 +2,7 @@
 
 > Milestone : 2 — Dashboard temps reel
 > Date de debut : 2026-03-30
-> Statut : EN COURS
+> Statut : TERMINEE
 
 ## Objectif
 
@@ -28,7 +28,7 @@ Rendre le dashboard ZAOS vivant : remplacer toutes les donnees statiques/hardcod
 | 14 | Detecter delegation agent dans useStreaming (tool_use "Agent" + parent_tool_use_id) | `useStreaming.ts` | VALIDATED | system/init → setAvailableAgents, tool_use Agent → addDelegation, tool_result → completeDelegation |
 | 15 | Remplacer AgentsSection hardcodee par donnees live agentsStore | `AgentsSection.tsx` | VALIDATED | Live agents list, delegation history, status badges, duration |
 | 16 | Appeler get_memory_state au startup pour etat initial | `App.tsx` | VALIDATED | invoke("get_memory_state") → memoryStore.setMemoryState |
-| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | A FAIRE | Test manuel a faire par utilisateur : lancer app, declencher delegation, sauver trace |
+| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | VALIDATED | trace-agent-delegation.jsonl — Agent tool_use avec subagent_type general-purpose |
 
 ## Streams de travail
 
