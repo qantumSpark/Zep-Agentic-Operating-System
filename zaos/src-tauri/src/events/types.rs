@@ -190,6 +190,8 @@ pub enum UserContentBlock {
     ToolResult {
         tool_use_id: String,
         content: serde_json::Value,
+        #[serde(default)]
+        is_error: Option<bool>,
     },
 
     #[serde(rename = "text")]

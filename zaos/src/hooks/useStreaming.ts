@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, ControlRequest, Message } from "../types/events";
+import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, ControlRequest, SystemEvent, Message } from "../types/events";
 import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
 import { usePermissionStore } from "../stores/permissionStore";
@@ -23,8 +23,18 @@ export function useStreaming() {
       unlistener = await listen<CliEvent>("agent-event", (event) => {
         const store = useChatStore.getState();
         const payload = event.payload;
+        // Handle system init — clear actions for new session
+        if (payload.type === "system") {
+          const systemEvent = payload as SystemEvent;
+          if (systemEvent.subtype === "init") {
+            const actionsStore = useActionsStore.getState();
+            actionsStore.clearActions();
+            seenMessageIds.clear();
+            seenBlockIds.clear();
+          }
+        }
         // Handle stream events (deltas)
-        if (payload.type === "stream_event") {
+        else if (payload.type === "stream_event") {
           const streamEvent = payload as StreamDeltaEvent;
           const innerEvent = streamEvent.event;
 
@@ -116,12 +126,19 @@ export function useStreaming() {
           if (userMsg.content) {
             for (const block of userMsg.content) {
               if (block.type === "tool_result") {
-                // Update action status
+                const contentStr = typeof block.content === "string"
+                  ? block.content
+                  : JSON.stringify(block.content);
+                const isError = block.is_error === true
+                  || /^(Error|error|ERROR)[:\s]/.test(contentStr)
+                  || /^(?:ENOENT|EACCES|EPERM|EISDIR)\b/.test(contentStr);
+
+                // Update action status + result preview
                 const actionsStore = useActionsStore.getState();
-                actionsStore.updateActionStatus(
-                  block.tool_use_id,
-                  "success"
-                );
+                actionsStore.updateAction(block.tool_use_id, {
+                  status: isError ? "error" : "success",
+                  resultPreview: contentStr.slice(0, 200),
+                });
 
                 // Add tool result message to chat
                 const resultMsg: Message = {
@@ -131,10 +148,8 @@ export function useStreaming() {
                   timestamp: Date.now(),
                   toolResult: {
                     toolUseId: block.tool_use_id,
-                    content: typeof block.content === "string"
-                      ? block.content.slice(0, 500)
-                      : JSON.stringify(block.content).slice(0, 500),
-                    isError: false,
+                    content: contentStr.slice(0, 500),
+                    isError,
                   },
                 };
                 store.addMessage(resultMsg);

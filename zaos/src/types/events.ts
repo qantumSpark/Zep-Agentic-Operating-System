@@ -202,6 +202,7 @@ export interface UserToolResultBlock {
   type: "tool_result";
   tool_use_id: string;
   content: string;
+  is_error?: boolean;
 }
 
 export interface UserTextBlock {
@@ -344,4 +345,5 @@ export interface Action {
   timestamp: number;
   status: "pending" | "running" | "success" | "error";
   details?: Record<string, unknown>;
+  resultPreview?: string;
 }

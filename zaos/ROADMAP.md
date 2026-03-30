@@ -52,10 +52,10 @@
 - [x] DashboardPanel — layout avec toutes les sections
 - [x] Afficher les tool_use blocks dans le chat (Read, Write, Bash, etc.)
 - [ ] Brancher ThinkingIndicator dans ChatPanel (composant existe mais pas importe)
-- [ ] Nourrir actionsStore depuis les tool_use events
+- [x] Nourrir actionsStore depuis les tool_use events
 - [~] AgentsSection — liste hardcodee, pas de tracking reel
 - [~] ScreenshotGallery — array toujours vide
-- [~] ActionsFeed — store jamais nourri, feed toujours vide
+- [x] ActionsFeed — live avec icones, animation running, error detection, result preview
 - [~] PipelineSection — lit le store mais pipelineProgress vide sans events backend
 - [ ] Syntax highlighting reel (prism.js ou shiki)
 - [ ] Bouton copy-to-clipboard sur CodeBlock
@@ -68,7 +68,7 @@
 - [x] get_workflow_state : useTauriEvents → Rust → state.json
 - [x] check_cli_auth : disponible (pas appele au startup)
 - [ ] Appeler check_cli_auth au demarrage et afficher le statut
-- [ ] Forwarder les tool_use events vers actionsStore
+- [x] Forwarder les tool_use events vers actionsStore
 - [x] Implementer interrupt reel (signal via stdin to long-lived CLI process)
 
 ---
@@ -77,10 +77,10 @@
 
 ### 2.1 Actions Feed vivant
 
-- [ ] Parser les tool_use content blocks depuis les assistant events
-- [ ] Mapper tool_use → action (nom, input, status, duree)
-- [ ] Parser les user/tool_result events pour le status (success/error)
-- [ ] Afficher dans ActionsFeed avec icones par type (Read, Write, Bash, Glob, etc.)
+- [x] Parser les tool_use content blocks depuis les assistant events
+- [x] Mapper tool_use → action (nom, input, status, duree)
+- [x] Parser les user/tool_result events pour le status (success/error)
+- [x] Afficher dans ActionsFeed avec icones par type (Read, Write, Bash, Glob, etc.)
 
 ### 2.2 Agents tracking
 
@@ -157,11 +157,11 @@
 | Phase | Total | Done | Stub | TODO | % |
 |-------|-------|------|------|------|---|
 | 1.1 Backend Rust | 15 | 13 | 1 | 0 | 87% |
-| 1.2 Frontend React | 24 | 16 | 4 | 4 | 67% |
-| 1.3 Integration | 8 | 6 | 0 | 2 | 75% |
-| **Phase 1 Total** | **47** | **35** | **5** | **6** | **74%** |
-| Phase 2 | 13 | 0 | 0 | 13 | 0% |
+| 1.2 Frontend React | 24 | 18 | 3 | 3 | 75% |
+| 1.3 Integration | 8 | 7 | 0 | 1 | 88% |
+| **Phase 1 Total** | **47** | **38** | **3** | **5** | **81%** |
+| Phase 2 | 13 | 4 | 0 | 9 | 31% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **82** | **35** | **5** | **41** | **43%** |
+| **Total** | **82** | **42** | **3** | **37** | **51%** |

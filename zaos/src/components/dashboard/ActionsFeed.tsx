@@ -14,11 +14,16 @@ const TOOL_ICONS: Record<string, string> = {
   Task: "💬",
 };
 
-const STATUS_ICONS: Record<string, string> = {
-  success: "✅",
-  error: "❌",
-  running: "🔄",
-};
+function StatusIndicator({ status }: { status: string }) {
+  if (status === "running") {
+    return (
+      <span className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
+    );
+  }
+  if (status === "success") return <span>✅</span>;
+  if (status === "error") return <span>❌</span>;
+  return <span>⏳</span>;
+}
 
 export function ActionsFeed() {
   const actions = useActionsStore((state) => state.actions);
@@ -31,7 +36,11 @@ export function ActionsFeed() {
         [...actions].reverse().map((action) => (
           <div
             key={action.id}
-            className="flex items-start gap-2 p-2 bg-zinc-800/30 rounded hover:bg-zinc-800/50 transition-colors text-xs"
+            className={`flex items-start gap-2 p-2 rounded transition-colors text-xs ${
+              action.status === "running"
+                ? "bg-blue-500/10 ring-1 ring-blue-500/30"
+                : "bg-zinc-800/30 hover:bg-zinc-800/50"
+            }`}
           >
             <span className="flex-shrink-0 mt-0.5">
               {TOOL_ICONS[action.tool] || "🔧"}
@@ -41,8 +50,13 @@ export function ActionsFeed() {
                 <span className="font-medium text-zinc-200 truncate">
                   {action.summary}
                 </span>
-                <span>{STATUS_ICONS[action.status] || "⏳"}</span>
+                <StatusIndicator status={action.status} />
               </div>
+              {action.resultPreview && (
+                <div className="text-zinc-400 mt-0.5 truncate">
+                  {action.resultPreview}
+                </div>
+              )}
               <div className="text-zinc-500 mt-0.5">
                 {new Date(action.timestamp).toLocaleTimeString()}
               </div>
