@@ -1,5 +1,5 @@
 use crate::events::CliEvent;
-use crate::session::SessionManager;
+use crate::session::{CliSession, SessionManager};
 use crate::workflow::{WorkflowEngine, WorkflowMode};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -73,7 +73,7 @@ pub struct CheckAuthResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListSessionsResponse {
-    pub sessions: Vec<String>,
+    pub sessions: Vec<CliSession>,
 }
 
 // =============================================================================

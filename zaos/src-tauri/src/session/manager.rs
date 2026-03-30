@@ -29,6 +29,23 @@ pub struct SessionInfo {
     pub project_dir: PathBuf,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CliSession {
+    pub session_id: String,
+    pub first_prompt: Option<String>,
+    pub last_prompt: Option<String>,
+    pub timestamp: Option<String>,
+    pub last_modified: Option<String>,
+}
+
+fn encode_project_path(path: &std::path::Path) -> String {
+    let s = path.to_string_lossy();
+    s.replace('\\', "-")
+        .replace('/', "-")
+        .replace(':', "-")
+        .replace(' ', "-")
+}
+
 /// Manages the lifecycle of a long-lived Claude Code CLI subprocess.
 /// The CLI is spawned once via `start_session`, then user messages and
 /// permission responses are sent through stdin as stream-json JSONL.
@@ -268,10 +285,104 @@ impl SessionManager {
         Ok(())
     }
 
-    /// List available sessions (placeholder)
-    pub async fn list_sessions(&self) -> Result<Vec<String>> {
-        tracing::debug!("list_sessions called");
-        Ok(Vec::new())
+    /// List available sessions from Claude CLI session files on disk
+    pub async fn list_sessions(&self) -> Result<Vec<CliSession>> {
+        let home = dirs::home_dir().ok_or_else(|| {
+            SessionError::ParseError("Could not find home directory".to_string())
+        })?;
+
+        let encoded = encode_project_path(&self.project_dir);
+        let sessions_dir = home.join(".claude").join("projects").join(&encoded);
+
+        if !sessions_dir.exists() {
+            tracing::debug!("Sessions dir does not exist: {:?}", sessions_dir);
+            return Ok(Vec::new());
+        }
+
+        let mut sessions = Vec::new();
+
+        let entries = std::fs::read_dir(&sessions_dir).map_err(|e| {
+            tracing::warn!("Failed to read sessions dir: {}", e);
+            SessionError::Io(e)
+        })?;
+
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+            let path = entry.path();
+
+            // Only process .jsonl files (not directories)
+            if path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+                continue;
+            }
+
+            let session_id = match path.file_stem().and_then(|s| s.to_str()) {
+                Some(s) => s.to_string(),
+                None => continue,
+            };
+
+            // Read first and last lines for metadata
+            let content = match std::fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(e) => {
+                    tracing::warn!("Failed to read session file {:?}: {}", path, e);
+                    continue;
+                }
+            };
+
+            let lines: Vec<&str> = content.lines().collect();
+            if lines.is_empty() {
+                continue;
+            }
+
+            let mut first_prompt = None;
+            let mut timestamp = None;
+            let mut last_prompt = None;
+
+            // Parse first line for timestamp and first prompt
+            if let Ok(first) = serde_json::from_str::<serde_json::Value>(lines[0]) {
+                if first.get("type").and_then(|t| t.as_str()) == Some("queue-operation") {
+                    timestamp = first.get("timestamp").and_then(|t| t.as_str()).map(|s| s.to_string());
+                    first_prompt = first.get("content").and_then(|c| c.as_str()).map(|s| {
+                        if s.len() > 100 { format!("{}...", &s[..100]) } else { s.to_string() }
+                    });
+                }
+            }
+
+            // Parse last line for last prompt
+            if let Ok(last) = serde_json::from_str::<serde_json::Value>(lines[lines.len() - 1]) {
+                if last.get("type").and_then(|t| t.as_str()) == Some("last-prompt") {
+                    last_prompt = last.get("lastPrompt").and_then(|c| c.as_str()).map(|s| {
+                        if s.len() > 100 { format!("{}...", &s[..100]) } else { s.to_string() }
+                    });
+                }
+            }
+
+            // Get file modification time
+            let last_modified = std::fs::metadata(&path)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .map(|t| {
+                    let datetime: chrono::DateTime<chrono::Utc> = t.into();
+                    datetime.to_rfc3339()
+                });
+
+            sessions.push(CliSession {
+                session_id,
+                first_prompt,
+                last_prompt,
+                timestamp,
+                last_modified,
+            });
+        }
+
+        // Sort by last_modified descending (most recent first)
+        sessions.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
+
+        tracing::info!("Found {} sessions", sessions.len());
+        Ok(sessions)
     }
 }
 

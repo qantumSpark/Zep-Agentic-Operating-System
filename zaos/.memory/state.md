@@ -7,7 +7,7 @@
 
 | # | Milestone | Statut | Epics |
 |---|---|---|---|
-| 1 | Chat fonctionnel avec Claude Code CLI | En cours | Chat complet (VALIDATED), Interactive Permissions (VALIDATED) |
+| 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
 | 2 | Dashboard temps reel | Non commence | Actions feed, Agents, Pipeline, Memory |
 | 3 | Screenshots & visuels | Non commence | Screenshot manager, Gallery, GoPeak |
 | 4 | MCP Server zaos-ide | Non commence | Serveur local, Tools, .mcp.json |
@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Phase 1 — Finition (6 taches, Task 1-5 VALIDATED + 3 bugs fixes VALIDATED, 1 tache restante)
+Phase 1 — Finition TERMINEE (6/6 taches VALIDATED + 3 bugs fixes VALIDATED)
 
 ## Ce qui est fait
 
@@ -42,5 +42,5 @@ Aucun
 
 ## Prochaines priorites
 
-1. Finir Phase 1 : 1 tache restante (list_sessions)
-2. Puis demarrer Phase 2 : dashboard temps reel
+1. Phase 1 TERMINEE — toutes les taches validees
+2. Demarrer Phase 2 : dashboard temps reel

@@ -2,7 +2,7 @@
 
 > Milestone : 1 — Chat fonctionnel avec Claude Code CLI
 > Date de debut : 2026-03-30
-> Statut : EN COURS
+> Statut : TERMINEE
 
 ## Objectif
 
@@ -17,7 +17,7 @@ Boucler tous les items restants de la Phase 1 avant de passer a la Phase 2 (Dash
 | 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx`, `sessionStore.ts`, `StatusBar.tsx` | VALIDATED | Dot vert + tooltip version au startup |
 | 4 | Syntax highlighting reel sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | prism-react-renderer v2, vsDark theme, GDScript→Python alias |
 | 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | group-hover fade-in, SVG icons, 2s checkmark feedback |
-| 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | a faire | Actuellement retourne Vec vide |
+| 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | VALIDATED | Lit ~/.claude/projects/<encoded>/*.jsonl, parse metadata, tri par date |
 
 ## Bugs fixes en cours de route
 

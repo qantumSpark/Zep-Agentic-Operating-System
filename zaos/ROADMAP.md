@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-30
-> Statut global : **Phase 1 en cours** — Backend Rust complet, Frontend React en place, interactive permissions working
+> Statut global : **Phase 1 TERMINEE** — Chat fonctionnel complet, prêt pour Phase 2 (Dashboard temps réel)
 
 ---
 
@@ -31,7 +31,7 @@
 - [x] Ajouter `--include-partial-messages` au spawn CLI
 - [x] interrupt_session — real implementation via stdin signal to long-lived CLI process
 - [x] Long-lived CLI process model with stdin communication (`--permission-prompt-tool stdio`)
-- [~] list_sessions — retourne toujours Vec vide
+- [x] list_sessions — lit les sessions depuis ~/.claude/projects/ avec metadata
 
 ### 1.2 Frontend React
 
@@ -156,12 +156,12 @@
 
 | Phase | Total | Done | Stub | TODO | % |
 |-------|-------|------|------|------|---|
-| 1.1 Backend Rust | 15 | 13 | 1 | 0 | 87% |
+| 1.1 Backend Rust | 15 | 14 | 0 | 0 | 93% |
 | 1.2 Frontend React | 24 | 21 | 3 | 0 | 88% |
 | 1.3 Integration | 8 | 8 | 0 | 0 | 100% |
-| **Phase 1 Total** | **47** | **42** | **3** | **1** | **89%** |
+| **Phase 1 Total** | **47** | **43** | **3** | **0** | **91%** |
 | Phase 2 | 13 | 4 | 0 | 9 | 31% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **82** | **46** | **3** | **33** | **56%** |
+| **Total** | **82** | **47** | **3** | **32** | **57%** |
