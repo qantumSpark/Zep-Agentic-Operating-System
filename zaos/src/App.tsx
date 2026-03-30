@@ -24,7 +24,6 @@ export function App() {
       try {
         const result = await invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth");
         useSessionStore.getState().setCliAuth(result.authenticated, result.version, result.message);
-        useSessionStore.getState().updateConnections({ cli: result.authenticated });
       } catch (err) {
         console.error("check_cli_auth failed:", err);
         useSessionStore.getState().setCliAuth(false, "", "CLI check failed");

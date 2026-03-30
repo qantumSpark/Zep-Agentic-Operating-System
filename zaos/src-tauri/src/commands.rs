@@ -93,7 +93,7 @@ pub async fn send_prompt(
 
     let session_manager = state.session_manager.clone();
 
-    // Start session if not already running
+    // Single lock scope: start session if needed, then send message
     {
         let mut session = session_manager.lock().await;
         if !session.is_session_started() {
@@ -124,17 +124,10 @@ pub async fn send_prompt(
                     }
                 }
 
-                // CLI process exited
-                let mut mgr = sm.lock().await;
-                mgr.set_running(false);
                 tracing::info!("CLI session ended");
             });
         }
-    }
 
-    // Send the message
-    {
-        let mut session = session_manager.lock().await;
         session
             .send_message(&text)
             .await
@@ -241,11 +234,7 @@ pub async fn set_mode(
 pub async fn get_workflow_state(
     state: State<'_, AppState>,
 ) -> Result<WorkflowStateResponse, String> {
-    let mut workflow = state.workflow_engine.lock().await;
-    workflow
-        .load_state()
-        .await
-        .map_err(|e| format!("Failed to load state: {}", e))?;
+    let workflow = state.workflow_engine.lock().await;
     let wf_state = workflow.get_state();
     Ok(WorkflowStateResponse {
         phase: wf_state.phase.clone(),

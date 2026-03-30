@@ -20,11 +20,10 @@ export function WorkflowSection() {
     }
   };
 
-  const toggleMode = async () => {
-    const newMode = mode === "free" ? "pipeline" : "free";
+  const selectMode = async (newMode: "free" | "pipeline") => {
     setMode(newMode);
     try {
-      await invoke("set_workflow_mode", { mode: newMode });
+      await invoke("set_mode", { mode: newMode });
     } catch (error) {
       console.error("Failed to set workflow mode:", error);
     }
@@ -58,7 +57,7 @@ export function WorkflowSection() {
         <label className="text-zinc-400 text-xs uppercase tracking-wide">Mode</label>
         <div className="mt-1 flex gap-2">
           <button
-            onClick={toggleMode}
+            onClick={() => selectMode("free")}
             className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
               mode === "free"
                 ? "bg-blue-600 text-white"
@@ -68,7 +67,7 @@ export function WorkflowSection() {
             Free
           </button>
           <button
-            onClick={toggleMode}
+            onClick={() => selectMode("pipeline")}
             className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
               mode === "pipeline"
                 ? "bg-blue-600 text-white"

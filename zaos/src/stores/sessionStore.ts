@@ -26,7 +26,6 @@ interface SessionStoreState {
   connections: Connections;
 
   // CLI auth
-  cliAuthenticated: boolean;
   cliVersion: string;
   cliAuthMessage: string;
 
@@ -56,7 +55,6 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
     gopeak: false,
     godot: false,
   },
-  cliAuthenticated: false,
   cliVersion: "",
   cliAuthMessage: "",
 
@@ -98,7 +96,11 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
     })),
 
   setCliAuth: (authenticated: boolean, version: string, message: string) =>
-    set({ cliAuthenticated: authenticated, cliVersion: version, cliAuthMessage: message }),
+    set((state) => ({
+      cliVersion: version,
+      cliAuthMessage: message,
+      connections: { ...state.connections, cli: authenticated },
+    })),
 
   resetSession: () =>
     set({

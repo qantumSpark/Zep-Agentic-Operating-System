@@ -209,14 +209,13 @@ pub struct RateLimitEvent {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RateLimitInfo {
     pub status: String, // "allowed", "rate_limited"
-    #[serde(rename = "resetsAt")]
     pub resets_at: u64,
-    #[serde(rename = "rateLimitType")]
     pub rate_limit_type: String,
-    pub overageStatus: Option<String>,
-    pub isUsingOverage: Option<bool>,
+    pub overage_status: Option<String>,
+    pub is_using_overage: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

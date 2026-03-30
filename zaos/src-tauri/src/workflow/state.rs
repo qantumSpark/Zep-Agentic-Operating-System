@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
-use std::collections::HashMap;
+use chrono::Utc;
 
 /// WorkflowState mirrors the schema in .workflow/state.json
 /// Extended with ZAOS-specific fields: history and session info
@@ -22,7 +21,7 @@ pub struct WorkflowState {
     pub session: Option<SessionMetadata>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum WorkflowMode {
     Free,

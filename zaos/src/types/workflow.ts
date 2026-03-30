@@ -63,15 +63,3 @@ export const PHASE_ORDER: Phase[] = [
   Phase.Test,
   Phase.Closure,
 ];
-
-export function phaseIndex(phase: Phase): number {
-  return PHASE_ORDER.indexOf(phase);
-}
-
-export function nextPhase(current: Phase): Phase | null {
-  const idx = phaseIndex(current);
-  if (idx >= 0 && idx < PHASE_ORDER.length - 1) {
-    return PHASE_ORDER[idx + 1];
-  }
-  return null;
-}

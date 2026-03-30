@@ -64,6 +64,13 @@ impl WorkflowEngine {
         Ok(())
     }
 
+    /// Persist state to disk and notify watchers
+    async fn persist_and_notify(&self) -> Result<()> {
+        self.save_state().await?;
+        let _ = self.tx.send(self.current_state.clone());
+        Ok(())
+    }
+
     /// Get current phase
     pub fn get_phase(&self) -> &str {
         &self.current_state.phase
@@ -78,8 +85,7 @@ impl WorkflowEngine {
             Some("manual transition".to_string()),
         );
         self.current_state.phase = new_phase;
-        self.save_state().await?;
-        let _ = self.tx.send(self.current_state.clone());
+        self.persist_and_notify().await?;
         tracing::info!("Phase changed: {} -> {}", old_phase, self.current_state.phase);
         Ok(())
     }
@@ -87,8 +93,7 @@ impl WorkflowEngine {
     /// Validate gate for current phase
     pub async fn validate_gate(&mut self) -> Result<bool> {
         self.current_state.gate_validated = true;
-        self.save_state().await?;
-        let _ = self.tx.send(self.current_state.clone());
+        self.persist_and_notify().await?;
         tracing::info!("Gate validated for phase: {}", self.current_state.phase);
         Ok(true)
     }
@@ -113,9 +118,8 @@ impl WorkflowEngine {
 
     /// Set workflow mode (Free or Pipeline)
     pub async fn set_mode(&mut self, mode: WorkflowMode) -> Result<()> {
-        self.current_state.mode = mode.clone();
-        self.save_state().await?;
-        let _ = self.tx.send(self.current_state.clone());
+        self.current_state.mode = mode;
+        self.persist_and_notify().await?;
         tracing::info!("Workflow mode changed to: {:?}", mode);
         Ok(())
     }
@@ -123,16 +127,14 @@ impl WorkflowEngine {
     /// Set epic
     pub async fn set_epic(&mut self, name: String) -> Result<()> {
         self.current_state.epic = name;
-        self.save_state().await?;
-        let _ = self.tx.send(self.current_state.clone());
+        self.persist_and_notify().await?;
         Ok(())
     }
 
     /// Set task
     pub async fn set_task(&mut self, description: String) -> Result<()> {
         self.current_state.task = description;
-        self.save_state().await?;
-        let _ = self.tx.send(self.current_state.clone());
+        self.persist_and_notify().await?;
         Ok(())
     }
 

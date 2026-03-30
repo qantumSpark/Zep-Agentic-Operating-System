@@ -64,7 +64,7 @@ fn main() {
             commands::check_cli_auth,
             commands::list_sessions,
         ])
-        .setup(|app| {
+        .setup(|_app| {
             tracing::info!("App setup complete");
             Ok(())
         })

@@ -1,18 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useActionsStore } from "../../stores/actionsStore";
-
-const TOOL_ICONS: Record<string, string> = {
-  Read: "🔍",
-  Write: "📂",
-  Edit: "✏️",
-  Bash: "🖥️",
-  Screenshot: "📸",
-  Glob: "🔎",
-  Grep: "🔎",
-  WebSearch: "🌐",
-  WebFetch: "🌐",
-  Task: "💬",
-};
+import { TOOL_ICONS } from "../../utils/toolIcons";
 
 function StatusIndicator({ status }: { status: string }) {
   if (status === "running") {
@@ -27,13 +15,14 @@ function StatusIndicator({ status }: { status: string }) {
 
 export function ActionsFeed() {
   const actions = useActionsStore((state) => state.actions);
+  const reversedActions = useMemo(() => [...actions].reverse(), [actions]);
 
   return (
     <div className="space-y-2 max-h-96 overflow-y-auto">
-      {actions.length === 0 ? (
+      {reversedActions.length === 0 ? (
         <div className="text-zinc-500 text-sm italic">No actions yet</div>
       ) : (
-        [...actions].reverse().map((action) => (
+        reversedActions.map((action) => (
           <div
             key={action.id}
             className={`flex items-start gap-2 p-2 rounded transition-colors text-xs ${

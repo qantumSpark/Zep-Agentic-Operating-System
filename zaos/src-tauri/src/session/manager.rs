@@ -7,6 +7,14 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tokio::sync::broadcast;
 
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() > max_len {
+        format!("{}...", &s[..max_len])
+    } else {
+        s.to_string()
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum SessionError {
     #[error("IO error: {0}")]
@@ -52,7 +60,6 @@ fn encode_project_path(path: &std::path::Path) -> String {
 pub struct SessionManager {
     session_id: Option<String>,
     project_dir: PathBuf,
-    is_running: bool,
     child: Option<tokio::process::Child>,
     stdin: Option<tokio::process::ChildStdin>,
 }
@@ -62,7 +69,6 @@ impl SessionManager {
         SessionManager {
             session_id: None,
             project_dir,
-            is_running: false,
             child: None,
             stdin: None,
         }
@@ -122,7 +128,6 @@ impl SessionManager {
             SessionError::Io(e)
         })?;
         tracing::info!("Claude CLI session started (long-lived)");
-        self.is_running = true;
 
         // Take stdin handle for sending messages
         let stdin = child.stdin.take().ok_or(SessionError::Io(
@@ -159,10 +164,20 @@ impl SessionManager {
         Ok(rx)
     }
 
+    /// Write a JSON value as a single JSONL line to the CLI stdin.
+    async fn write_jsonl(&mut self, value: serde_json::Value) -> Result<()> {
+        let stdin = self.stdin.as_mut().ok_or(SessionError::NotSpawned)?;
+        let mut line = serde_json::to_string(&value).map_err(|e| {
+            SessionError::ParseError(format!("Failed to serialize: {}", e))
+        })?;
+        line.push('\n');
+        stdin.write_all(line.as_bytes()).await.map_err(SessionError::Io)?;
+        stdin.flush().await.map_err(SessionError::Io)?;
+        Ok(())
+    }
+
     /// Send a user message to the long-lived CLI process via stdin.
     pub async fn send_message(&mut self, prompt: &str) -> Result<()> {
-        let stdin = self.stdin.as_mut().ok_or(SessionError::NotSpawned)?;
-
         let mut msg = serde_json::json!({
             "type": "user",
             "message": {
@@ -177,17 +192,7 @@ impl SessionManager {
             msg["session_id"] = serde_json::Value::String(sid.clone());
         }
 
-        let mut line = serde_json::to_string(&msg).map_err(|e| {
-            SessionError::ParseError(format!("Failed to serialize message: {}", e))
-        })?;
-        line.push('\n');
-
-        stdin
-            .write_all(line.as_bytes())
-            .await
-            .map_err(SessionError::Io)?;
-        stdin.flush().await.map_err(SessionError::Io)?;
-
+        self.write_jsonl(msg).await?;
         tracing::info!("Sent user message to CLI");
         Ok(())
     }
@@ -200,8 +205,6 @@ impl SessionManager {
         allow: bool,
         tool_input: Option<serde_json::Value>,
     ) -> Result<()> {
-        let stdin = self.stdin.as_mut().ok_or(SessionError::NotSpawned)?;
-
         let result_json = if allow {
             serde_json::json!({
                 "behavior": "allow",
@@ -223,27 +226,9 @@ impl SessionManager {
             }
         });
 
-        let mut line = serde_json::to_string(&response).map_err(|e| {
-            SessionError::ParseError(format!("Failed to serialize response: {}", e))
-        })?;
-        line.push('\n');
-
-        stdin
-            .write_all(line.as_bytes())
-            .await
-            .map_err(SessionError::Io)?;
-        stdin.flush().await.map_err(SessionError::Io)?;
-
-        tracing::info!("Sent permission response: id={}, allow={}, json={}", id, allow, line.trim());
+        tracing::info!("Sent permission response: id={}, allow={}", id, allow);
+        self.write_jsonl(response).await?;
         Ok(())
-    }
-
-    pub fn set_running(&mut self, running: bool) {
-        self.is_running = running;
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.is_running
     }
 
     /// Whether a long-lived CLI session has been started.
@@ -281,7 +266,6 @@ impl SessionManager {
         }
         self.child = None;
         self.stdin = None;
-        self.is_running = false;
         Ok(())
     }
 
@@ -294,27 +278,25 @@ impl SessionManager {
         let encoded = encode_project_path(&self.project_dir);
         let sessions_dir = home.join(".claude").join("projects").join(&encoded);
 
-        if !sessions_dir.exists() {
-            tracing::debug!("Sessions dir does not exist: {:?}", sessions_dir);
-            return Ok(Vec::new());
-        }
+        let mut read_dir = match tokio::fs::read_dir(&sessions_dir).await {
+            Ok(rd) => rd,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                tracing::debug!("Sessions dir does not exist: {:?}", sessions_dir);
+                return Ok(Vec::new());
+            }
+            Err(e) => {
+                tracing::warn!("Failed to read sessions dir: {}", e);
+                return Err(SessionError::Io(e));
+            }
+        };
 
         let mut sessions = Vec::new();
 
-        let entries = std::fs::read_dir(&sessions_dir).map_err(|e| {
-            tracing::warn!("Failed to read sessions dir: {}", e);
-            SessionError::Io(e)
-        })?;
-
-        for entry in entries {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(_) => continue,
-            };
+        while let Ok(Some(entry)) = read_dir.next_entry().await {
             let path = entry.path();
 
             // Only process .jsonl files (not directories)
-            if path.is_dir() || path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+            if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
                 continue;
             }
 
@@ -323,18 +305,27 @@ impl SessionManager {
                 None => continue,
             };
 
-            // Read first and last lines for metadata
-            let content = match std::fs::read_to_string(&path) {
-                Ok(c) => c,
+            // Read first and last lines using BufReader (avoid loading entire file)
+            let file = match tokio::fs::File::open(&path).await {
+                Ok(f) => f,
                 Err(e) => {
-                    tracing::warn!("Failed to read session file {:?}: {}", path, e);
+                    tracing::warn!("Failed to open session file {:?}: {}", path, e);
                     continue;
                 }
             };
 
-            let lines: Vec<&str> = content.lines().collect();
-            if lines.is_empty() {
-                continue;
+            let reader = tokio::io::BufReader::new(file);
+            let mut lines = reader.lines();
+
+            let first_line = match lines.next_line().await {
+                Ok(Some(line)) => line,
+                _ => continue,
+            };
+
+            // Read remaining lines, keeping only the last
+            let mut last_line = first_line.clone();
+            while let Ok(Some(line)) = lines.next_line().await {
+                last_line = line;
             }
 
             let mut first_prompt = None;
@@ -342,26 +333,23 @@ impl SessionManager {
             let mut last_prompt = None;
 
             // Parse first line for timestamp and first prompt
-            if let Ok(first) = serde_json::from_str::<serde_json::Value>(lines[0]) {
+            if let Ok(first) = serde_json::from_str::<serde_json::Value>(&first_line) {
                 if first.get("type").and_then(|t| t.as_str()) == Some("queue-operation") {
                     timestamp = first.get("timestamp").and_then(|t| t.as_str()).map(|s| s.to_string());
-                    first_prompt = first.get("content").and_then(|c| c.as_str()).map(|s| {
-                        if s.len() > 100 { format!("{}...", &s[..100]) } else { s.to_string() }
-                    });
+                    first_prompt = first.get("content").and_then(|c| c.as_str()).map(|s| truncate_str(s, 100));
                 }
             }
 
             // Parse last line for last prompt
-            if let Ok(last) = serde_json::from_str::<serde_json::Value>(lines[lines.len() - 1]) {
+            if let Ok(last) = serde_json::from_str::<serde_json::Value>(&last_line) {
                 if last.get("type").and_then(|t| t.as_str()) == Some("last-prompt") {
-                    last_prompt = last.get("lastPrompt").and_then(|c| c.as_str()).map(|s| {
-                        if s.len() > 100 { format!("{}...", &s[..100]) } else { s.to_string() }
-                    });
+                    last_prompt = last.get("lastPrompt").and_then(|c| c.as_str()).map(|s| truncate_str(s, 100));
                 }
             }
 
             // Get file modification time
-            let last_modified = std::fs::metadata(&path)
+            let last_modified = tokio::fs::metadata(&path)
+                .await
                 .ok()
                 .and_then(|m| m.modified().ok())
                 .map(|t| {
@@ -393,7 +381,6 @@ mod tests {
     #[test]
     fn test_session_manager_creation() {
         let manager = SessionManager::new(PathBuf::from("/tmp"));
-        assert!(!manager.is_running());
         assert!(!manager.is_session_started());
     }
 }

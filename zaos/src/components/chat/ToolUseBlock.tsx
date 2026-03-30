@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { formatToolSummary } from "../../utils/toolFormatters";
+import { getToolIcon } from "../../utils/toolIcons";
 
 interface ToolUseProps {
   name: string;
@@ -10,22 +11,6 @@ interface ToolUseProps {
 interface ToolResultProps {
   content: string;
   isError?: boolean;
-}
-
-const TOOL_ICONS: Record<string, string> = {
-  Read: "\u{1F4C4}",
-  Write: "\u{270F}\u{FE0F}",
-  Edit: "\u{1F527}",
-  Bash: "\u{1F4BB}",
-  Glob: "\u{1F50D}",
-  Grep: "\u{1F50E}",
-  Agent: "\u{1F916}",
-  WebSearch: "\u{1F310}",
-  WebFetch: "\u{1F310}",
-};
-
-function getToolIcon(name: string): string {
-  return TOOL_ICONS[name] || "\u{2699}\u{FE0F}";
 }
 
 export function ToolUseBlock({ name, input, toolUseId: _toolUseId }: ToolUseProps) {

@@ -6,10 +6,6 @@ interface ActionsStoreState {
 
   // Actions
   addAction: (action: Action) => void;
-  updateActionStatus: (
-    id: string,
-    status: "pending" | "running" | "success" | "error"
-  ) => void;
   updateAction: (id: string, updates: Partial<Action>) => void;
   clearActions: () => void;
 }
@@ -20,16 +16,6 @@ export const useActionsStore = create<ActionsStoreState>((set) => ({
   addAction: (action: Action) =>
     set((state) => ({
       actions: [...state.actions, action],
-    })),
-
-  updateActionStatus: (
-    id: string,
-    status: "pending" | "running" | "success" | "error"
-  ) =>
-    set((state) => ({
-      actions: state.actions.map((action) =>
-        action.id === id ? { ...action, status } : action
-      ),
     })),
 
   updateAction: (id: string, updates: Partial<Action>) =>

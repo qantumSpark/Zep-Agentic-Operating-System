@@ -13,9 +13,13 @@ export function ChatPanel() {
   const isThinking = useChatStore((state) => state.isThinking);
   const streamingText = useChatStore((state) => state.streamingTextBuffer);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRAF = useRef<number>(0);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollRAF.current) cancelAnimationFrame(scrollRAF.current);
+    scrollRAF.current = requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    });
   }, [messages, streamingText]);
 
   return (

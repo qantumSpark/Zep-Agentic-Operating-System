@@ -60,7 +60,7 @@ mod tests {
     fn test_event_deserialization() {
         let json = r#"{"type":"system","subtype":"init","session_id":"test","uuid":"uuid"}"#;
         let event: CliEvent = serde_json::from_str(json).unwrap();
-        matches!(event, CliEvent::System(_));
+        assert!(matches!(event, CliEvent::System(_)));
     }
 
     #[test]

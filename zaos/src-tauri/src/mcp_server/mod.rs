@@ -22,7 +22,7 @@
 
 pub mod server {
     pub fn start_mcp_server() {
-        unimplemented!("Phase 2: MCP server implementation")
+        tracing::warn!("MCP server not yet implemented (Phase 4)");
     }
 }
 

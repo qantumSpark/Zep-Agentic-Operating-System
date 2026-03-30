@@ -6,6 +6,32 @@ import { ToolUseBlock, ToolResultBlock } from "./ToolUseBlock";
 import { PermissionRequestBlock } from "./PermissionRequestBlock";
 import type { Message } from "../../types/events";
 
+const markdownComponents = {
+  code: ({ className, children, ...props }: React.ComponentPropsWithoutRef<'code'>) => {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="bg-zinc-900 px-1 rounded text-blue-300" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <CodeBlock
+        code={String(children).replace(/\n$/, "")}
+        language={className?.replace(/language-/, "") || ""}
+      />
+    );
+  },
+  p: ({ children }: { children?: React.ReactNode }) => <p className="my-1">{children}</p>,
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="list-disc list-inside my-1">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="list-decimal list-inside my-1">{children}</ol>
+  ),
+};
+
 interface MessageBubbleProps {
   message: Message;
 }
@@ -77,31 +103,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             <div className="prose prose-invert prose-sm max-w-none">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
-                components={{
-                  code: ({ className, children, ...props }: any) => {
-                    const isInline = !className;
-                    if (isInline) {
-                      return (
-                        <code className="bg-zinc-900 px-1 rounded text-blue-300" {...props}>
-                          {children}
-                        </code>
-                      );
-                    }
-                    return (
-                      <CodeBlock
-                        code={String(children).replace(/\n$/, "")}
-                        language={className?.replace(/language-/, "") || ""}
-                      />
-                    );
-                  },
-                  p: ({ children }) => <p className="my-1">{children}</p>,
-                  ul: ({ children }) => (
-                    <ul className="list-disc list-inside my-1">{children}</ul>
-                  ),
-                  ol: ({ children }) => (
-                    <ol className="list-decimal list-inside my-1">{children}</ol>
-                  ),
-                }}
+                components={markdownComponents}
               >
                 {message.content}
               </ReactMarkdown>

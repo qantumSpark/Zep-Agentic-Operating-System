@@ -9,19 +9,22 @@ export function StatusBar() {
   const tokens = useSessionStore((state) => state.tokens);
   const duration = useSessionStore((state) => state.duration);
   const connections = useSessionStore((state) => state.connections);
-  const cliAuthenticated = useSessionStore((state) => state.cliAuthenticated);
   const cliVersion = useSessionStore((state) => state.cliVersion);
   const cliAuthMessage = useSessionStore((state) => state.cliAuthMessage);
   const model = useSessionStore((state) => state.model);
+  const startTime = useSessionStore((state) => state.startTime);
   const mode = useWorkflowStore((state) => state.mode);
   const [displayDuration, setDisplayDuration] = useState(duration);
 
   useEffect(() => {
+    setDisplayDuration(duration);
+    if (!startTime) return;
+
     const interval = setInterval(() => {
-      setDisplayDuration((prev) => prev + 1);
+      setDisplayDuration((d) => d + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [duration, startTime]);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -64,7 +67,7 @@ export function StatusBar() {
       <div className="flex items-center gap-3 min-w-0">
         <span>🔗</span>
         <div className="flex gap-1.5">
-          <div title={cliAuthenticated ? "Claude CLI " + cliVersion : cliAuthMessage || "CLI not connected"} className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
+          <div title={connections.cli ? "Claude CLI " + cliVersion : cliAuthMessage || "CLI not connected"} className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
           <div title="GoPeak" className={`w-2 h-2 rounded-full ${connections.gopeak ? "bg-green-500" : "bg-red-500"}`} />
           <div title="Godot" className={`w-2 h-2 rounded-full ${connections.godot ? "bg-green-500" : "bg-red-500"}`} />
         </div>
