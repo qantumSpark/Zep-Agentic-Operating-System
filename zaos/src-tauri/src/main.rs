@@ -8,14 +8,17 @@
 
 mod commands;
 mod events;
+mod init;
 mod memory;
 mod mcp_server;
 mod screenshots;
 mod session;
+mod watchers;
 mod workflow;
 
 use commands::AppState;
 use std::path::PathBuf;
+use tauri::Manager;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
@@ -35,10 +38,9 @@ fn main() {
         .map(PathBuf::from)
         .unwrap_or_else(|_| {
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
-            // If cwd ends with src-tauri, go up two levels (src-tauri → zaos → repo root)
+            // If cwd ends with src-tauri, go up one level (src-tauri → zaos)
             if cwd.ends_with("src-tauri") {
                 cwd.parent()
-                    .and_then(|p| p.parent())
                     .map(|p| p.to_path_buf())
                     .unwrap_or(cwd)
             } else {
@@ -47,6 +49,9 @@ fn main() {
         });
 
     tracing::info!("Project directory: {:?}", project_dir);
+
+    // Ensure .workflow/ and .memory/ directories exist with default files
+    init::ensure_project_dirs(&project_dir);
 
     // Create app state
     let app_state = AppState::new(project_dir);
@@ -61,10 +66,20 @@ fn main() {
             commands::validate_gate,
             commands::set_mode,
             commands::get_workflow_state,
+            commands::get_memory_state,
             commands::check_cli_auth,
             commands::list_sessions,
         ])
-        .setup(|_app| {
+        .setup(|app| {
+            let state = app.state::<AppState>();
+            let watcher = state.watcher_service.clone();
+            let handle = app.handle().clone();
+
+            match watcher.start(handle) {
+                Ok(()) => tracing::info!("FileWatcherService started"),
+                Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
+            }
+
             tracing::info!("App setup complete");
             Ok(())
         })

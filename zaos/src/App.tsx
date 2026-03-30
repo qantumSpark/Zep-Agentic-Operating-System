@@ -7,6 +7,7 @@ import { StatusBar } from "./components/statusbar/StatusBar";
 import { useTauriEvents } from "./hooks/useTauriEvents";
 import { useStreaming } from "./hooks/useStreaming";
 import { useSessionStore } from "./stores/sessionStore";
+import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
 
 /**
  * Main App component
@@ -27,6 +28,12 @@ export function App() {
       } catch (err) {
         console.error("check_cli_auth failed:", err);
         useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
+      }
+      try {
+        const memState = await invoke<MemoryStateResponse>("get_memory_state");
+        useMemoryStore.getState().setMemoryState(memState);
+      } catch (err) {
+        console.error("get_memory_state failed:", err);
       }
     })();
   }, []);

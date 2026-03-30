@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Phase 1 — Finition TERMINEE (6/6 taches VALIDATED + 3 bugs fixes VALIDATED)
+Phase 2 — Dashboard Temps Reel EN COURS (0/17 taches)
 
 ## Ce qui est fait
 
@@ -42,5 +42,6 @@ Aucun
 
 ## Prochaines priorites
 
-1. Phase 1 TERMINEE — toutes les taches validees
-2. Demarrer Phase 2 : dashboard temps reel
+1. Stream A : File Watchers + Pipeline (tasks 1-4)
+2. Stream B : Memory Reader (tasks 5-12, 16)
+3. Stream C : Agents tracking (tasks 13-15, 17)

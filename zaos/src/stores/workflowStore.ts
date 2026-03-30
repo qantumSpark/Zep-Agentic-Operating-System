@@ -1,5 +1,63 @@
 import { create } from "zustand";
-import type { WorkflowState, Epic, WorkflowMode, Phase } from "../types/workflow";
+import type { WorkflowState, Epic, WorkflowMode, Phase, PhaseState } from "../types/workflow";
+import { PHASE_ORDER } from "../types/workflow";
+
+/**
+ * Shape of the backend WorkflowState payload (snake_case from Rust serde).
+ */
+export interface BackendWorkflowPayload {
+  phase: string;
+  epic: string;
+  task: string;
+  mode: WorkflowMode;
+  gate_validated: boolean;
+  last_updated: string;
+  history?: Array<{
+    from_phase: string;
+    to_phase: string;
+    timestamp: string;
+    reason?: string;
+  }>;
+  session?: {
+    session_id: string;
+    started_at: string;
+    updated_at: string;
+    tokens_used: {
+      input: number;
+      output: number;
+      cache_read: number;
+      cache_creation: number;
+    };
+  } | null;
+}
+
+/**
+ * Derive pipeline progress from the current phase.
+ * Phases before the current one are "done", the current is "active",
+ * phases after are "pending". If phase is "idle" or unrecognized, all are "pending".
+ */
+function derivePipelineProgress(
+  currentPhase: string
+): Record<string, PhaseState> {
+  const progress: Record<string, PhaseState> = {};
+  const idx = PHASE_ORDER.indexOf(currentPhase as Phase);
+
+  for (let i = 0; i < PHASE_ORDER.length; i++) {
+    const p = PHASE_ORDER[i];
+    if (idx < 0) {
+      // Unknown phase or idle — everything pending
+      progress[p] = "pending";
+    } else if (i < idx) {
+      progress[p] = "done";
+    } else if (i === idx) {
+      progress[p] = "active";
+    } else {
+      progress[p] = "pending";
+    }
+  }
+
+  return progress;
+}
 
 interface WorkflowStoreState {
   phase: Phase | null;
@@ -7,10 +65,11 @@ interface WorkflowStoreState {
   task: string;
   mode: WorkflowMode;
   gateValidated: boolean;
-  pipelineProgress: Record<string, "idle" | "done" | "active" | "pending">;
+  pipelineProgress: Record<string, PhaseState>;
 
   // Actions
   updateState: (state: Partial<WorkflowState>) => void;
+  setFullState: (payload: BackendWorkflowPayload) => void;
   setPhase: (phase: Phase) => void;
   setEpic: (epic: Epic) => void;
   setTask: (task: string) => void;
@@ -18,7 +77,7 @@ interface WorkflowStoreState {
   validateGate: (validated: boolean) => void;
   updatePipelineProgress: (
     phase: Phase,
-    state: "idle" | "done" | "active" | "pending"
+    state: PhaseState
   ) => void;
   resetWorkflow: () => void;
 }
@@ -40,6 +99,25 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       gateValidated: state.gateValidated,
       pipelineProgress: state.pipelineProgress || {},
     }),
+
+  setFullState: (payload: BackendWorkflowPayload) => {
+    const phase = (payload.phase || "idle") as Phase;
+    const pipelineProgress = derivePipelineProgress(phase);
+
+    // Map backend epic string to Epic object
+    const epic: Epic | null = payload.epic
+      ? { name: payload.epic, description: "", startTime: 0 }
+      : null;
+
+    set({
+      phase,
+      epic,
+      task: payload.task || "",
+      mode: payload.mode || "free",
+      gateValidated: payload.gate_validated ?? false,
+      pipelineProgress,
+    });
+  },
 
   setPhase: (phase: Phase) =>
     set({

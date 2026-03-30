@@ -1,31 +1,40 @@
-# Epic active : Phase 1 — Finition
+# Epic active : Phase 2 — Dashboard Temps Reel
 
-> Milestone : 1 — Chat fonctionnel avec Claude Code CLI
+> Milestone : 2 — Dashboard temps reel
 > Date de debut : 2026-03-30
-> Statut : TERMINEE
+> Statut : EN COURS
 
 ## Objectif
 
-Boucler tous les items restants de la Phase 1 avant de passer a la Phase 2 (Dashboard Temps Reel). Chaque tache est implementee, reviewee et validee par l'utilisateur avant de passer a la suivante.
+Rendre le dashboard ZAOS vivant : remplacer toutes les donnees statiques/hardcodees par des informations temps reel provenant (a) des events CLI deja en place, (b) de file watchers sur `.workflow/state.json` et `.memory/`, et (c) d'une nouvelle commande IPC pour l'etat memoire.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
-|---|---|---|---|---|
-| 1 | Brancher ThinkingIndicator dans ChatPanel | `ChatPanel.tsx`, `useStreaming.ts` | VALIDATED | Fix condition, content_block_start handler, content_block_stop cleanup |
-| 2 | Nourrir actionsStore depuis tool_use events + ActionsFeed vivant | `hooks/useStreaming.ts`, `stores/actionsStore.ts`, `components/dashboard/ActionsFeed.tsx` | VALIDATED | Error detection, clear on init, running animation, result preview, is_error Rust fix |
-| 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx`, `sessionStore.ts`, `StatusBar.tsx` | VALIDATED | Dot vert + tooltip version au startup |
-| 4 | Syntax highlighting reel sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | prism-react-renderer v2, vsDark theme, GDScript→Python alias |
-| 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | group-hover fade-in, SVG icons, 2s checkmark feedback |
-| 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | VALIDATED | Lit ~/.claude/projects/<encoded>/*.jsonl, parse metadata, tri par date |
+|---|------|-----------|--------|-------|
+| 1 | Creer module `watchers/` Rust avec FileWatcherService (notify crate, debounce 300ms) | `watchers/mod.rs`, `watchers/service.rs` | VALIDATED | notify v6, RecommendedWatcher + mpsc bridge, debounce 300ms, Windows path fix |
+| 2 | Enregistrer FileWatcherService dans AppState et spawn au setup Tauri | `commands.rs`, `main.rs` | VALIDATED | Arc<FileWatcherService> dans AppState. start(app_handle) dans setup closure |
+| 3 | Emettre `workflow-change` depuis watcher quand state.json change | `watchers/service.rs` | VALIDATED | tokio::fs::read_to_string → serde parse → app.emit("workflow-change", &state) |
+| 4 | Mettre a jour pipelineProgress dans workflowStore depuis workflow-change | `useTauriEvents.ts`, `workflowStore.ts` | VALIDATED | setFullState() + derivePipelineProgress(). Vite ignore fix |
+| 5 | Implementer read_index() — parser INDEX.md | `memory/reader.rs` | VALIDATED | MemoryIndexEntry/Section structs, section grouping, 12 tests |
+| 6 | Implementer read_state() — parser state.md milestones, epic, blocages | `memory/reader.rs` | VALIDATED | MilestoneEntry, state-machine parser, 12 tests |
+| 7 | Implementer read_current_epic() — parser current-epic.md tasks table | `memory/reader.rs` | VALIDATED | EpicTask/CurrentEpic structs, backtick stripping, 4 tests |
+| 8 | Creer commande IPC get_memory_state | `commands.rs`, `main.rs` | VALIDATED | MemoryStateResponse, graceful degradation, registered in invoke_handler |
+| 9 | Creer memoryStore Zustand | `memoryStore.ts` | VALIDATED | 6 interfaces TS, applyMemoryResponse helper, setMemoryState/updateFromWatcher/reset |
+| 10 | Emettre memory-change depuis watcher quand .memory/ change | `watchers/service.rs` | VALIDATED | MemoryReader + MemoryStateResponse, graceful error handling |
+| 11 | Ajouter listener memory-change dans useTauriEvents | `useTauriEvents.ts` | VALIDATED | Same pattern as workflow-change → memoryStore.updateFromWatcher |
+| 12 | Creer MemorySection.tsx dans le dashboard | `MemorySection.tsx`, `DashboardPanel.tsx` | VALIDATED | Milestones, epic, tasks table, blocages avec StatusBadge |
+| 13 | Creer agentsStore Zustand | `agentsStore.ts` | A FAIRE | availableAgents, activeAgent, delegations. Actions: setAvailableAgents, addDelegation |
+| 14 | Detecter delegation agent dans useStreaming (tool_use "Task" + parent_tool_use_id) | `useStreaming.ts` | A FAIRE | system/init → availableAgents. tool_use Task → addDelegation |
+| 15 | Remplacer AgentsSection hardcodee par donnees live agentsStore | `AgentsSection.tsx` | A FAIRE | Map availableAgents, highlight actif, historique delegations |
+| 16 | Appeler get_memory_state au startup pour etat initial | `App.tsx` | VALIDATED | invoke("get_memory_state") → memoryStore.setMemoryState |
+| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | A FAIRE | Test manuel, sauver trace, verifier parent_tool_use_id |
 
-## Bugs fixes en cours de route
+## Streams de travail
 
-| Bug | Fichier(s) | Statut | Notes |
-|---|---|---|---|
-| Parse error `missing field tool_use_id` | `types.rs`, `events.ts`, `useStreaming.ts` | VALIDATED | UserContentBlock enum (Rust + TS) |
-| Text duplication pendant streaming | `useStreaming.ts` | VALIDATED | seenBlockIds + addMessage/updateMessage pattern |
-| Message disparait apres streaming | `useStreaming.ts` | VALIDATED | Supprime branchement isUpdate pour text blocks |
+- **Stream A (Watchers + Pipeline):** 1 → 2 → 3 → 4
+- **Stream B (Memory):** 5,6,7 (parallel) → 8 + 9 (parallel) → 10 → 11 → 12 + 16
+- **Stream C (Agents):** 13 → 14 → 15 + 17
 
 ## Workflow par tache
 

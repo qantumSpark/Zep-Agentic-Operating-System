@@ -2,6 +2,7 @@ import React from "react";
 import { CollapsibleSection } from "../common/CollapsibleSection";
 import { WorkflowSection } from "./WorkflowSection";
 import { PipelineSection } from "./PipelineSection";
+import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
 import { AgentsSection } from "./AgentsSection";
 import { ScreenshotGallery } from "./ScreenshotGallery";
@@ -18,6 +19,10 @@ export function DashboardPanel() {
 
       <CollapsibleSection title="Pipeline" defaultOpen={true}>
         <PipelineSection />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Memory" defaultOpen={true}>
+        <MemorySection />
       </CollapsibleSection>
 
       <CollapsibleSection title="Actions (live)" defaultOpen={true}>
