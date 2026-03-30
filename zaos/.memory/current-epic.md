@@ -16,7 +16,7 @@ Boucler tous les items restants de la Phase 1 avant de passer a la Phase 2 (Dash
 | 2 | Nourrir actionsStore depuis tool_use events + ActionsFeed vivant | `hooks/useStreaming.ts`, `stores/actionsStore.ts`, `components/dashboard/ActionsFeed.tsx` | VALIDATED | Error detection, clear on init, running animation, result preview, is_error Rust fix |
 | 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx`, `sessionStore.ts`, `StatusBar.tsx` | VALIDATED | Dot vert + tooltip version au startup |
 | 4 | Syntax highlighting reel sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | prism-react-renderer v2, vsDark theme, GDScript→Python alias |
-| 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | a faire | |
+| 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | VALIDATED | group-hover fade-in, SVG icons, 2s checkmark feedback |
 | 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | a faire | Actuellement retourne Vec vide |
 
 ## Bugs fixes en cours de route

@@ -58,7 +58,7 @@
 - [x] ActionsFeed — live avec icones, animation running, error detection, result preview
 - [~] PipelineSection — lit le store mais pipelineProgress vide sans events backend
 - [x] Syntax highlighting reel (prism-react-renderer v2, vsDark theme, language aliases)
-- [ ] Bouton copy-to-clipboard sur CodeBlock
+- [x] Bouton copy-to-clipboard sur CodeBlock
 
 ### 1.3 Integration Frontend <-> Backend
 
@@ -157,11 +157,11 @@
 | Phase | Total | Done | Stub | TODO | % |
 |-------|-------|------|------|------|---|
 | 1.1 Backend Rust | 15 | 13 | 1 | 0 | 87% |
-| 1.2 Frontend React | 24 | 20 | 3 | 1 | 83% |
+| 1.2 Frontend React | 24 | 21 | 3 | 0 | 88% |
 | 1.3 Integration | 8 | 8 | 0 | 0 | 100% |
-| **Phase 1 Total** | **47** | **41** | **3** | **2** | **87%** |
+| **Phase 1 Total** | **47** | **42** | **3** | **1** | **89%** |
 | Phase 2 | 13 | 4 | 0 | 9 | 31% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **82** | **45** | **3** | **34** | **55%** |
+| **Total** | **82** | **46** | **3** | **33** | **56%** |

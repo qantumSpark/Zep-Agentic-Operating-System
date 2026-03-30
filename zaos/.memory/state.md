@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Phase 1 — Finition (6 taches, Task 1-4 VALIDATED + 3 bugs fixes VALIDATED, 2 taches restantes)
+Phase 1 — Finition (6 taches, Task 1-5 VALIDATED + 3 bugs fixes VALIDATED, 1 tache restante)
 
 ## Ce qui est fait
 
@@ -42,5 +42,5 @@ Aucun
 
 ## Prochaines priorites
 
-1. Finir Phase 1 : 2 taches restantes (copy-to-clipboard, list_sessions)
+1. Finir Phase 1 : 1 tache restante (list_sessions)
 2. Puis demarrer Phase 2 : dashboard temps reel
