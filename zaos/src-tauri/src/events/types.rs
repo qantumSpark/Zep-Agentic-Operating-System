@@ -180,15 +180,23 @@ pub struct UserEvent {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct UserMessage {
     pub role: String,
-    pub content: Vec<ToolResultBlock>,
+    pub content: Vec<UserContentBlock>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ToolResultBlock {
-    pub tool_use_id: String,
-    #[serde(rename = "type")]
-    pub block_type: String,
-    pub content: String,
+#[serde(tag = "type")]
+pub enum UserContentBlock {
+    #[serde(rename = "tool_result")]
+    ToolResult {
+        tool_use_id: String,
+        content: serde_json::Value,
+    },
+
+    #[serde(rename = "text")]
+    Text { text: String },
+
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

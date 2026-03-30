@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Interactive Permission Approvals — VALIDATED — tested live 2026-03-30 (Approve + Deny flows confirmed, key fix: control_response format with `subtype: "success"` and double-nested `response.response`)
+Phase 1 — Finition (6 taches, Task 1 VALIDATED + 3 bugs fixes VALIDATED, 5 taches restantes)
 
 ## Ce qui est fait
 
@@ -30,11 +30,17 @@ Interactive Permission Approvals — VALIDATED — tested live 2026-03-30 (Appro
 - `list_sessions` retourne toujours vide (priorite basse)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
 
+## Bugs fixes (2026-03-30)
+
+- Parse error `missing field tool_use_id` : UserContentBlock enum Rust + TS
+- Text duplication streaming : seenBlockIds + addMessage/updateMessage
+- Message disparait apres streaming : supprime branchement isUpdate pour text blocks
+
 ## Blocages
 
 Aucun
 
 ## Prochaines priorites
 
-1. Demarrer Phase 2 : dashboard temps reel (ActionsFeed, Agents, Pipeline, Memory)
-   > Phase 1 (Milestone 1) : les 2 epics (Chat + Permissions) sont VALIDATED. Prochaine etape = nouveau milestone.
+1. Finir Phase 1 : 6 taches restantes (ThinkingIndicator, actionsStore, check_cli_auth, syntax highlighting, copy-to-clipboard, list_sessions)
+2. Puis demarrer Phase 2 : dashboard temps reel

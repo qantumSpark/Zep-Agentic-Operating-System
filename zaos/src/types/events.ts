@@ -191,13 +191,22 @@ export interface UserEvent {
 
 export interface UserMessage {
   role: string;
-  content: ToolResultBlock[];
+  content: UserContentBlock[];
 }
 
-export interface ToolResultBlock {
+export type UserContentBlock =
+  | UserToolResultBlock
+  | UserTextBlock;
+
+export interface UserToolResultBlock {
+  type: "tool_result";
   tool_use_id: string;
-  type: string;
   content: string;
+}
+
+export interface UserTextBlock {
+  type: "text";
+  text: string;
 }
 
 // ============================================================================

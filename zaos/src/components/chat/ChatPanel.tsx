@@ -11,7 +11,6 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
 export function ChatPanel() {
   const messages = useChatStore((state) => state.messages);
   const isThinking = useChatStore((state) => state.isThinking);
-  const isStreaming = useChatStore((state) => state.isStreaming);
   const streamingText = useChatStore((state) => state.streamingTextBuffer);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,7 +42,7 @@ export function ChatPanel() {
                 }}
               />
             )}
-            {isThinking && !isStreaming && <ThinkingIndicator />}
+            {isThinking && !streamingText && <ThinkingIndicator />}
             <div ref={messagesEndRef} />
           </>
         )}

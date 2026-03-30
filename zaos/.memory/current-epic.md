@@ -1,43 +1,36 @@
-# Epic active : Interactive Permission Approvals
+# Epic active : Phase 1 — Finition
 
 > Milestone : 1 — Chat fonctionnel avec Claude Code CLI
-> Date de debut : 2026-03-29
-> Statut : VALIDATED ✅
+> Date de debut : 2026-03-30
+> Statut : EN COURS
 
 ## Objectif
 
-Remplacer `--dangerously-skip-permissions` par des approbations interactives inline dans le chat. Passer du modele spawn-per-prompt a un process CLI long-lived avec communication bidirectionnelle via stdin/stdout.
+Boucler tous les items restants de la Phase 1 avant de passer a la Phase 2 (Dashboard Temps Reel). Chaque tache est implementee, reviewee et validee par l'utilisateur avant de passer a la suivante.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|---|---|---|---|
-| 1 | Types Rust control_request/control_response | `events/types.rs` | done | + CliEvent::ControlRequest variant |
-| 2 | Parser control_request | `events/parser.rs` | done | Auto via serde, test ajoute |
-| 3 | Refactor SessionManager long-lived process | `session/manager.rs` | done | start_session + send_message + send_permission_response |
-| 4 | Adapter commands.rs + main.rs | `commands.rs`, `main.rs` | done | respond_permission command |
-| 5 | Types TypeScript | `types/events.ts` | done | ControlRequest, ControlResponse, Message.permissionRequest |
-| 6 | permissionStore Zustand | `stores/permissionStore.ts` | done | Nouveau fichier |
-| 7 | useStreaming control_request handler | `hooks/useStreaming.ts` | done | Feed permissionStore + chatStore |
-| 8 | PermissionRequestBlock composant | `components/chat/PermissionRequestBlock.tsx` | done | Approve/Deny inline, amber theme |
-| 9 | Integration MessageBubble + InputBar | `MessageBubble.tsx`, `InputBar.tsx` | done | Rendu conditionnel |
+| 1 | Brancher ThinkingIndicator dans ChatPanel | `ChatPanel.tsx`, `useStreaming.ts` | VALIDATED | Fix condition, content_block_start handler, content_block_stop cleanup |
+| 2 | Nourrir actionsStore depuis tool_use events + ActionsFeed vivant | `hooks/useStreaming.ts`, `stores/actionsStore.ts`, `components/dashboard/ActionsFeed.tsx` | a faire | Fusionne 2 TODO du ROADMAP |
+| 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx` ou `main.tsx`, `components/StatusBar.tsx` | a faire | |
+| 4 | Syntax highlighting reel sur CodeBlock | `components/chat/CodeBlock.tsx` | a faire | prism.js ou shiki |
+| 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | a faire | |
+| 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | a faire | Actuellement retourne Vec vide |
 
-## Changements cles
+## Bugs fixes en cours de route
 
-- CLI flags: `--input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-prompt-tool stdio`
-- Supprime: `-p <prompt>`, `--dangerously-skip-permissions`, `--resume` (gere via stdin)
-- SessionManager stocke `child` + `stdin` au lieu de `child_pid`
-- Nouveau IPC: `respond_permission(id, allow)`
+| Bug | Fichier(s) | Statut | Notes |
+|---|---|---|---|
+| Parse error `missing field tool_use_id` | `types.rs`, `events.ts`, `useStreaming.ts` | VALIDATED | UserContentBlock enum (Rust + TS) |
+| Text duplication pendant streaming | `useStreaming.ts` | VALIDATED | seenBlockIds + addMessage/updateMessage pattern |
+| Message disparait apres streaming | `useStreaming.ts` | VALIDATED | Supprime branchement isUpdate pour text blocks |
 
-## Validation
+## Workflow par tache
 
-> Tested on 2026-03-30 — VALIDATED ✅
-
-- Both **Approve** and **Deny** flows confirmed working in live app
-- File creation via Approve confirmed (CLI executes the tool after approval)
-- Deny rejection confirmed (CLI receives denial and skips execution)
-- **Key fix discovered during testing:** `control_response` format needed `subtype: "success"` and double-nested `response.response` to match the CLI's Zod schema
-
-## Prochaine action
-
-COMPLETED — Epic validated and closed on 2026-03-30.
+1. Agent Architect → plan d'implementation
+2. Agent Codeur → implementation
+3. Agent Reviewer → review + tests
+4. Retour utilisateur → test manuel + validation
+5. Mise a jour memoire → tache suivante

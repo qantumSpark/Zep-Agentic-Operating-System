@@ -16,6 +16,8 @@ export function useStreaming() {
     let unlistener: UnlistenFn | null = null;
     // Track which message IDs we've already added
     const seenMessageIds = new Set<string>();
+    // Track which individual content block IDs have been processed
+    const seenBlockIds = new Set<string>();
 
     const setupListener = async () => {
       unlistener = await listen<CliEvent>("agent-event", (event) => {
@@ -26,7 +28,11 @@ export function useStreaming() {
           const streamEvent = payload as StreamDeltaEvent;
           const innerEvent = streamEvent.event;
 
-          if (innerEvent.type === "content_block_delta") {
+          if (innerEvent.type === "content_block_start") {
+            if (innerEvent.content_block?.type === "thinking") {
+              store.setThinking(true);
+            }
+          } else if (innerEvent.type === "content_block_delta") {
             const delta = innerEvent.delta;
             if (delta.type === "text_delta") {
               store.appendStreamText(delta.text);
@@ -36,6 +42,7 @@ export function useStreaming() {
             }
           } else if (innerEvent.type === "content_block_stop") {
             store.setStreaming(false);
+            store.setThinking(false);
           } else if (innerEvent.type === "message_stop") {
             store.setStreaming(false);
             store.setThinking(false);
@@ -46,27 +53,24 @@ export function useStreaming() {
           const assistantEvent = payload as AssistantEvent;
           const msg = assistantEvent.message;
 
-          // Deduplicate: skip if we already added this message
-          if (seenMessageIds.has(msg.id)) {
-            return;
-          }
           seenMessageIds.add(msg.id);
 
           // Process each content block
           for (const block of msg.content) {
             if (block.type === "text" && block.text) {
-              const finalContent = block.text;
-
               const chatMessage: Message = {
                 id: msg.id,
                 role: "assistant",
-                content: finalContent,
+                content: block.text,
                 timestamp: Date.now(),
               };
+              // addMessage has internal dedup — no-op if msg.id already exists
               store.addMessage(chatMessage);
+              // updateMessage refreshes content if message exists (for subsequent snapshots)
+              store.updateMessage(msg.id, { content: block.text });
               store.clearStreamingBuffer();
-            } else if (block.type === "tool_use") {
-              // Create a chat message for the tool use
+            } else if (block.type === "tool_use" && !seenBlockIds.has(block.id)) {
+              seenBlockIds.add(block.id);
               const toolMsg: Message = {
                 id: `${msg.id}-tool-${block.id}`,
                 role: "assistant",
@@ -91,7 +95,8 @@ export function useStreaming() {
                 status: "running",
                 details: block.input,
               });
-            } else if (block.type === "thinking" && block.thinking) {
+            } else if (block.type === "thinking" && block.thinking && !seenBlockIds.has(`${msg.id}-thinking`)) {
+              seenBlockIds.add(`${msg.id}-thinking`);
               const thinkMsg: Message = {
                 id: `${msg.id}-thinking`,
                 role: "assistant",
@@ -102,9 +107,6 @@ export function useStreaming() {
               store.addMessage(thinkMsg);
             }
           }
-
-          store.setStreaming(false);
-          store.setThinking(false);
         }
         // Handle user event (tool results)
         else if (payload.type === "user") {
@@ -112,28 +114,27 @@ export function useStreaming() {
           const userMsg = userEvent.message;
 
           if (userMsg.content) {
-            for (const result of userMsg.content) {
-              if (result.tool_use_id) {
+            for (const block of userMsg.content) {
+              if (block.type === "tool_result") {
                 // Update action status
                 const actionsStore = useActionsStore.getState();
-                const isError = result.type === "tool_error";
                 actionsStore.updateActionStatus(
-                  result.tool_use_id,
-                  isError ? "error" : "success"
+                  block.tool_use_id,
+                  "success"
                 );
 
                 // Add tool result message to chat
                 const resultMsg: Message = {
-                  id: `result-${result.tool_use_id}`,
+                  id: `result-${block.tool_use_id}`,
                   role: "system",
                   content: "",
                   timestamp: Date.now(),
                   toolResult: {
-                    toolUseId: result.tool_use_id,
-                    content: typeof result.content === "string"
-                      ? result.content.slice(0, 500)
-                      : JSON.stringify(result.content).slice(0, 500),
-                    isError,
+                    toolUseId: block.tool_use_id,
+                    content: typeof block.content === "string"
+                      ? block.content.slice(0, 500)
+                      : JSON.stringify(block.content).slice(0, 500),
+                    isError: false,
                   },
                 };
                 store.addMessage(resultMsg);
