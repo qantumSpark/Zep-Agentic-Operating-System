@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, ControlRequest, SystemEvent, Message } from "../types/events";
 import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
+import { useAgentsStore } from "../stores/agentsStore";
 import { usePermissionStore } from "../stores/permissionStore";
 import { formatToolSummary } from "../utils/toolFormatters";
 
@@ -31,6 +32,13 @@ export function useStreaming() {
             actionsStore.clearActions();
             seenMessageIds.clear();
             seenBlockIds.clear();
+
+            // Capture available agents from system init
+            const agentsStore = useAgentsStore.getState();
+            agentsStore.reset();
+            if (systemEvent.agents && systemEvent.agents.length > 0) {
+              agentsStore.setAvailableAgents(systemEvent.agents);
+            }
           }
         }
         // Handle stream events (deltas)
@@ -105,6 +113,22 @@ export function useStreaming() {
                 status: "running",
                 details: block.input,
               });
+
+              // Detect agent delegation (tool_use with name "Agent")
+              if (block.name === "Agent") {
+                const input = block.input as {
+                  prompt?: string;
+                  description?: string;
+                  subagent_type?: string;
+                };
+                const agentsStore = useAgentsStore.getState();
+                agentsStore.addDelegation({
+                  id: block.id,
+                  agentType: input.subagent_type || "general-purpose",
+                  description: input.description || "",
+                  startedAt: Date.now(),
+                });
+              }
             } else if (block.type === "thinking" && block.thinking && !seenBlockIds.has(`${msg.id}-thinking`)) {
               seenBlockIds.add(`${msg.id}-thinking`);
               const thinkMsg: Message = {
@@ -139,6 +163,18 @@ export function useStreaming() {
                   status: isError ? "error" : "success",
                   resultPreview: contentStr.slice(0, 200),
                 });
+
+                // Complete agent delegation if this tool_result matches one
+                const agentsStore = useAgentsStore.getState();
+                const matchesDelegation = agentsStore.delegations.some(
+                  (d) => d.id === block.tool_use_id && d.status === "running"
+                );
+                if (matchesDelegation) {
+                  agentsStore.completeDelegation(
+                    block.tool_use_id,
+                    isError ? "error" : "completed"
+                  );
+                }
 
                 // Add tool result message to chat
                 const resultMsg: Message = {

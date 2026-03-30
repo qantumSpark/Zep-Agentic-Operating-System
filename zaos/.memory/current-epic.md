@@ -24,11 +24,11 @@ Rendre le dashboard ZAOS vivant : remplacer toutes les donnees statiques/hardcod
 | 10 | Emettre memory-change depuis watcher quand .memory/ change | `watchers/service.rs` | VALIDATED | MemoryReader + MemoryStateResponse, graceful error handling |
 | 11 | Ajouter listener memory-change dans useTauriEvents | `useTauriEvents.ts` | VALIDATED | Same pattern as workflow-change → memoryStore.updateFromWatcher |
 | 12 | Creer MemorySection.tsx dans le dashboard | `MemorySection.tsx`, `DashboardPanel.tsx` | VALIDATED | Milestones, epic, tasks table, blocages avec StatusBadge |
-| 13 | Creer agentsStore Zustand | `agentsStore.ts` | A FAIRE | availableAgents, activeAgent, delegations. Actions: setAvailableAgents, addDelegation |
-| 14 | Detecter delegation agent dans useStreaming (tool_use "Task" + parent_tool_use_id) | `useStreaming.ts` | A FAIRE | system/init → availableAgents. tool_use Task → addDelegation |
-| 15 | Remplacer AgentsSection hardcodee par donnees live agentsStore | `AgentsSection.tsx` | A FAIRE | Map availableAgents, highlight actif, historique delegations |
+| 13 | Creer agentsStore Zustand | `agentsStore.ts` | VALIDATED | DelegationEntry, availableAgents, activeAgent, delegations, 5 actions |
+| 14 | Detecter delegation agent dans useStreaming (tool_use "Agent" + parent_tool_use_id) | `useStreaming.ts` | VALIDATED | system/init → setAvailableAgents, tool_use Agent → addDelegation, tool_result → completeDelegation |
+| 15 | Remplacer AgentsSection hardcodee par donnees live agentsStore | `AgentsSection.tsx` | VALIDATED | Live agents list, delegation history, status badges, duration |
 | 16 | Appeler get_memory_state au startup pour etat initial | `App.tsx` | VALIDATED | invoke("get_memory_state") → memoryStore.setMemoryState |
-| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | A FAIRE | Test manuel, sauver trace, verifier parent_tool_use_id |
+| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | A FAIRE | Test manuel a faire par utilisateur : lancer app, declencher delegation, sauver trace |
 
 ## Streams de travail
 

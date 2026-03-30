@@ -84,9 +84,9 @@
 
 ### 2.2 Agents tracking
 
-- [ ] Detecter l'agent actif depuis le contexte des events (system prompts, delegation)
-- [ ] Remplacer la liste hardcodee par des donnees live
-- [ ] Afficher l'historique de delegation
+- [x] Detecter l'agent actif depuis le contexte des events (system prompts, delegation)
+- [x] Remplacer la liste hardcodee par des donnees live
+- [x] Afficher l'historique de delegation
 
 ### 2.3 Pipeline vivant
 
@@ -149,6 +149,11 @@
 - [ ] Notifications OS pour gates et taches longues
 - [ ] Raccourcis clavier configurables
 - [ ] Theme system
+- [ ] Activity Feedback — heartbeat visuel dans StatusBar quand le CLI est actif
+- [ ] Activity Feedback — "last seen Xs ago" sur les agents running
+- [ ] Activity Feedback — stream preview (derniere ligne en cours) dans StatusBar
+- [ ] Activity Feedback — indicateur visuel (glow/bordure) sur ChatPanel pendant streaming
+- [ ] Activity Feedback — sub-agent tool_use dans ActionsFeed avec indentation
 
 ---
 
@@ -163,5 +168,5 @@
 | Phase 2 | 13 | 12 | 0 | 1 | 92% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
-| Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **82** | **55** | **3** | **24** | **67%** |
+| Phase 5 | 12 | 0 | 0 | 12 | 0% |
+| **Total** | **87** | **58** | **3** | **26** | **67%** |
