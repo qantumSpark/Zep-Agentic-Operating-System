@@ -58,21 +58,6 @@ impl MemoryIndex {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Epic {
-    pub name: String,
-    pub description: String,
-    pub status: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionLog {
-    pub id: String,
-    pub date: String,
-    pub duration_ms: u64,
-    pub tokens_used: u64,
-}
-
 /// A single row from the Milestones table in state.md
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MilestoneEntry {
@@ -108,6 +93,14 @@ pub struct CurrentEpic {
     pub status: String,
     pub objective: String,
     pub tasks: Vec<EpicTask>,
+}
+
+/// Aggregated snapshot of all memory files.
+#[derive(Debug, Clone, Serialize)]
+pub struct MemoryStateResponse {
+    pub index: MemoryIndex,
+    pub state: Option<MemoryState>,
+    pub current_epic: Option<CurrentEpic>,
 }
 
 /// MemoryReader reads files from .memory/ directory
@@ -163,11 +156,14 @@ impl MemoryReader {
         let state_path = self.memory_dir.join("state.md");
         tracing::debug!("Reading state from: {:?}", state_path);
 
-        if !state_path.exists() {
-            return Err(MemoryError::NotFound(state_path.display().to_string()));
-        }
+        let content = match fs::read_to_string(&state_path).await {
+            Ok(c) => c,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(MemoryError::NotFound(state_path.display().to_string()));
+            }
+            Err(e) => return Err(MemoryError::Io(e)),
+        };
 
-        let content = fs::read_to_string(&state_path).await?;
         let state = parse_state_md(&content);
         tracing::debug!(
             "Parsed state: {} milestones, active_epic={:?}",
@@ -185,11 +181,15 @@ impl MemoryReader {
         let epic_path = self.memory_dir.join("current-epic.md");
         tracing::debug!("Reading current epic from: {:?}", epic_path);
 
-        if !epic_path.exists() {
-            return Ok(None);
-        }
+        let content = match fs::read_to_string(&epic_path).await {
+            Ok(c) => c,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                tracing::debug!("current-epic.md not found, returning None");
+                return Ok(None);
+            }
+            Err(e) => return Err(MemoryError::Io(e)),
+        };
 
-        let content = fs::read_to_string(&epic_path).await?;
         let epic = parse_current_epic_md(&content);
         tracing::debug!(
             "Parsed current epic: name={:?}, {} tasks",
@@ -199,26 +199,40 @@ impl MemoryReader {
         Ok(Some(epic))
     }
 
-    /// Read session log by date
-    /// TODO: Implement reading session logs
-    pub async fn read_session_log(&self, date: &str) -> Result<Option<SessionLog>> {
-        let log_path = self.memory_dir.join(format!("session-{}.md", date));
-        tracing::debug!("Reading session log from: {:?}", log_path);
+    /// Read all memory files concurrently and return an aggregated snapshot.
+    ///
+    /// - Index error → propagated (hard failure).
+    /// - State / epic errors → silently mapped to `None`.
+    pub async fn read_all(&self) -> std::result::Result<MemoryStateResponse, String> {
+        let (index_res, state_res, epic_res) = tokio::join!(
+            self.read_index(),
+            self.read_state(),
+            self.read_current_epic(),
+        );
 
-        if !log_path.exists() {
-            return Ok(None);
-        }
+        let index = index_res.map_err(|e| format!("Failed to read memory index: {}", e))?;
 
-        // TODO: Parse session log
-        Ok(None)
-    }
+        let state = match state_res {
+            Ok(s) => Some(s),
+            Err(e) => {
+                tracing::debug!("Memory state not available: {}", e);
+                None
+            }
+        };
 
-    /// Watch for changes in memory directory
-    /// TODO: Implement file watcher
-    pub async fn watch_changes(&self) -> Result<()> {
-        tracing::info!("Watching memory directory: {:?}", self.memory_dir);
-        // TODO: Use notify::Watcher to monitor directory
-        Ok(())
+        let current_epic = match epic_res {
+            Ok(epic) => epic,
+            Err(e) => {
+                tracing::debug!("Current epic not available: {}", e);
+                None
+            }
+        };
+
+        Ok(MemoryStateResponse {
+            index,
+            state,
+            current_epic,
+        })
     }
 }
 
@@ -293,46 +307,51 @@ fn parse_state_md(content: &str) -> MemoryState {
     }
 }
 
-/// Try to parse a single markdown table row into a `MilestoneEntry`.
+/// Parse a markdown table row into a numbered row id and remaining cell strings.
 ///
-/// Expected format: `| 1 | Milestone name | TERMINE | epic1, epic2 |`
-/// Skips header rows (containing `---` or where the first cell is `#`).
-fn parse_milestone_row(line: &str) -> Option<MilestoneEntry> {
+/// Returns `None` for non-table lines, separator rows (`|---|---|`), and header
+/// rows where the first cell is `#` or otherwise non-numeric.
+///
+/// `min_cells` is the minimum number of *real* cells required (excluding the
+/// leading/trailing empty strings produced by splitting on `|`).
+fn parse_md_table_row(line: &str, min_cells: usize) -> Option<(u32, Vec<String>)> {
     if !line.starts_with('|') {
         return None;
     }
 
-    let cells: Vec<&str> = line.split('|').map(|c| c.trim()).collect();
+    let cells: Vec<&str> = line.split('|').map(|c| c.trim()).filter(|c| !c.is_empty()).collect();
 
-    // Splitting "|a|b|c|d|" gives ["", "a", "b", "c", "d", ""]
-    // We need at least 4 real cells (indices 1..=4)
-    if cells.len() < 5 {
+    if cells.len() < min_cells {
         return None;
     }
 
-    let num_str = cells[1];
-    let name = cells[2];
-    let status = cells[3];
-    let epics = cells[4];
+    let num_str = cells[0];
 
-    // Skip separator rows (|---|---|---|---|) and header row (| # | ...)
-    if num_str.contains('-') || num_str == "#" {
+    // Skip separator rows (all dashes) and header rows (first cell is "#")
+    if num_str.chars().all(|c| c == '-') || num_str == "#" {
         return None;
     }
 
     let number: u32 = match num_str.parse() {
         Ok(n) => n,
-        Err(_) => {
-            tracing::warn!("Skipping milestone row with non-numeric #: {:?}", num_str);
-            return None;
-        }
+        Err(_) => return None,
     };
+
+    let rest = cells[1..].iter().map(|c| c.to_string()).collect();
+    Some((number, rest))
+}
+
+/// Try to parse a single markdown table row into a `MilestoneEntry`.
+///
+/// Expected format: `| 1 | Milestone name | TERMINE | epic1, epic2 |`
+fn parse_milestone_row(line: &str) -> Option<MilestoneEntry> {
+    let (number, cells) = parse_md_table_row(line, 4)?;
 
     Some(MilestoneEntry {
         number,
-        name: name.to_string(),
-        status: status.to_string(),
-        epics: epics.to_string(),
+        name: cells[0].clone(),
+        status: cells[1].clone(),
+        epics: cells[2].clone(),
     })
 }
 
@@ -425,35 +444,10 @@ fn parse_current_epic_md(content: &str) -> CurrentEpic {
 ///
 /// Expected format: `| 1 | Task name | `file.rs` | DONE | notes |`
 fn parse_epic_task_row(line: &str) -> Option<EpicTask> {
-    if !line.starts_with('|') {
-        return None;
-    }
+    let (number, cells) = parse_md_table_row(line, 5)?;
 
-    let cells: Vec<&str> = line.split('|').map(|c| c.trim()).collect();
-
-    // Need at least 6 cells: ["", #, Task, Files, Statut, Notes, ""]
-    if cells.len() < 6 {
-        return None;
-    }
-
-    let num_str = cells[1];
-    let task_name = cells[2];
-    let files_str = cells[3];
-    let task_status = cells[4];
-    let notes = if cells.len() > 5 { cells[5] } else { "" };
-
-    // Skip separator and header rows
-    if num_str.contains('-') || num_str == "#" {
-        return None;
-    }
-
-    let number: u32 = match num_str.parse() {
-        Ok(n) => n,
-        Err(_) => {
-            tracing::warn!("Skipping task row with non-numeric #: {:?}", num_str);
-            return None;
-        }
-    };
+    let files_str = &cells[1];
+    let notes = if cells.len() > 3 { &cells[3] } else { "" };
 
     // Parse files: split by comma, strip backticks
     let files: Vec<String> = files_str
@@ -464,9 +458,9 @@ fn parse_epic_task_row(line: &str) -> Option<EpicTask> {
 
     Some(EpicTask {
         number,
-        name: task_name.to_string(),
+        name: cells[0].clone(),
         files,
-        status: task_status.to_string(),
+        status: cells[2].clone(),
         notes: notes.to_string(),
     })
 }

@@ -8,33 +8,36 @@
 | # | Milestone | Statut | Epics |
 |---|---|---|---|
 | 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
-| 2 | Dashboard temps reel | Non commence | Actions feed, Agents, Pipeline, Memory |
+| 2 | Dashboard temps reel | EN COURS | Stream A (4/4), Stream B (8/8), Stream C (0/4) |
 | 3 | Screenshots & visuels | Non commence | Screenshot manager, Gallery, GoPeak |
 | 4 | MCP Server zaos-ide | Non commence | Serveur local, Tools, .mcp.json |
 | 5 | UX Polish | Non commence | Sessions, Metriques, Notifications |
 
 ## Epic active
 
-Phase 2 — Dashboard Temps Reel EN COURS (0/17 taches)
+Phase 2 — Dashboard Temps Reel EN COURS (13/17 taches — Streams A+B termines)
 
 ## Ce qui est fait
 
-- Backend Rust complet : Session Manager (long-lived process), Event Parser, Workflow Engine, 8 commandes IPC
-- Frontend React en place : Chat (send/stream/display), Workflow (gate/mode), StatusBar, SplitPane
-- Integration chat fonctionnelle : InputBar → CLI start_session → send_message via stdin → stream-json → useStreaming → affichage
-- **Epic "Chat Complet" terminee** : tool_use blocks, ThinkingIndicator, interrupt reel, actionsStore nourri, streaming live
-- **Epic "Interactive Permissions" VALIDATED 2026-03-30** : long-lived process model, control_request/control_response protocol, PermissionRequestBlock UI, permissionStore, respond_permission IPC command
+- **Stream A (File Watchers + Pipeline) TERMINE** : FileWatcherService (notify, debounce 300ms), workflow-change emit, pipelineProgress live
+- **Stream B (Memory Reader) TERMINE** : Parsers (INDEX.md, state.md, current-epic.md, 34 tests), get_memory_state IPC, memoryStore, MemorySection dashboard, memory-change watcher
+- Infrastructure : init.rs (ensure project dirs), Vite ignore .workflow/.memory, project_dir fix
 
 ## Bugs connus
 
 - `list_sessions` retourne toujours vide (priorite basse)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
 
-## Bugs fixes (2026-03-30)
+## Technical debt
 
-- Parse error `missing field tool_use_id` : UserContentBlock enum Rust + TS
-- Text duplication streaming : seenBlockIds + addMessage/updateMessage
-- Message disparait apres streaming : supprime branchement isUpdate pour text blocks
+- Phase stringly-typed en Rust → devrait etre un enum
+- Epic type mismatch Rust (String) vs TS (Epic object avec description/startTime vides)
+- `as any` casts dans useTauriEvents.ts (5 occurrences)
+- Messages/actions arrays unbounded (pas de cap)
+- Dual event listeners (useStreaming + useTauriEvents sur meme channel)
+- Status indicator patterns dupliques dans 4 composants dashboard (MemorySection, ActionsFeed, AgentsSection, PipelineSection)
+- Event names stringly-typed eparpilles ("workflow-change", "memory-change", etc.) — pas de constantes partagees
+- BackendWorkflowPayload.phase est string malgre enum Phase existant — cast unsafe
 
 ## Blocages
 
@@ -42,6 +45,4 @@ Aucun
 
 ## Prochaines priorites
 
-1. Stream A : File Watchers + Pipeline (tasks 1-4)
-2. Stream B : Memory Reader (tasks 5-12, 16)
-3. Stream C : Agents tracking (tasks 13-15, 17)
+1. Stream C : Agents tracking (tasks 13-15, 17)

@@ -81,7 +81,7 @@ export function useTauriEvents() {
         "memory-change",
         (event) => {
           const memoryStore = useMemoryStore.getState();
-          memoryStore.updateFromWatcher(event.payload);
+          memoryStore.setMemoryState(event.payload);
         }
       );
       unlisteners.push(memoryChangeListener);

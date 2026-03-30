@@ -1,5 +1,5 @@
 use crate::events::CliEvent;
-use crate::memory::{CurrentEpic, MemoryIndex, MemoryReader, MemoryState};
+use crate::memory::{MemoryReader, MemoryStateResponse};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
 use crate::workflow::{WorkflowEngine, WorkflowMode};
@@ -78,13 +78,6 @@ pub struct CheckAuthResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListSessionsResponse {
     pub sessions: Vec<CliSession>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct MemoryStateResponse {
-    pub index: MemoryIndex,
-    pub state: Option<MemoryState>,
-    pub current_epic: Option<CurrentEpic>,
 }
 
 // =============================================================================
@@ -291,30 +284,6 @@ pub async fn get_memory_state(
     state: State<'_, AppState>,
 ) -> Result<MemoryStateResponse, String> {
     tracing::info!("get_memory_state called");
-
     let reader = MemoryReader::new(state.project_dir.clone());
-
-    let index = reader
-        .read_index()
-        .await
-        .map_err(|e| format!("Failed to read memory index: {}", e))?;
-
-    let memory_state = match reader.read_state().await {
-        Ok(s) => Some(s),
-        Err(e) => {
-            tracing::debug!("Memory state not available: {}", e);
-            None
-        }
-    };
-
-    let current_epic = reader
-        .read_current_epic()
-        .await
-        .map_err(|e| format!("Failed to read current epic: {}", e))?;
-
-    Ok(MemoryStateResponse {
-        index,
-        state: memory_state,
-        current_epic,
-    })
+    reader.read_all().await
 }

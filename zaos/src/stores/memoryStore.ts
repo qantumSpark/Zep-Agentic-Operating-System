@@ -68,7 +68,6 @@ interface MemoryStoreState {
 
   // Actions
   setMemoryState: (response: MemoryStateResponse) => void;
-  updateFromWatcher: (response: MemoryStateResponse) => void;
   reset: () => void;
 }
 
@@ -92,9 +91,6 @@ export const useMemoryStore = create<MemoryStoreState>((set) => ({
   loaded: false,
 
   setMemoryState: (response: MemoryStateResponse) =>
-    set(applyMemoryResponse(response)),
-
-  updateFromWatcher: (response: MemoryStateResponse) =>
     set(applyMemoryResponse(response)),
 
   reset: () =>

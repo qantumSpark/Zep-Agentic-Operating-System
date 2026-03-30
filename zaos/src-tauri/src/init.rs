@@ -2,7 +2,8 @@
 // Ensures .workflow/ and .memory/ directories exist with default files at startup.
 
 use crate::workflow::state::WorkflowState;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::Path;
 
 /// Ensure project directories and default files exist.
@@ -85,26 +86,31 @@ pub fn ensure_project_dirs(project_dir: &Path) {
     tracing::info!("Project directories initialized");
 }
 
-/// Create a directory if it doesn't already exist.
+/// Create a directory (no-op if it already exists).
 fn ensure_dir(path: &Path) {
-    if !path.exists() {
-        if let Err(e) = fs::create_dir_all(path) {
-            tracing::warn!("Failed to create directory {:?}: {}", path, e);
-        } else {
-            tracing::info!("Created directory {:?}", path);
-        }
+    if let Err(e) = fs::create_dir_all(path) {
+        tracing::warn!("Failed to create directory {:?}: {}", path, e);
     }
 }
 
-/// Create a file with default content if it doesn't already exist.
+/// Atomically create a file with default content if it doesn't already exist.
+/// Uses `create_new(true)` to avoid TOCTOU races.
 /// The content is produced lazily via a closure so we only build it when needed.
 fn ensure_file<F: FnOnce() -> String>(path: &Path, content_fn: F) {
-    if !path.exists() {
-        let content = content_fn();
-        if let Err(e) = fs::write(path, content) {
+    match OpenOptions::new().create_new(true).write(true).open(path) {
+        Ok(mut file) => {
+            let content = content_fn();
+            if let Err(e) = file.write_all(content.as_bytes()) {
+                tracing::warn!("Failed to write default content to {:?}: {}", path, e);
+            } else {
+                tracing::info!("Created default file {:?}", path);
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            // File already exists — nothing to do
+        }
+        Err(e) => {
             tracing::warn!("Failed to create file {:?}: {}", path, e);
-        } else {
-            tracing::info!("Created default file {:?}", path);
         }
     }
 }

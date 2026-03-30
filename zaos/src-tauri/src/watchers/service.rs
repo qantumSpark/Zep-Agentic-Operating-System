@@ -1,4 +1,3 @@
-use crate::commands::MemoryStateResponse;
 use crate::memory::MemoryReader;
 use crate::workflow::state::WorkflowState;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -100,6 +99,9 @@ impl FileWatcherService {
             let mut last_event: HashMap<WatchCategory, Instant> = HashMap::new();
             let debounce = std::time::Duration::from_millis(300);
 
+            // Create the reader once, outside the event loop
+            let memory_reader = MemoryReader::new(project_dir);
+
             while let Some(event) = rx.recv().await {
                 for path in &event.paths {
                     let category = if path.starts_with(&workflow_dir_owned)
@@ -161,55 +163,23 @@ impl FileWatcherService {
                                 WatchCategory::Memory => {
                                     tracing::info!("Memory file changed: {:?}", path);
 
-                                    let reader = MemoryReader::new(project_dir.clone());
-
-                                    let index = match reader.read_index().await {
-                                        Ok(idx) => idx,
-                                        Err(e) => {
-                                            tracing::warn!(
-                                                "Failed to read memory index: {}",
-                                                e
-                                            );
-                                            continue;
-                                        }
-                                    };
-
-                                    let memory_state = match reader.read_state().await {
-                                        Ok(s) => Some(s),
-                                        Err(e) => {
-                                            tracing::debug!(
-                                                "Memory state not available: {}",
-                                                e
-                                            );
-                                            None
-                                        }
-                                    };
-
-                                    let current_epic =
-                                        match reader.read_current_epic().await {
-                                            Ok(epic) => epic,
-                                            Err(e) => {
+                                    match memory_reader.read_all().await {
+                                        Ok(response) => {
+                                            if let Err(e) =
+                                                app_handle.emit("memory-change", &response)
+                                            {
                                                 tracing::warn!(
-                                                    "Failed to read current epic: {}",
+                                                    "Failed to emit memory-change: {}",
                                                     e
                                                 );
-                                                None
                                             }
-                                        };
-
-                                    let response = MemoryStateResponse {
-                                        index,
-                                        state: memory_state,
-                                        current_epic,
-                                    };
-
-                                    if let Err(e) =
-                                        app_handle.emit("memory-change", &response)
-                                    {
-                                        tracing::warn!(
-                                            "Failed to emit memory-change: {}",
-                                            e
-                                        );
+                                        }
+                                        Err(e) => {
+                                            tracing::warn!(
+                                                "Failed to read memory state: {}",
+                                                e
+                                            );
+                                        }
                                     }
                                 }
                             }

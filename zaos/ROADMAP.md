@@ -90,23 +90,23 @@
 
 ### 2.3 Pipeline vivant
 
-- [ ] File watcher sur `.workflow/state.json` (notify crate)
-- [ ] Emettre `workflow-change` events depuis le backend quand le fichier change
-- [ ] Mettre a jour pipelineProgress dans le store en temps reel
+- [x] File watcher sur `.workflow/state.json` (notify crate)
+- [x] Emettre `workflow-change` events depuis le backend quand le fichier change
+- [x] Mettre a jour pipelineProgress dans le store en temps reel
 
 ### 2.4 Memory Reader (Rust)
 
-- [ ] Parser `.memory/INDEX.md` (extraire la liste des fichiers memoire)
-- [ ] Parser `.memory/state.md` (milestones, epic en cours, blocages)
-- [ ] Parser `.memory/current-epic.md` (tasks et statuts)
-- [ ] Exposer via commande IPC `get_memory_state`
-- [ ] Afficher dans le dashboard (section memoire)
+- [x] Parser `.memory/INDEX.md` (extraire la liste des fichiers memoire)
+- [x] Parser `.memory/state.md` (milestones, epic en cours, blocages)
+- [x] Parser `.memory/current-epic.md` (tasks et statuts)
+- [x] Exposer via commande IPC `get_memory_state`
+- [x] Afficher dans le dashboard (section memoire)
 
 ### 2.5 File Watchers
 
-- [ ] Watcher sur `.workflow/state.json` → emit workflow-change
-- [ ] Watcher sur `.memory/` → emit memory-change
-- [ ] Debounce pour eviter le spam d'events
+- [x] Watcher sur `.workflow/state.json` → emit workflow-change
+- [x] Watcher sur `.memory/` → emit memory-change
+- [x] Debounce pour eviter le spam d'events
 
 ---
 
@@ -160,8 +160,8 @@
 | 1.2 Frontend React | 24 | 21 | 3 | 0 | 88% |
 | 1.3 Integration | 8 | 8 | 0 | 0 | 100% |
 | **Phase 1 Total** | **47** | **43** | **3** | **0** | **91%** |
-| Phase 2 | 13 | 4 | 0 | 9 | 31% |
+| Phase 2 | 13 | 12 | 0 | 1 | 92% |
 | Phase 3 | 8 | 0 | 0 | 8 | 0% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 7 | 0 | 0 | 7 | 0% |
-| **Total** | **82** | **47** | **3** | **32** | **57%** |
+| **Total** | **82** | **55** | **3** | **24** | **67%** |
