@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useAgentsStore, DelegationEntry } from "../../stores/agentsStore";
 
 // ---------------------------------------------------------------------------
@@ -16,11 +16,6 @@ function formatDuration(startedAt: number, endedAt: number | null): string {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
-function truncate(text: string, maxLen: number): string {
-  if (text.length <= maxLen) return text;
-  return text.slice(0, maxLen - 1) + "\u2026";
-}
-
 // ---------------------------------------------------------------------------
 // Status indicators
 // ---------------------------------------------------------------------------
@@ -32,23 +27,6 @@ function AgentDot({ isActive }: { isActive: boolean }) {
         isActive ? "bg-green-400" : "bg-zinc-500"
       }`}
     />
-  );
-}
-
-function DelegationStatus({ status }: { status: DelegationEntry["status"] }) {
-  if (status === "running") {
-    return (
-      <span className="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
-    );
-  }
-  if (status === "completed") {
-    return (
-      <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0" />
-    );
-  }
-  // error
-  return (
-    <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-400 flex-shrink-0" />
   );
 }
 
@@ -128,10 +106,6 @@ export function AgentsSection() {
                     : "bg-zinc-800/30 hover:bg-zinc-800/50"
                 }`}
               >
-                <span className="mt-0.5">
-                  <DelegationStatus status={d.status} />
-                </span>
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-zinc-200">
@@ -141,7 +115,7 @@ export function AgentsSection() {
                   </div>
 
                   <p className="text-zinc-400 mt-0.5 truncate">
-                    {truncate(d.description, 80)}
+                    {d.description}
                   </p>
 
                   <div className="flex items-center gap-2 text-zinc-500 mt-0.5">

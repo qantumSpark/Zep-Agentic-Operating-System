@@ -116,16 +116,12 @@ export function useStreaming() {
 
               // Detect agent delegation (tool_use with name "Agent")
               if (block.name === "Agent") {
-                const input = block.input as {
-                  prompt?: string;
-                  description?: string;
-                  subagent_type?: string;
-                };
+                const agentInput = block.input as Record<string, unknown>;
                 const agentsStore = useAgentsStore.getState();
                 agentsStore.addDelegation({
                   id: block.id,
-                  agentType: input.subagent_type || "general-purpose",
-                  description: input.description || "",
+                  agentType: String(agentInput.subagent_type ?? "general-purpose"),
+                  description: String(agentInput.description ?? ""),
                   startedAt: Date.now(),
                 });
               }
