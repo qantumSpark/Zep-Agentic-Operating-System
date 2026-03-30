@@ -1,10 +1,12 @@
 import React, { useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { SplitPane } from "./components/common/SplitPane";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 import { StatusBar } from "./components/statusbar/StatusBar";
 import { useTauriEvents } from "./hooks/useTauriEvents";
 import { useStreaming } from "./hooks/useStreaming";
+import { useSessionStore } from "./stores/sessionStore";
 
 /**
  * Main App component
@@ -17,8 +19,17 @@ export function App() {
   useStreaming();
 
   useEffect(() => {
-    // Initialize app - can fetch initial data here
     console.log("ZAOS initialized");
+    (async () => {
+      try {
+        const result = await invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth");
+        useSessionStore.getState().setCliAuth(result.authenticated, result.version, result.message);
+        useSessionStore.getState().updateConnections({ cli: result.authenticated });
+      } catch (err) {
+        console.error("check_cli_auth failed:", err);
+        useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
+      }
+    })();
   }, []);
 
   return (

@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Phase 1 — Finition (6 taches, Task 1-2 VALIDATED + 3 bugs fixes VALIDATED, 4 taches restantes)
+Phase 1 — Finition (6 taches, Task 1-3 VALIDATED + 3 bugs fixes VALIDATED, 3 taches restantes)
 
 ## Ce qui est fait
 

@@ -14,7 +14,7 @@ Boucler tous les items restants de la Phase 1 avant de passer a la Phase 2 (Dash
 |---|---|---|---|---|
 | 1 | Brancher ThinkingIndicator dans ChatPanel | `ChatPanel.tsx`, `useStreaming.ts` | VALIDATED | Fix condition, content_block_start handler, content_block_stop cleanup |
 | 2 | Nourrir actionsStore depuis tool_use events + ActionsFeed vivant | `hooks/useStreaming.ts`, `stores/actionsStore.ts`, `components/dashboard/ActionsFeed.tsx` | VALIDATED | Error detection, clear on init, running animation, result preview, is_error Rust fix |
-| 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx` ou `main.tsx`, `components/StatusBar.tsx` | a faire | |
+| 3 | Appeler check_cli_auth au demarrage + afficher statut | `App.tsx`, `sessionStore.ts`, `StatusBar.tsx` | VALIDATED | Dot vert + tooltip version au startup |
 | 4 | Syntax highlighting reel sur CodeBlock | `components/chat/CodeBlock.tsx` | a faire | prism.js ou shiki |
 | 5 | Bouton copy-to-clipboard sur CodeBlock | `components/chat/CodeBlock.tsx` | a faire | |
 | 6 | Implementer list_sessions cote Rust | `session/manager.rs`, `commands.rs` | a faire | Actuellement retourne Vec vide |

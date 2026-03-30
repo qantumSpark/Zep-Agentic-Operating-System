@@ -9,6 +9,9 @@ export function StatusBar() {
   const tokens = useSessionStore((state) => state.tokens);
   const duration = useSessionStore((state) => state.duration);
   const connections = useSessionStore((state) => state.connections);
+  const cliAuthenticated = useSessionStore((state) => state.cliAuthenticated);
+  const cliVersion = useSessionStore((state) => state.cliVersion);
+  const cliAuthMessage = useSessionStore((state) => state.cliAuthMessage);
   const model = useSessionStore((state) => state.model);
   const mode = useWorkflowStore((state) => state.mode);
   const [displayDuration, setDisplayDuration] = useState(duration);
@@ -61,7 +64,7 @@ export function StatusBar() {
       <div className="flex items-center gap-3 min-w-0">
         <span>🔗</span>
         <div className="flex gap-1.5">
-          <div title="Claude CLI" className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
+          <div title={cliAuthenticated ? "Claude CLI " + cliVersion : cliAuthMessage || "CLI not connected"} className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
           <div title="GoPeak" className={`w-2 h-2 rounded-full ${connections.gopeak ? "bg-green-500" : "bg-red-500"}`} />
           <div title="Godot" className={`w-2 h-2 rounded-full ${connections.godot ? "bg-green-500" : "bg-red-500"}`} />
         </div>
