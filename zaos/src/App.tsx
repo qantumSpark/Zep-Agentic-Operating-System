@@ -44,11 +44,25 @@ export function App() {
         await requestPermission();
       }
 
-      const [authResult, memResult, screenshotResult, projectResult] = await Promise.allSettled([
+      const [authResult, memResult, screenshotResult, projectResult, kitResult, agentsResult] = await Promise.allSettled([
         invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
         invoke<MemoryStateResponse>("get_memory_state"),
         invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
         invoke<{ path: string; name: string }>("get_project_info"),
+        invoke<{
+          deployed: boolean;
+          agent_count: number;
+          rule_count: number;
+          hooks_active: boolean;
+          last_deployed: string | null;
+          config: {
+            blocked_extensions: string[];
+            auto_sync: boolean;
+            hooks_enabled: boolean;
+            disabled_rules: string[];
+          };
+        }>("get_workflow_kit_status"),
+        invoke<{ name: string; description: string }[]>("list_agents"),
       ]);
       if (authResult.status === "fulfilled") {
         useSessionStore.getState().setCliAuth(authResult.value.authenticated, authResult.value.version, authResult.value.message);
@@ -71,42 +85,27 @@ export function App() {
       } else {
         console.error("get_project_info failed:", projectResult.reason);
       }
-
-      // Load workflow kit status and agents
-      invoke<{
-        deployed: boolean;
-        agent_count: number;
-        rule_count: number;
-        hooks_active: boolean;
-        last_deployed: string | null;
-        config: {
-          blocked_extensions: string[];
-          auto_sync: boolean;
-          hooks_enabled: boolean;
-          disabled_rules: string[];
-        };
-      }>("get_workflow_kit_status")
-        .then((status) => {
-          const kitStore = useWorkflowKitStore.getState();
-          kitStore.setDeployed(status.deployed);
-          kitStore.setConfig(status.config);
-          if (status.last_deployed) {
-            kitStore.setLastDeployedAt(status.last_deployed);
-          }
-        })
-        .catch((err) => console.error("get_workflow_kit_status failed:", err));
-
-      invoke<{ name: string; description: string }[]>("list_agents")
-        .then((agents) => {
-          const agentDefs: AgentDef[] = agents.map((a) => ({
-            name: a.name,
-            description: a.description,
-            deployed: true,
-            custom: false,
-          }));
-          useWorkflowKitStore.getState().setAgents(agentDefs);
-        })
-        .catch((err) => console.error("list_agents failed:", err));
+      if (kitResult.status === "fulfilled") {
+        const kitStore = useWorkflowKitStore.getState();
+        kitStore.setDeployed(kitResult.value.deployed);
+        kitStore.setConfig(kitResult.value.config);
+        if (kitResult.value.last_deployed) {
+          kitStore.setLastDeployedAt(kitResult.value.last_deployed);
+        }
+      } else {
+        console.error("get_workflow_kit_status failed:", kitResult.reason);
+      }
+      if (agentsResult.status === "fulfilled") {
+        const agentDefs: AgentDef[] = agentsResult.value.map((a) => ({
+          name: a.name,
+          description: a.description,
+          deployed: true,
+          custom: false,
+        }));
+        useWorkflowKitStore.getState().setAgents(agentDefs);
+      } else {
+        console.error("list_agents failed:", agentsResult.reason);
+      }
     })();
   }, []);
 

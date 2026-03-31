@@ -54,17 +54,19 @@ const DEFAULT_HOOKS: HookDef[] = [
   { name: "welcome", event: "SessionStart", active: false, description: "Diagnostic des composants au demarrage" },
 ];
 
+const DEFAULT_CONFIG: WorkflowKitConfig = {
+  blocked_extensions: [".rs", ".ts", ".tsx", ".js", ".jsx", ".css"],
+  auto_sync: true,
+  hooks_enabled: true,
+  disabled_rules: [],
+};
+
 export const useWorkflowKitStore = create<WorkflowKitState>((set) => ({
   deployed: false,
   agents: [],
   hooks: DEFAULT_HOOKS,
   rules: [],
-  config: {
-    blocked_extensions: [".rs", ".ts", ".tsx", ".js", ".jsx", ".css"],
-    auto_sync: true,
-    hooks_enabled: true,
-    disabled_rules: [],
-  },
+  config: DEFAULT_CONFIG,
   lastDeployedAt: null,
 
   setDeployed: (deployed) => set({ deployed }),
@@ -80,12 +82,7 @@ export const useWorkflowKitStore = create<WorkflowKitState>((set) => ({
       agents: [],
       hooks: DEFAULT_HOOKS,
       rules: [],
-      config: {
-        blocked_extensions: [".rs", ".ts", ".tsx", ".js", ".jsx", ".css"],
-        auto_sync: true,
-        hooks_enabled: true,
-        disabled_rules: [],
-      },
+      config: DEFAULT_CONFIG,
       lastDeployedAt: null,
     }),
 }));

@@ -14,7 +14,7 @@ export function ProjectPicker() {
   const handlePickProject = async () => {
     if (isLoading) return;
 
-    const selected = await open({ directory: true, multiple: false });
+    const selected = await open({ directory: true });
     if (!selected) return;
 
     useProjectStore.getState().setLoading(true);
@@ -22,6 +22,7 @@ export function ProjectPicker() {
       await invoke("switch_project", { path: selected });
     } catch (err) {
       console.error("Failed to switch project:", err);
+    } finally {
       useProjectStore.getState().setLoading(false);
     }
   };

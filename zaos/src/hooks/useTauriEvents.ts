@@ -233,25 +233,54 @@ export function useTauriEvents() {
         (event) => {
           const { path, name } = event.payload;
 
-          // Update project store
-          useProjectStore.getState().setProject(path, name);
-          useProjectStore.getState().setLoading(false);
+          // Atomic update: project info + clear loading in one set()
+          useProjectStore.setState({ projectDir: path, projectName: name, isLoading: false });
 
-          // Reset all other stores
+          // Reset all stores
           useWorkflowStore.getState().resetWorkflow();
           useMemoryStore.getState().reset();
           useSessionStore.getState().resetSession();
           useScreenshotStore.getState().reset();
           useWorkflowKitStore.getState().reset();
 
-          // Reload initial data for new project
-          invoke<MemoryStateResponse>("get_memory_state")
-            .then((mem) => useMemoryStore.getState().setMemoryState(mem))
-            .catch((e: unknown) => console.error("Failed to reload memory:", e));
-
-          invoke<{ screenshots: Screenshot[] }>("get_screenshots")
-            .then((res) => useScreenshotStore.getState().setScreenshots(res.screenshots))
-            .catch((e: unknown) => console.error("Failed to reload screenshots:", e));
+          // Reload all project data in parallel
+          Promise.all([
+            invoke<MemoryStateResponse>("get_memory_state")
+              .then((mem) => useMemoryStore.getState().setMemoryState(mem)),
+            invoke<{ screenshots: Screenshot[] }>("get_screenshots")
+              .then((res) => useScreenshotStore.getState().setScreenshots(res.screenshots)),
+            invoke<{
+              deployed: boolean;
+              agent_count: number;
+              rule_count: number;
+              hooks_active: boolean;
+              last_deployed: string | null;
+              config: {
+                blocked_extensions: string[];
+                auto_sync: boolean;
+                hooks_enabled: boolean;
+                disabled_rules: string[];
+              };
+            }>("get_workflow_kit_status")
+              .then((status) => {
+                const kitStore = useWorkflowKitStore.getState();
+                kitStore.setDeployed(status.deployed);
+                kitStore.setConfig(status.config);
+                if (status.last_deployed) {
+                  kitStore.setLastDeployedAt(status.last_deployed);
+                }
+              }),
+            invoke<{ name: string; description: string }[]>("list_agents")
+              .then((agents) => {
+                const mapped: AgentDef[] = agents.map((a) => ({
+                  name: a.name,
+                  description: a.description,
+                  deployed: true,
+                  custom: false,
+                }));
+                useWorkflowKitStore.getState().setAgents(mapped);
+              }),
+          ]).catch((e) => console.error("Failed to reload project data:", e));
         }
       );
       unlisteners.push(projectChangedListener);
