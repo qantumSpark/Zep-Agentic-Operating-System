@@ -1,43 +1,39 @@
-# Epic active : Phase 6 — Workflow Kit Integration
+# Epic active : Phase 7 — Project Portability & Workflow Init
 
-> Milestone : 6 — Workflow Kit natif
+> Milestone : 7 — App autonome et portable
 > Date de debut : 2026-03-31
-> Statut : TERMINE
+> Statut : EN COURS
 
 ## Objectif
 
-Integrer le workflow-kit (agents, hooks, rules) comme feature native de ZAOS. Au lancement dans un projet, l'app bootstrap tout le systeme. Les hooks sont un binaire Rust cross-platform. CRUD complet depuis le dashboard.
+Rendre ZAOS utilisable sur n'importe quel projet : embarquer les agents/rules dans le binaire, permettre de choisir et changer de projet depuis l'UI, et demarrer un workflow depuis le dashboard.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| A1 | Config types .zaos/config.json | `deployer/config.rs` | DONE | Struct + read/write |
-| A2 | Embed resources tauri.conf.json | `tauri.conf.json` | DONE | bundle.resources |
-| A3 | Deployer sync engine | `deployer/sync.rs` | DONE | Hash compare, SyncOutcome enum |
-| A4 | Deployer module + IPC commands | `deployer/mod.rs`, `commands.rs` | DONE | deploy, status, config |
-| A5 | Bootstrap complet init.rs | `init.rs` | DONE | .zaos/, .claude/ |
-| B1 | zaos-hooks binary scaffold | `bin/zaos_hooks.rs`, `Cargo.toml` | DONE | [[bin]] target |
-| B2 | inject-context subcommand | meme fichier | DONE | JSON additionalContext |
-| B3 | block-code subcommand | meme fichier | DONE | Exit 0 ou 2 |
-| B4 | on-compact + welcome | meme fichier | DONE | Texte complet |
-| C1 | workflowKitStore | `stores/workflowKitStore.ts` | DONE | agents, hooks, config |
-| C2 | AgentsManager CRUD | `AgentsManager.tsx` | DONE | read_agent for edit |
-| C3 | HooksManager | `HooksManager.tsx` | DONE | Shared Toggle component |
-| C4 | RulesManager | `RulesManager.tsx` | DONE | Shared StatusDot + Toggle |
-| C5 | Remplacer AgentsSection | `DashboardPanel.tsx` | DONE | Nouvelles sections |
-| D1 | Auto-deploy dans start_session | `session/manager.rs` | DONE | Avant spawn CLI |
-| D2 | Watcher .claude/ | `watchers/service.rs` | DONE | Filtered to agents/ |
-| D3 | IPC agents CRUD | `commands.rs` | DONE | read/write/delete .md |
+| A1 | Module embedded.rs (include_str!) | `deployer/embedded.rs` | TODO | 6 agents + 4 rules |
+| A2 | Rewrite sync sans source_dir | `deployer/sync.rs` | TODO | Itere sur embedded:: |
+| A3 | Supprimer find_reference_dir | `deployer/mod.rs` | TODO | + add mod embedded |
+| A4 | Supprimer bundle.resources | `tauri.conf.json` | TODO | Plus de reference/ runtime |
+| B1 | project_dir → Arc<RwLock<PathBuf>> | `commands.rs` | TODO | AppState refactor |
+| B2 | Update tous les commands | `commands.rs` | TODO | .read().await |
+| B3 | Commande switch_project | `commands.rs` | TODO | Kill+swap+re-init |
+| B4 | Commande get_project_info | `commands.rs` | TODO | Path + name |
+| B5 | Update main.rs setup | `main.rs` | TODO | Plugins + commands |
+| B6 | Watcher stop/restart | `watchers/service.rs` | TODO | CancellationToken |
+| C1 | tauri-plugin-dialog | `Cargo.toml`, `package.json` | TODO | Dep + permission |
+| C2 | projectStore.ts | `stores/projectStore.ts` | TODO | State projet |
+| C3 | ProjectPicker + StatusBar | `ProjectPicker.tsx`, `StatusBar.tsx` | TODO | Folder picker |
+| C4 | Listener project-changed | `useTauriEvents.ts` | TODO | Reset stores |
+| C5 | Charger project info startup | `App.tsx` | TODO | get_project_info |
+| D1 | Commande start_epic | `commands.rs` | TODO | Phase→comprehension |
+| D2 | UI Start Epic | `WorkflowSection.tsx` | TODO | Form quand idle |
+| D3 | CTA StartupDashboard | `StartupDashboard.tsx` | TODO | Guide utilisateur |
 
-## Simplify Review Fixes
+## Vagues
 
-1. `invoke("create_agent")` → `invoke("save_agent")` (runtime bug)
-2. Edit textarea fetches full content via `read_agent` (was truncating)
-3. Deduplicated `newAgent` construction in handleCreate
-4. `useTauriEvents` maps list_agents result properly (not raw cast)
-5. Removed double deploy (init.rs no longer calls deployer::deploy)
-6. Removed TOCTOU existence check in deployer/mod.rs
-7. `sync_file` returns `SyncOutcome` enum + manifest fast-path
-8. `list_agents` no longer sends full file content (lighter IPC)
-9. Extracted shared `StatusDot` and `Toggle` to common/
+1. A1 + A2 + A3 + A4 (embedded content)
+2. B1 + B2 + B3 + B4 + B5 + B6 (dynamic project dir)
+3. C1 + C2 + C3 + C4 + C5 (project picker UI)
+4. D1 + D2 + D3 (workflow init)

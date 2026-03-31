@@ -11,20 +11,17 @@
 | 2 | Dashboard temps reel | TERMINE | 13 taches |
 | 3 | Screenshots & visuels | TERMINE | 13 taches |
 | 4 | MCP Server zaos-ide | TERMINE | 7 taches |
-| 5 | UX Polish | TERMINE | 12 taches, review simplify done |
-| 6 | Workflow Kit Integration | TERMINE | 17/17 taches, review simplify done |
+| 5 | UX Polish | TERMINE | 12 taches |
+| 6 | Workflow Kit Integration | TERMINE | 17 taches |
+| 7 | Project Portability & Workflow Init | EN COURS | 0/15 taches, 4 streams |
 
 ## Epic active
 
-Phase 6 — Workflow Kit Integration : TERMINEE
+Phase 7 — Project Portability : embedded content, project picker, workflow init
 
-## Ce qui est fait (Phase 6)
+## Ce qui est fait (Phase 7)
 
-- Deployer (config, sync engine, manifest, hooks binary deploy)
-- zaos-hooks binary (inject-context, block-code, on-compact, welcome)
-- Frontend CRUD (workflowKitStore, AgentsManager, HooksManager, RulesManager)
-- Integration (auto-deploy, .claude/ watcher, IPC agents CRUD)
-- Simplify review: 9 fixes (invoke bug, edit truncation, shared components, etc.)
+Rien encore — plan valide, pret pour implementation.
 
 ## Bugs connus
 
@@ -43,4 +40,7 @@ Aucun
 
 ## Prochaines priorites
 
-Toutes les phases (1-6) terminees. Pret pour test utilisateur et commit.
+1. Vague 1 : A1-A4 (embedded content — elimine dependance reference/)
+2. Vague 2 : B1-B6 (dynamic project dir)
+3. Vague 3 : C1-C6 (project picker UI)
+4. Vague 4 : D1-D3 (workflow init)

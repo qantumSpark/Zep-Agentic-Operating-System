@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 6 TERMINEE** — Workflow Kit Integration complet
+> Statut global : **Phase 7 EN COURS** — Project Portability & Workflow Init
 
 ---
 
@@ -179,6 +179,26 @@
 
 ---
 
+## Phase 7 — Project Portability & Workflow Init
+
+- [ ] Embedded content module (include_str! pour 6 agents + 4 rules)
+- [ ] Rewrite sync_agents/sync_rules sans source_dir (utilise embedded)
+- [ ] Supprimer find_reference_dir + bundle.resources
+- [ ] AppState.project_dir → Arc<RwLock<PathBuf>>
+- [ ] Mettre a jour tous les commands (read().await)
+- [ ] Commande switch_project (kill session, swap services, re-init)
+- [ ] Commande get_project_info
+- [ ] FileWatcherService stop/restart (CancellationToken)
+- [ ] tauri-plugin-dialog (Rust + JS + capability)
+- [ ] projectStore.ts
+- [ ] ProjectPicker component + integration StatusBar
+- [ ] Listener project-changed + reset stores
+- [ ] Commande start_epic (phase→comprehension, write current-epic.md)
+- [ ] UI "Start Epic" dans WorkflowSection
+- [ ] CTA guide dans StartupDashboard
+
+---
+
 ## Compteur de progression
 
 | Phase | Total | Done | Stub | TODO | % |
@@ -192,4 +212,5 @@
 | Phase 4 | 7 | 7 | 0 | 0 | 100% |
 | Phase 5 | 12 | 12 | 0 | 0 | 100% |
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
-| **Total** | **109** | **105** | **3** | **0** | **96%** |
+| Phase 7 | 15 | 0 | 0 | 15 | 0% |
+| **Total** | **124** | **105** | **3** | **15** | **85%** |
