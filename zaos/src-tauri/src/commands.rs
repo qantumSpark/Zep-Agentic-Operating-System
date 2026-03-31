@@ -664,13 +664,12 @@ pub async fn start_epic(
     let project_dir = state.project_dir().await;
 
     let mut engine = state.workflow_engine.lock().await;
-    engine.set_epic(name.clone()).await.map_err(|e| e.to_string())?;
-    engine.set_phase("comprehension".to_string()).await.map_err(|e| e.to_string())?;
-    engine.get_state_mut().gate_validated = false;
+    engine.start_epic(name.clone()).await.map_err(|e| e.to_string())?;
 
     let epic_content = format!(
-        "# Current Epic\n\n## Epic\n\n{}\n\n## Description\n\n{}\n\n## Task Plan\n\n_En attente du plan._\n\n## Progress\n\n_Phase: comprehension_\n",
-        name, description
+        "# Epic active : {}\n\n> Statut : EN COURS\n\n## Objectif\n\n{}\n\n## Tasks\n\n| # | Task | Fichier(s) | Statut | Notes |\n|---|------|-----------|--------|-------|\n\n_En attente du plan._\n",
+        name,
+        if description.is_empty() { "_Pas de description._" } else { &description }
     );
     let epic_path = project_dir.join(".memory").join("current-epic.md");
     tokio::fs::write(&epic_path, epic_content)

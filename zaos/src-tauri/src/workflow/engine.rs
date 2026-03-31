@@ -131,6 +131,23 @@ impl WorkflowEngine {
         Ok(())
     }
 
+    /// Start a new epic: set name, transition to comprehension, reset gate.
+    /// Single persist_and_notify call for atomicity.
+    pub async fn start_epic(&mut self, name: String) -> Result<()> {
+        let old_phase = self.current_state.phase.clone();
+        self.current_state.epic = name;
+        self.current_state.gate_validated = false;
+        self.current_state.record_transition(
+            old_phase,
+            "comprehension".to_string(),
+            Some("epic started".to_string()),
+        );
+        self.current_state.phase = "comprehension".to_string();
+        self.persist_and_notify().await?;
+        tracing::info!("Epic started: {}", self.current_state.epic);
+        Ok(())
+    }
+
     /// Set task
     pub async fn set_task(&mut self, description: String) -> Result<()> {
         self.current_state.task = description;
