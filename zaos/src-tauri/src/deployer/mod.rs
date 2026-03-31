@@ -1,44 +1,10 @@
 pub mod config;
+pub mod embedded;
 pub mod sync;
 
 use std::path::{Path, PathBuf};
 use config::WorkflowKitConfig;
 use sync::SyncReport;
-
-/// Find the reference resources directory.
-/// Checks multiple locations: relative to project_dir (dev), next to exe (prod),
-/// and Tauri resource directory.
-pub fn find_reference_dir(project_dir: &Path) -> Option<PathBuf> {
-    // 1. Relative to project dir (dev mode when project_dir == zaos/)
-    let candidate = project_dir.join("reference");
-    if candidate.exists() {
-        return Some(candidate);
-    }
-    // 2. Parent dir (in case project_dir is zaos/src-tauri/)
-    if let Some(parent) = project_dir.parent() {
-        let candidate = parent.join("reference");
-        if candidate.exists() {
-            return Some(candidate);
-        }
-    }
-    // 3. Next to current executable (production: bundled resources)
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            let candidate = dir.join("reference");
-            if candidate.exists() {
-                return Some(candidate);
-            }
-            // Tauri bundles resources next to exe or in ../Resources/ (macOS)
-            if let Some(grandparent) = dir.parent() {
-                let candidate = grandparent.join("Resources").join("reference");
-                if candidate.exists() {
-                    return Some(candidate);
-                }
-            }
-        }
-    }
-    None
-}
 
 /// Find the zaos-hooks binary path.
 /// In dev mode: look in target/debug/
@@ -127,7 +93,8 @@ pub fn deploy_hooks_binary(
     Ok(None)
 }
 
-/// Full deploy: config + binary + sync agents/rules/settings
+/// Full deploy: config + binary + sync agents/rules/settings.
+/// Agent and rule content comes from embedded:: (compiled into the binary).
 pub fn deploy(project_dir: &Path) -> Result<SyncReport, Box<dyn std::error::Error + Send + Sync>> {
     let config = WorkflowKitConfig::load(project_dir);
 
@@ -135,10 +102,6 @@ pub fn deploy(project_dir: &Path) -> Result<SyncReport, Box<dyn std::error::Erro
     let hooks_path = deploy_hooks_binary(project_dir)?
         .unwrap_or_else(|| PathBuf::from("zaos-hooks")); // fallback to PATH
 
-    // Find reference dir
-    let reference_dir =
-        find_reference_dir(project_dir).ok_or("Reference directory not found")?;
-
-    // Sync everything
-    sync::sync_all(&reference_dir, project_dir, &hooks_path, &config)
+    // Sync everything (agents/rules from embedded::, settings generated)
+    sync::sync_all(project_dir, &hooks_path, &config)
 }

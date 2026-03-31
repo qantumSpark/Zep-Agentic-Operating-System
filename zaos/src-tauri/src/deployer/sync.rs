@@ -103,75 +103,48 @@ fn sync_file(
     }
 }
 
-/// Sync all agents from source_dir to project's .claude/agents/
+/// Sync all embedded agents to project's .claude/agents/
 pub fn sync_agents(
-    source_dir: &Path,
     project_dir: &Path,
     manifest: &mut DeployManifest,
     report: &mut SyncReport,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let agents_source = source_dir.join("agents");
     let agents_target = project_dir.join(".claude").join("agents");
 
-    if !agents_source.exists() {
-        tracing::warn!("Agents source directory not found: {:?}", agents_source);
-        return Ok(());
-    }
+    for agent in super::embedded::AGENTS {
+        let rel_path = format!("agents/{}", agent.filename);
+        let target = agents_target.join(agent.filename);
 
-    for entry in std::fs::read_dir(&agents_source)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().map_or(false, |e| e == "md") {
-            let filename = path.file_name().unwrap().to_string_lossy().to_string();
-            let rel_path = format!("agents/{}", filename);
-            let content = std::fs::read(&path)?;
-            let target = agents_target.join(&filename);
-
-            match sync_file(&target, &content, manifest, &rel_path)? {
-                SyncOutcome::Created => report.created.push(rel_path),
-                SyncOutcome::Updated => report.updated.push(rel_path),
-                SyncOutcome::Skipped => report.skipped.push(rel_path),
-            }
+        match sync_file(&target, agent.content.as_bytes(), manifest, &rel_path)? {
+            SyncOutcome::Created => report.created.push(rel_path),
+            SyncOutcome::Updated => report.updated.push(rel_path),
+            SyncOutcome::Skipped => report.skipped.push(rel_path),
         }
     }
     Ok(())
 }
 
-/// Sync all rules from source_dir to project's .claude/rules/
+/// Sync all embedded rules to project's .claude/rules/
 pub fn sync_rules(
-    source_dir: &Path,
     project_dir: &Path,
     manifest: &mut DeployManifest,
     report: &mut SyncReport,
     disabled_rules: &[String],
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let rules_source = source_dir.join("rules");
     let rules_target = project_dir.join(".claude").join("rules");
 
-    if !rules_source.exists() {
-        return Ok(());
-    }
+    for rule in super::embedded::RULES {
+        if disabled_rules.contains(&rule.filename.to_string()) {
+            continue;
+        }
 
-    for entry in std::fs::read_dir(&rules_source)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.extension().map_or(false, |e| e == "mdc") {
-            let filename = path.file_name().unwrap().to_string_lossy().to_string();
+        let rel_path = format!("rules/{}", rule.filename);
+        let target = rules_target.join(rule.filename);
 
-            // Skip disabled rules
-            if disabled_rules.contains(&filename) {
-                continue;
-            }
-
-            let rel_path = format!("rules/{}", filename);
-            let content = std::fs::read(&path)?;
-            let target = rules_target.join(&filename);
-
-            match sync_file(&target, &content, manifest, &rel_path)? {
-                SyncOutcome::Created => report.created.push(rel_path),
-                SyncOutcome::Updated => report.updated.push(rel_path),
-                SyncOutcome::Skipped => report.skipped.push(rel_path),
-            }
+        match sync_file(&target, rule.content.as_bytes(), manifest, &rel_path)? {
+            SyncOutcome::Created => report.created.push(rel_path),
+            SyncOutcome::Updated => report.updated.push(rel_path),
+            SyncOutcome::Skipped => report.skipped.push(rel_path),
         }
     }
     Ok(())
@@ -233,9 +206,8 @@ pub fn sync_settings(
     Ok(())
 }
 
-/// Full sync: agents + rules + settings
+/// Full sync: agents + rules + settings (all content from embedded::)
 pub fn sync_all(
-    source_dir: &Path,
     project_dir: &Path,
     hooks_binary_path: &Path,
     config: &super::config::WorkflowKitConfig,
@@ -247,9 +219,8 @@ pub fn sync_all(
         skipped: vec![],
     };
 
-    sync_agents(source_dir, project_dir, &mut manifest, &mut report)?;
+    sync_agents(project_dir, &mut manifest, &mut report)?;
     sync_rules(
-        source_dir,
         project_dir,
         &mut manifest,
         &mut report,
