@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 7 EN COURS** — Project Portability & Workflow Init
+> Statut global : **Phase 7 TERMINE** — Project Portability & Workflow Init
 
 ---
 
@@ -193,9 +193,9 @@
 - [x] projectStore.ts
 - [x] ProjectPicker component + integration StatusBar
 - [x] Listener project-changed + reset stores
-- [ ] Commande start_epic (phase→comprehension, write current-epic.md)
-- [ ] UI "Start Epic" dans WorkflowSection
-- [ ] CTA guide dans StartupDashboard
+- [x] Commande start_epic (phase→comprehension, write current-epic.md)
+- [x] UI "Start Epic" dans WorkflowSection
+- [x] CTA guide dans StartupDashboard
 
 ---
 
@@ -212,5 +212,5 @@
 | Phase 4 | 7 | 7 | 0 | 0 | 100% |
 | Phase 5 | 12 | 12 | 0 | 0 | 100% |
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
-| Phase 7 | 15 | 13 | 0 | 2 | 87% |
-| **Total** | **124** | **118** | **3** | **2** | **95%** |
+| Phase 7 | 15 | 15 | 0 | 0 | 100% |
+| **Total** | **124** | **120** | **3** | **0** | **97%** |

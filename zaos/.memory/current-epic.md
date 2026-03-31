@@ -27,9 +27,9 @@ Rendre ZAOS utilisable sur n'importe quel projet : embarquer les agents/rules da
 | C3 | ProjectPicker + StatusBar | `ProjectPicker.tsx`, `StatusBar.tsx` | DONE | Folder picker |
 | C4 | Listener project-changed | `useTauriEvents.ts` | DONE | Reset stores + reload all |
 | C5 | Charger project info startup | `App.tsx` | DONE | 6 invokes en parallele |
-| D1 | Commande start_epic | `commands.rs` | TODO | Phase→comprehension |
-| D2 | UI Start Epic | `WorkflowSection.tsx` | TODO | Form quand idle |
-| D3 | CTA StartupDashboard | `StartupDashboard.tsx` | TODO | Guide utilisateur |
+| D1 | Commande start_epic | `commands.rs`, `engine.rs` | DONE | Atomique via engine.start_epic() |
+| D2 | UI Start Epic | `WorkflowSection.tsx` | DONE | Form quand idle |
+| D3 | CTA StartupDashboard | `StartupDashboard.tsx` | DONE | Guide utilisateur |
 
 ## Vagues
 
