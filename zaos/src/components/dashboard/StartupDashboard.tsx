@@ -90,6 +90,18 @@ export function StartupDashboard() {
           </div>
         )}
 
+        {/* ---- Start Epic CTA — only when no epic active ---- */}
+        {!currentEpic && !activeEpic && (!phase || phase === "idle") && (
+          <div className="rounded-lg border border-zinc-700/60 bg-zinc-800/40 p-4 text-center space-y-3">
+            <p className="text-zinc-300 text-sm">
+              Aucun epic en cours
+            </p>
+            <p className="text-zinc-500 text-xs">
+              Demarrez un epic depuis la section Workflow du dashboard, ou tapez directement un message.
+            </p>
+          </div>
+        )}
+
         {/* ---- Workflow State ---- */}
         {(phase || task) && (
           <div className="flex flex-wrap items-center justify-center gap-2">

@@ -22,11 +22,11 @@ Rendre ZAOS utilisable sur n'importe quel projet : embarquer les agents/rules da
 | B4 | Commande get_project_info | `commands.rs` | DONE | Path + name |
 | B5 | Update main.rs setup | `main.rs` | DONE | Plugins + commands |
 | B6 | Watcher stop/restart | `watchers/service.rs` | DONE | CancellationToken |
-| C1 | tauri-plugin-dialog | `Cargo.toml`, `package.json` | TODO | Dep + permission |
-| C2 | projectStore.ts | `stores/projectStore.ts` | TODO | State projet |
-| C3 | ProjectPicker + StatusBar | `ProjectPicker.tsx`, `StatusBar.tsx` | TODO | Folder picker |
-| C4 | Listener project-changed | `useTauriEvents.ts` | TODO | Reset stores |
-| C5 | Charger project info startup | `App.tsx` | TODO | get_project_info |
+| C1 | tauri-plugin-dialog | `Cargo.toml`, `package.json` | DONE | Dep + permission |
+| C2 | projectStore.ts | `stores/projectStore.ts` | DONE | State projet |
+| C3 | ProjectPicker + StatusBar | `ProjectPicker.tsx`, `StatusBar.tsx` | DONE | Folder picker |
+| C4 | Listener project-changed | `useTauriEvents.ts` | DONE | Reset stores + reload all |
+| C5 | Charger project info startup | `App.tsx` | DONE | 6 invokes en parallele |
 | D1 | Commande start_epic | `commands.rs` | TODO | Phase→comprehension |
 | D2 | UI Start Epic | `WorkflowSection.tsx` | TODO | Form quand idle |
 | D3 | CTA StartupDashboard | `StartupDashboard.tsx` | TODO | Guide utilisateur |

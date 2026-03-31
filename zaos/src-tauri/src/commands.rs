@@ -647,3 +647,36 @@ pub async fn switch_project(
     tracing::info!("Project switched to: {}", info.path);
     Ok(info)
 }
+
+// =============================================================================
+// Workflow Init Commands
+// =============================================================================
+
+/// Start a new epic: set name, transition to comprehension phase, write current-epic.md
+#[tauri::command]
+pub async fn start_epic(
+    name: String,
+    description: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    tracing::info!("start_epic called: name={}, description={}", name, description);
+
+    let project_dir = state.project_dir().await;
+
+    let mut engine = state.workflow_engine.lock().await;
+    engine.set_epic(name.clone()).await.map_err(|e| e.to_string())?;
+    engine.set_phase("comprehension".to_string()).await.map_err(|e| e.to_string())?;
+    engine.get_state_mut().gate_validated = false;
+
+    let epic_content = format!(
+        "# Current Epic\n\n## Epic\n\n{}\n\n## Description\n\n{}\n\n## Task Plan\n\n_En attente du plan._\n\n## Progress\n\n_Phase: comprehension_\n",
+        name, description
+    );
+    let epic_path = project_dir.join(".memory").join("current-epic.md");
+    tokio::fs::write(&epic_path, epic_content)
+        .await
+        .map_err(|e| format!("Failed to write current-epic.md: {}", e))?;
+
+    tracing::info!("Epic started: {}", name);
+    Ok(())
+}

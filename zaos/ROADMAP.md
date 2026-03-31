@@ -189,10 +189,10 @@
 - [x] Commande switch_project (kill session, swap services, re-init)
 - [x] Commande get_project_info
 - [x] FileWatcherService stop/restart (CancellationToken)
-- [ ] tauri-plugin-dialog (Rust + JS + capability)
-- [ ] projectStore.ts
-- [ ] ProjectPicker component + integration StatusBar
-- [ ] Listener project-changed + reset stores
+- [x] tauri-plugin-dialog (Rust + JS + capability)
+- [x] projectStore.ts
+- [x] ProjectPicker component + integration StatusBar
+- [x] Listener project-changed + reset stores
 - [ ] Commande start_epic (phase→comprehension, write current-epic.md)
 - [ ] UI "Start Epic" dans WorkflowSection
 - [ ] CTA guide dans StartupDashboard
@@ -212,5 +212,5 @@
 | Phase 4 | 7 | 7 | 0 | 0 | 100% |
 | Phase 5 | 12 | 12 | 0 | 0 | 100% |
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
-| Phase 7 | 15 | 10 | 0 | 5 | 67% |
-| **Total** | **124** | **115** | **3** | **5** | **93%** |
+| Phase 7 | 15 | 13 | 0 | 2 | 87% |
+| **Total** | **124** | **118** | **3** | **2** | **95%** |

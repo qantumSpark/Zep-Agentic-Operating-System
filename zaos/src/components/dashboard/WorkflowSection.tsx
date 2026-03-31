@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -11,6 +11,24 @@ export function WorkflowSection() {
   const task = useWorkflowStore((state) => state.task);
   const mode = useWorkflowStore((state) => state.mode);
   const setMode = useWorkflowStore((state) => state.setMode);
+
+  const [epicName, setEpicName] = useState("");
+  const [epicDesc, setEpicDesc] = useState("");
+  const [isStarting, setIsStarting] = useState(false);
+
+  const handleStartEpic = async () => {
+    if (!epicName.trim() || isStarting) return;
+    setIsStarting(true);
+    try {
+      await invoke("start_epic", { name: epicName.trim(), description: epicDesc.trim() });
+      setEpicName("");
+      setEpicDesc("");
+    } catch (err) {
+      console.error("Failed to start epic:", err);
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   const handleValidateGate = async () => {
     try {
@@ -41,7 +59,31 @@ export function WorkflowSection() {
           )}
         </div>
       ) : (
-        <div className="text-zinc-500 italic">No epic in progress</div>
+        <div className="space-y-2">
+          <label className="text-zinc-400 text-xs uppercase tracking-wide">Nouvel epic</label>
+          <input
+            type="text"
+            value={epicName}
+            onChange={(e) => setEpicName(e.target.value)}
+            placeholder="Nom de l'epic"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-100 placeholder-zinc-500 focus:border-blue-500 outline-none"
+            onKeyDown={(e) => e.key === "Enter" && handleStartEpic()}
+          />
+          <textarea
+            value={epicDesc}
+            onChange={(e) => setEpicDesc(e.target.value)}
+            placeholder="Description (optionnel)"
+            rows={2}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-100 placeholder-zinc-500 focus:border-blue-500 outline-none resize-none"
+          />
+          <button
+            onClick={handleStartEpic}
+            disabled={!epicName.trim() || isStarting}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isStarting ? "Demarrage..." : "Demarrer l'epic"}
+          </button>
+        </div>
       )}
 
       {/* Phase */}

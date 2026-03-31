@@ -93,6 +93,7 @@ fn main() {
             commands::delete_agent,
             commands::switch_project,
             commands::get_project_info,
+            commands::start_epic,
         ])
         .setup(move |app| {
             let state = app.state::<AppState>();
