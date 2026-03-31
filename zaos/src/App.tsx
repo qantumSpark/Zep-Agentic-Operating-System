@@ -12,6 +12,7 @@ import { useSessionStore } from "./stores/sessionStore";
 import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
 import { useScreenshotStore } from "./stores/screenshotStore";
 import { useThemeStore } from "./stores/themeStore";
+import { useProjectStore } from "./stores/projectStore";
 import { useWorkflowKitStore } from "./stores/workflowKitStore";
 import type { AgentDef } from "./stores/workflowKitStore";
 import type { Screenshot } from "./types/screenshots";
@@ -43,10 +44,11 @@ export function App() {
         await requestPermission();
       }
 
-      const [authResult, memResult, screenshotResult] = await Promise.allSettled([
+      const [authResult, memResult, screenshotResult, projectResult] = await Promise.allSettled([
         invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
         invoke<MemoryStateResponse>("get_memory_state"),
         invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
+        invoke<{ path: string; name: string }>("get_project_info"),
       ]);
       if (authResult.status === "fulfilled") {
         useSessionStore.getState().setCliAuth(authResult.value.authenticated, authResult.value.version, authResult.value.message);
@@ -63,6 +65,11 @@ export function App() {
         useScreenshotStore.getState().setScreenshots(screenshotResult.value.screenshots);
       } else {
         console.error("get_screenshots failed:", screenshotResult.reason);
+      }
+      if (projectResult.status === "fulfilled") {
+        useProjectStore.getState().setProject(projectResult.value.path, projectResult.value.name);
+      } else {
+        console.error("get_project_info failed:", projectResult.reason);
       }
 
       // Load workflow kit status and agents

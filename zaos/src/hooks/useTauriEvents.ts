@@ -9,6 +9,7 @@ import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
 import { useWorkflowKitStore, type AgentDef } from "../stores/workflowKitStore";
+import { useProjectStore } from "../stores/projectStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -225,6 +226,35 @@ export function useTauriEvents() {
         }
       );
       unlisteners.push(claudeDirChangeListener);
+
+      // Project changed — reset all stores and reload data
+      const projectChangedListener = await listen<{ path: string; name: string }>(
+        "project-changed",
+        (event) => {
+          const { path, name } = event.payload;
+
+          // Update project store
+          useProjectStore.getState().setProject(path, name);
+          useProjectStore.getState().setLoading(false);
+
+          // Reset all other stores
+          useWorkflowStore.getState().resetWorkflow();
+          useMemoryStore.getState().reset();
+          useSessionStore.getState().resetSession();
+          useScreenshotStore.getState().reset();
+          useWorkflowKitStore.getState().reset();
+
+          // Reload initial data for new project
+          invoke<MemoryStateResponse>("get_memory_state")
+            .then((mem) => useMemoryStore.getState().setMemoryState(mem))
+            .catch((e: unknown) => console.error("Failed to reload memory:", e));
+
+          invoke<{ screenshots: Screenshot[] }>("get_screenshots")
+            .then((res) => useScreenshotStore.getState().setScreenshots(res.screenshots))
+            .catch((e: unknown) => console.error("Failed to reload screenshots:", e));
+        }
+      );
+      unlisteners.push(projectChangedListener);
     };
 
     setupListeners();

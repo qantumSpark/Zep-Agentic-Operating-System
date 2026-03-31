@@ -13,7 +13,7 @@
 | 4 | MCP Server zaos-ide | TERMINE | 7 taches |
 | 5 | UX Polish | TERMINE | 12 taches |
 | 6 | Workflow Kit Integration | TERMINE | 17 taches |
-| 7 | Project Portability & Workflow Init | EN COURS | 0/15 taches, 4 streams |
+| 7 | Project Portability & Workflow Init | EN COURS | 10/15 taches, 4 streams |
 
 ## Epic active
 
@@ -21,7 +21,8 @@ Phase 7 — Project Portability : embedded content, project picker, workflow ini
 
 ## Ce qui est fait (Phase 7)
 
-Rien encore — plan valide, pret pour implementation.
+- Vague 1 (A1-A4) : Embedded content — agents/rules compiles dans le binaire via include_str!(), sync reecrit sans source_dir, find_reference_dir supprime, bundle.resources vide.
+- Vague 2 (B1-B6) : Dynamic project dir — AppState.project_dir → Arc<RwLock<PathBuf>>, tous les commands mis a jour, switch_project + get_project_info ajoutes, main.rs mis a jour, FileWatcherService avec stop/restart et Drop.
 
 ## Bugs connus
 
@@ -40,7 +41,5 @@ Aucun
 
 ## Prochaines priorites
 
-1. Vague 1 : A1-A4 (embedded content — elimine dependance reference/)
-2. Vague 2 : B1-B6 (dynamic project dir)
-3. Vague 3 : C1-C6 (project picker UI)
-4. Vague 4 : D1-D3 (workflow init)
+1. Vague 3 : C1-C5 (project picker UI)
+2. Vague 4 : D1-D3 (workflow init)

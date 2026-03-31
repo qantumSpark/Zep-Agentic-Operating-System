@@ -12,16 +12,16 @@ Rendre ZAOS utilisable sur n'importe quel projet : embarquer les agents/rules da
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| A1 | Module embedded.rs (include_str!) | `deployer/embedded.rs` | TODO | 6 agents + 4 rules |
-| A2 | Rewrite sync sans source_dir | `deployer/sync.rs` | TODO | Itere sur embedded:: |
-| A3 | Supprimer find_reference_dir | `deployer/mod.rs` | TODO | + add mod embedded |
-| A4 | Supprimer bundle.resources | `tauri.conf.json` | TODO | Plus de reference/ runtime |
-| B1 | project_dir → Arc<RwLock<PathBuf>> | `commands.rs` | TODO | AppState refactor |
-| B2 | Update tous les commands | `commands.rs` | TODO | .read().await |
-| B3 | Commande switch_project | `commands.rs` | TODO | Kill+swap+re-init |
-| B4 | Commande get_project_info | `commands.rs` | TODO | Path + name |
-| B5 | Update main.rs setup | `main.rs` | TODO | Plugins + commands |
-| B6 | Watcher stop/restart | `watchers/service.rs` | TODO | CancellationToken |
+| A1 | Module embedded.rs (include_str!) | `deployer/embedded.rs` | DONE | 6 agents + 4 rules |
+| A2 | Rewrite sync sans source_dir | `deployer/sync.rs` | DONE | Itere sur embedded:: |
+| A3 | Supprimer find_reference_dir | `deployer/mod.rs` | DONE | + add mod embedded |
+| A4 | Supprimer bundle.resources | `tauri.conf.json` | DONE | Plus de reference/ runtime |
+| B1 | project_dir → Arc<RwLock<PathBuf>> | `commands.rs` | DONE | AppState refactor |
+| B2 | Update tous les commands | `commands.rs` | DONE | .read().await |
+| B3 | Commande switch_project | `commands.rs` | DONE | Kill+swap+re-init |
+| B4 | Commande get_project_info | `commands.rs` | DONE | Path + name |
+| B5 | Update main.rs setup | `main.rs` | DONE | Plugins + commands |
+| B6 | Watcher stop/restart | `watchers/service.rs` | DONE | CancellationToken |
 | C1 | tauri-plugin-dialog | `Cargo.toml`, `package.json` | TODO | Dep + permission |
 | C2 | projectStore.ts | `stores/projectStore.ts` | TODO | State projet |
 | C3 | ProjectPicker + StatusBar | `ProjectPicker.tsx`, `StatusBar.tsx` | TODO | Folder picker |

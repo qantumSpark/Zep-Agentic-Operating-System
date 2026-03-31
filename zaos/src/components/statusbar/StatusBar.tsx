@@ -4,6 +4,7 @@ import { useSessionStore } from "../../stores/sessionStore";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { formatDuration } from "../../utils/formatDuration";
+import { ProjectPicker } from "../common/ProjectPicker";
 
 /**
  * Bottom status bar: tokens, duration, connections, mode
@@ -40,6 +41,9 @@ export function StatusBar() {
 
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-zinc-800 border-t border-zinc-700 text-xs text-zinc-300 gap-4">
+      {/* Project picker */}
+      <ProjectPicker />
+      <div className="w-px h-4 bg-zinc-600" />
       {/* Heartbeat */}
       <span
         className={`w-2 h-2 rounded-full ${isActive ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`}

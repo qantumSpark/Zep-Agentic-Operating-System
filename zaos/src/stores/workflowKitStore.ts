@@ -44,6 +44,7 @@ interface WorkflowKitState {
   setRules: (rules: RuleDef[]) => void;
   setConfig: (config: WorkflowKitConfig) => void;
   setLastDeployedAt: (timestamp: string) => void;
+  reset: () => void;
 }
 
 const DEFAULT_HOOKS: HookDef[] = [
@@ -72,4 +73,19 @@ export const useWorkflowKitStore = create<WorkflowKitState>((set) => ({
   setRules: (rules) => set({ rules }),
   setConfig: (config) => set({ config }),
   setLastDeployedAt: (timestamp) => set({ lastDeployedAt: timestamp }),
+
+  reset: () =>
+    set({
+      deployed: false,
+      agents: [],
+      hooks: DEFAULT_HOOKS,
+      rules: [],
+      config: {
+        blocked_extensions: [".rs", ".ts", ".tsx", ".js", ".jsx", ".css"],
+        auto_sync: true,
+        hooks_enabled: true,
+        disabled_rules: [],
+      },
+      lastDeployedAt: null,
+    }),
 }));
