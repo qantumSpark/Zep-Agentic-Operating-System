@@ -68,7 +68,7 @@ fn sync_file(
         }
     }
 
-    if target.exists() {
+    let outcome = if target.exists() {
         let existing = std::fs::read(target)?;
         let existing_hash = fnv1a_hex(&existing);
 
@@ -85,63 +85,40 @@ fn sync_file(
             }
         }
 
-        if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(target, content)?;
-        manifest.files.insert(rel_path.to_string(), new_hash);
-        tracing::info!("Updated: {}", rel_path);
-        Ok(SyncOutcome::Updated)
+        SyncOutcome::Updated
     } else {
-        if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        std::fs::write(target, content)?;
-        manifest.files.insert(rel_path.to_string(), new_hash);
-        tracing::info!("Created: {}", rel_path);
-        Ok(SyncOutcome::Created)
+        SyncOutcome::Created
+    };
+
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent)?;
     }
+    std::fs::write(target, content)?;
+    manifest.files.insert(rel_path.to_string(), new_hash);
+    tracing::info!("{:?}: {}", outcome, rel_path);
+    Ok(outcome)
 }
 
-/// Sync all embedded agents to project's .claude/agents/
-pub fn sync_agents(
+/// Sync a set of embedded files to project's .claude/{subdir}/
+fn sync_embedded(
     project_dir: &Path,
+    subdir: &str,
+    files: &[super::embedded::EmbeddedFile],
+    skip: &[String],
     manifest: &mut DeployManifest,
     report: &mut SyncReport,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let agents_target = project_dir.join(".claude").join("agents");
+    let target_dir = project_dir.join(".claude").join(subdir);
 
-    for agent in super::embedded::AGENTS {
-        let rel_path = format!("agents/{}", agent.filename);
-        let target = agents_target.join(agent.filename);
-
-        match sync_file(&target, agent.content.as_bytes(), manifest, &rel_path)? {
-            SyncOutcome::Created => report.created.push(rel_path),
-            SyncOutcome::Updated => report.updated.push(rel_path),
-            SyncOutcome::Skipped => report.skipped.push(rel_path),
-        }
-    }
-    Ok(())
-}
-
-/// Sync all embedded rules to project's .claude/rules/
-pub fn sync_rules(
-    project_dir: &Path,
-    manifest: &mut DeployManifest,
-    report: &mut SyncReport,
-    disabled_rules: &[String],
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let rules_target = project_dir.join(".claude").join("rules");
-
-    for rule in super::embedded::RULES {
-        if disabled_rules.contains(&rule.filename.to_string()) {
+    for file in files {
+        if skip.iter().any(|s| s == file.filename) {
             continue;
         }
 
-        let rel_path = format!("rules/{}", rule.filename);
-        let target = rules_target.join(rule.filename);
+        let rel_path = format!("{}/{}", subdir, file.filename);
+        let target = target_dir.join(file.filename);
 
-        match sync_file(&target, rule.content.as_bytes(), manifest, &rel_path)? {
+        match sync_file(&target, file.content.as_bytes(), manifest, &rel_path)? {
             SyncOutcome::Created => report.created.push(rel_path),
             SyncOutcome::Updated => report.updated.push(rel_path),
             SyncOutcome::Skipped => report.skipped.push(rel_path),
@@ -219,13 +196,8 @@ pub fn sync_all(
         skipped: vec![],
     };
 
-    sync_agents(project_dir, &mut manifest, &mut report)?;
-    sync_rules(
-        project_dir,
-        &mut manifest,
-        &mut report,
-        &config.disabled_rules,
-    )?;
+    sync_embedded(project_dir, "agents", super::embedded::AGENTS, &[], &mut manifest, &mut report)?;
+    sync_embedded(project_dir, "rules", super::embedded::RULES, &config.disabled_rules, &mut manifest, &mut report)?;
     sync_settings(
         hooks_binary_path,
         project_dir,
