@@ -18,7 +18,9 @@ mod workflow;
 
 use commands::AppState;
 use std::path::PathBuf;
+use std::sync::Arc;
 use tauri::Manager;
+use tokio::sync::Mutex;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
@@ -56,6 +58,11 @@ fn main() {
     // Create app state
     let app_state = AppState::new(project_dir);
 
+    // Shared handle for MCP server shutdown cleanup
+    let mcp_handle_store: Arc<Mutex<Option<mcp_server::McpServerHandle>>> =
+        Arc::new(Mutex::new(None));
+    let mcp_handle_for_shutdown = mcp_handle_store.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(app_state)
@@ -74,20 +81,58 @@ fn main() {
             commands::delete_screenshot,
             commands::request_capture,
         ])
-        .setup(|app| {
+        .setup(move |app| {
             let state = app.state::<AppState>();
             let watcher = state.watcher_service.clone();
             let orch = state.screenshot_orchestrator.clone();
             let handle = app.handle().clone();
 
-            match watcher.start(handle, orch) {
+            // Start file watchers
+            match watcher.start(handle.clone(), orch.clone()) {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }
 
+            // Start MCP server
+            let wf_engine = state.workflow_engine.clone();
+            let project_dir = state.project_dir.clone();
+            let store = mcp_handle_store.clone();
+
+            tauri::async_runtime::spawn(async move {
+                match mcp_server::start_mcp_server(
+                    wf_engine,
+                    orch,
+                    handle,
+                    project_dir,
+                )
+                .await
+                {
+                    Ok(mcp_handle) => {
+                        tracing::info!(port = mcp_handle.port, "MCP server started");
+                        *store.lock().await = Some(mcp_handle);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to start MCP server: {}", e);
+                    }
+                }
+            });
+
             tracing::info!("App setup complete");
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Cleanup MCP server files on app exit.
+                // try_lock because this callback is sync — if the lock is held
+                // (e.g. during startup), cleanup is skipped and files remain on disk.
+                if let Ok(mut guard) = mcp_handle_for_shutdown.try_lock() {
+                    if let Some(handle) = guard.take() {
+                        handle.cancel_token.cancel();
+                        handle.cleanup();
+                    }
+                };
+            }
+        });
 }

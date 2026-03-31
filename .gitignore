@@ -9,3 +9,6 @@ package-lock.json
 Cargo.lock
 .DS_Store
 Thumbs.db
+
+# MCP server ephemeral files
+.zaos/mcp-port.json

@@ -57,10 +57,11 @@ This project uses a structured workflow with persistent memory. Before coding:
 1. Read `zaos/.memory/INDEX.md` → `state.md` → `current-epic.md`
 2. Check `zaos/ROADMAP.md` for overall progress
 3. A validated task plan must exist in `current-epic.md` before writing code
-4. Follow phases: comprehension → spec → architecture → implementation → review → closure
-5. Each phase has a gate — user must validate before advancing
-6. Update `.memory/state.md` and `.memory/current-epic.md` after completing work
-7. **After completing any phase or milestone:** update `ROADMAP.md` (mark tasks done, update progress table and status line), `.memory/state.md` (milestone status, priorities), and `.memory/current-epic.md` (task statuses). These files must always reflect the current state of the project.
+4. **After architecture/planning, before any implementation:** launch a research agent to verify the plan against real documentation, web sources, crate/package docs, and community best practices. The agent must confirm that APIs, crates, protocols, and patterns referenced in the plan actually exist and work as assumed. Update the plan if findings contradict it. Never start coding an unverified plan.
+5. Follow phases: comprehension → spec → architecture → **verification** → implementation → review → closure
+6. Each phase has a gate — user must validate before advancing
+7. Update `.memory/state.md` and `.memory/current-epic.md` after completing work
+8. **After completing any phase or milestone:** update `ROADMAP.md` (mark tasks done, update progress table and status line), `.memory/state.md` (milestone status, priorities), and `.memory/current-epic.md` (task statuses). These files must always reflect the current state of the project.
 
 ## Key Conventions
 

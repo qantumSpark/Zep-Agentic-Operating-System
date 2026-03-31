@@ -15,7 +15,7 @@
 
 ## Epic active
 
-Aucune epic active — Phase 3 terminee, en attente de direction utilisateur
+Phase 4 — MCP Server zaos-ide (0/12 taches)
 
 ## Ce qui est fait
 

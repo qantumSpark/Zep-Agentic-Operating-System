@@ -5,6 +5,7 @@ import { useWorkflowStore, type BackendWorkflowPayload } from "../stores/workflo
 import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
+import { useDiffStore } from "../stores/diffStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
 
 /**
@@ -113,6 +114,31 @@ export function useTauriEvents() {
         }
       );
       unlisteners.push(iterationUpdateListener);
+
+      // MCP notify events — show OS notification or log to console
+      const mcpNotifyListener = await listen<{ title: string; message: string }>(
+        "mcp-notify",
+        (event) => {
+          const { title, message } = event.payload;
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body: message });
+          } else {
+            console.info(`[MCP Notify] ${title}: ${message}`);
+          }
+        }
+      );
+      unlisteners.push(mcpNotifyListener);
+
+      // MCP show-diff events — store diff for visual review
+      const mcpShowDiffListener = await listen<{
+        path: string;
+        before: string;
+        after: string;
+        description?: string;
+      }>("mcp-show-diff", (event) => {
+        useDiffStore.getState().addDiff(event.payload);
+      });
+      unlisteners.push(mcpShowDiffListener);
     };
 
     setupListeners();

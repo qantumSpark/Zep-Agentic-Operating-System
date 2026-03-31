@@ -5,6 +5,7 @@ import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
 import { AgentsSection } from "./AgentsSection";
 import { ScreenshotGallery } from "./ScreenshotGallery";
+import { DiffViewer } from "./DiffViewer";
 import { IterationTracker } from "./IterationTracker";
 
 /**
@@ -35,6 +36,10 @@ export function DashboardPanel() {
 
       <CollapsibleSection title="Iteration Loop" defaultOpen={false}>
         <IterationTracker />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Diffs" defaultOpen={false}>
+        <DiffViewer />
       </CollapsibleSection>
 
       <CollapsibleSection title="Screenshots" defaultOpen={false}>
