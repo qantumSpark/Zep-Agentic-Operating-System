@@ -183,7 +183,24 @@ pub fn sync_settings(
     Ok(())
 }
 
-/// Full sync: agents + rules + settings (all content from embedded::)
+/// Sync CLAUDE.md to project root
+pub fn sync_claude_md(
+    project_dir: &Path,
+    manifest: &mut DeployManifest,
+    report: &mut SyncReport,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let target = project_dir.join("CLAUDE.md");
+    let rel_path = "CLAUDE.md";
+
+    match sync_file(&target, super::embedded::CLAUDE_MD.as_bytes(), manifest, rel_path)? {
+        SyncOutcome::Created => report.created.push(rel_path.to_string()),
+        SyncOutcome::Updated => report.updated.push(rel_path.to_string()),
+        SyncOutcome::Skipped => report.skipped.push(rel_path.to_string()),
+    }
+    Ok(())
+}
+
+/// Full sync: agents + rules + settings + CLAUDE.md (all content from embedded::)
 pub fn sync_all(
     project_dir: &Path,
     hooks_binary_path: &Path,
@@ -205,6 +222,7 @@ pub fn sync_all(
         &mut manifest,
         &mut report,
     )?;
+    sync_claude_md(project_dir, &mut manifest, &mut report)?;
 
     // Update manifest timestamp
     manifest.last_deployed = Some(chrono::Utc::now().to_rfc3339());

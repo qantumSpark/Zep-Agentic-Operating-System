@@ -58,3 +58,7 @@ pub const RULES: &[EmbeddedFile] = &[
         content: include_str!("../../../reference/rules/04-memory-hygiene.mdc"),
     },
 ];
+
+// ── Project CLAUDE.md ──────────────────────────────────────────────────────
+
+pub const CLAUDE_MD: &str = include_str!("../../../reference/CLAUDE.md");
