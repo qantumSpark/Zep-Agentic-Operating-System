@@ -1,14 +1,17 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { isPermissionGranted, requestPermission } from "@tauri-apps/plugin-notification";
 import { SplitPane } from "./components/common/SplitPane";
 import { ChatPanel } from "./components/chat/ChatPanel";
 import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 import { StatusBar } from "./components/statusbar/StatusBar";
 import { useTauriEvents } from "./hooks/useTauriEvents";
 import { useStreaming } from "./hooks/useStreaming";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSessionStore } from "./stores/sessionStore";
 import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
 import { useScreenshotStore } from "./stores/screenshotStore";
+import { useThemeStore } from "./stores/themeStore";
 import type { Screenshot } from "./types/screenshots";
 
 /**
@@ -20,10 +23,24 @@ export function App() {
   // Initialize event listeners
   useTauriEvents();
   useStreaming();
+  useKeyboardShortcuts();
+
+  const theme = useThemeStore((s) => s.theme);
+
+  // Sync theme attribute to <html> whenever it changes (including on mount)
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     console.log("ZAOS initialized");
     (async () => {
+      // Request notification permission on startup
+      const notifGranted = await isPermissionGranted();
+      if (!notifGranted) {
+        await requestPermission();
+      }
+
       const [authResult, memResult, screenshotResult] = await Promise.allSettled([
         invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
         invoke<MemoryStateResponse>("get_memory_state"),

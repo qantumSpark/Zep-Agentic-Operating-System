@@ -3,6 +3,7 @@ import { useChatStore } from "../../stores/chatStore";
 import { MessageBubble } from "./MessageBubble";
 import { InputBar } from "./InputBar";
 import { ThinkingIndicator } from "./ThinkingIndicator";
+import { StartupDashboard } from "../dashboard/StartupDashboard";
 
 /**
  * Chat panel: messages list + input bar at bottom
@@ -10,6 +11,7 @@ import { ThinkingIndicator } from "./ThinkingIndicator";
  */
 export function ChatPanel() {
   const messages = useChatStore((state) => state.messages);
+  const isStreaming = useChatStore((state) => state.isStreaming);
   const isThinking = useChatStore((state) => state.isThinking);
   const streamingText = useChatStore((state) => state.streamingTextBuffer);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,13 +25,11 @@ export function ChatPanel() {
   }, [messages, streamingText]);
 
   return (
-    <div className="flex flex-col h-full bg-zinc-900">
+    <div className={`flex flex-col h-full bg-zinc-900 streaming-glow ${isStreaming ? 'active' : ''}`}>
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-zinc-400">
-            <p>No messages yet. Start by typing a message below.</p>
-          </div>
+          <StartupDashboard />
         ) : (
           <>
             {messages.map((message) => (

@@ -286,6 +286,17 @@ pub async fn list_sessions(
     Ok(ListSessionsResponse { sessions })
 }
 
+/// Save a session log to .memory/sessions/
+#[tauri::command]
+pub async fn save_session_log(
+    state: State<'_, AppState>,
+    data: crate::session::logger::SessionLogData,
+) -> Result<(), String> {
+    crate::session::logger::write_session_log(&state.project_dir, &data)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Get current memory state (index + state + current epic)
 #[tauri::command]
 pub async fn get_memory_state(

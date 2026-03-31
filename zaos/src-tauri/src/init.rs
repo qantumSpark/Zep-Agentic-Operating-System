@@ -83,6 +83,9 @@ pub fn ensure_project_dirs(project_dir: &Path) {
         },
     );
 
+    // --- .memory/sessions/ ---
+    ensure_dir(&memory_dir.join("sessions"));
+
     // --- .screenshots/ ---
     let screenshots_dir = project_dir.join(".screenshots");
     ensure_dir(&screenshots_dir);

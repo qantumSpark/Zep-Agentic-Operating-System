@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 3 TERMINEE** — Screenshots & Visuels complet, pret pour Phase 4 (MCP Server zaos-ide)
+> Statut global : **Phase 4 TERMINEE** — MCP Server zaos-ide complet, pret pour Phase 5 (UX Polish)
 
 ---
 
@@ -130,13 +130,13 @@
 
 ## Phase 4 — MCP Server zaos-ide
 
-- [ ] Serveur TCP local sur 127.0.0.1:port_aleatoire
-- [ ] Token d'auth ephemere
-- [ ] Tool: show_diff — afficher un diff dans l'UI
-- [ ] Tool: notify — notification OS depuis Claude
-- [ ] Tool: get_ui_state — lire l'etat du dashboard
-- [ ] Tool: capture_screenshot — declencher une capture
-- [ ] Enregistrement dans .mcp.json du projet
+- [x] Serveur MCP Streamable HTTP embarque (rmcp 1.3 + axum, port aleatoire)
+- [x] Token d'auth ephemere (bearer UUID, verifie par middleware)
+- [x] Tool: show_diff — emit Tauri event, DiffViewer frontend
+- [x] Tool: notify — emit Tauri event, OS notification via browser API
+- [x] Tool: get_ui_state — lire l'etat workflow + project_dir
+- [x] Tool: capture_screenshot — delegue a ScreenshotOrchestrator
+- [x] Enregistrement .mcp.json auto-genere + cleanup au shutdown
 
 ---
 
@@ -167,6 +167,6 @@
 | **Phase 1 Total** | **47** | **43** | **3** | **0** | **91%** |
 | Phase 2 | 13 | 13 | 0 | 0 | 100% |
 | Phase 3 | 13 | 13 | 0 | 0 | 100% |
-| Phase 4 | 7 | 0 | 0 | 7 | 0% |
+| Phase 4 | 7 | 7 | 0 | 0 | 100% |
 | Phase 5 | 12 | 0 | 0 | 12 | 0% |
-| **Total** | **87** | **72** | **3** | **12** | **83%** |
+| **Total** | **87** | **79** | **3** | **5** | **91%** |

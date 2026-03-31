@@ -10,35 +10,29 @@
 | 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
 | 2 | Dashboard temps reel | TERMINE | Stream A (4/4), Stream B (8/8), Stream C (4/4) + trace reference |
 | 3 | Screenshots & visuels | TERMINE | 13/13 taches implementees, test utilisateur valide |
-| 4 | MCP Server zaos-ide | Non commence | Serveur local, Tools, .mcp.json |
-| 5 | UX Polish | Non commence | Sessions, Metriques, Notifications |
+| 4 | MCP Server zaos-ide | TERMINE | Serveur local, Tools, .mcp.json |
+| 5 | UX Polish | EN COURS | 0/12 taches, 4 streams paralleles |
 
 ## Epic active
 
-Phase 4 — MCP Server zaos-ide (0/12 taches)
+Phase 5 — UX Polish : Sessions, Metriques, Notifications, Raccourcis, Theme, Activity Feedback
 
-## Ce qui est fait
+## Ce qui est fait (Phase 5)
 
-- **Stream A (Fondations Rust) TERMINE** : types.rs (10 types), index.rs (ScreenshotIndex + IterationIndex, atomic write, 10 tests), FileWatcher Screenshot category (500ms debounce, image filter), init.rs (.screenshots/)
-- **Stream B (Orchestration) TERMINE** : CaptureAdapter trait, FilesystemAdapter, CliMcpAdapter (prompt formatting), ScreenshotOrchestrator (6 tests), 4 commandes IPC (get_screenshots, add_screenshot, delete_screenshot, request_capture)
-- **Stream C (Frontend) TERMINE** : screenshotStore Zustand (8 actions, cap 100), types TS, listeners screenshot-new + iteration-update, ScreenshotGallery (grille live, zoom modal, capture, delete), IterationTracker (StatusFlow, badges, history)
-- **Stream D (Comparaison) TERMINE** : ComparisonView (side-by-side + slider mode)
+Rien encore — plan verifie, pret pour implementation.
 
 ## Bugs connus
 
-- `list_sessions` retourne toujours vide (priorite basse)
+- `list_sessions` retourne toujours vide (priorite basse — a investiguer en T1)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
-- Asset protocol scope pas encore configure (tauri.conf.json) — images peuvent ne pas s'afficher
+- Asset protocol scope pas encore configure (tauri.conf.json)
 
 ## Technical debt
 
 - Phase stringly-typed en Rust → devrait etre un enum
 - `as any` casts dans useTauriEvents.ts (5 occurrences)
 - Messages/actions arrays unbounded (pas de cap)
-- Dual event listeners (useStreaming + useTauriEvents sur meme channel)
-- Status indicator patterns dupliques dans 4+ composants dashboard
 - Event names stringly-typed sans constantes partagees
-- manager.rs stub encore present (devrait etre nettoye)
 
 ## Blocages
 
@@ -46,6 +40,7 @@ Aucun
 
 ## Prochaines priorites
 
-1. Phase 4 : MCP Server zaos-ide
-2. Phase 5 : UX Polish
-3. Phase 3.5 : diff pixel, auto ProjectType, Lighthouse, annotations
+1. T1-T4-T6-T8 en parallele (premiere vague)
+2. T2-T5-T7-T9 en parallele (deuxieme vague)
+3. T3-T10 en parallele (troisieme vague)
+4. T11 puis T12 (sequential, Stream D fin)

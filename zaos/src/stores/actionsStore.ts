@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import type { Action } from "../types/events";
 
+const MAX_ACTIONS = 200;
+
 interface ActionsStoreState {
   actions: Action[];
 
@@ -15,7 +17,7 @@ export const useActionsStore = create<ActionsStoreState>((set) => ({
 
   addAction: (action: Action) =>
     set((state) => ({
-      actions: [...state.actions, action],
+      actions: [...state.actions, action].slice(-MAX_ACTIONS),
     })),
 
   updateAction: (id: string, updates: Partial<Action>) =>

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { useActionsStore } from "../../stores/actionsStore";
-import { TOOL_ICONS } from "../../utils/toolIcons";
+import { getToolIcon } from "../../utils/toolIcons";
 
 function StatusIndicator({ status }: { status: string }) {
   if (status === "running") {
@@ -29,10 +29,10 @@ export function ActionsFeed() {
               action.status === "running"
                 ? "bg-blue-500/10 ring-1 ring-blue-500/30"
                 : "bg-zinc-800/30 hover:bg-zinc-800/50"
-            }`}
+            } ${action.parentId ? "ml-6 border-l-2 border-zinc-700 pl-2" : ""}`}
           >
             <span className="flex-shrink-0 mt-0.5">
-              {TOOL_ICONS[action.tool] || "🔧"}
+              {getToolIcon(action.tool)}
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">

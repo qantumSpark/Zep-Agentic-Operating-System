@@ -24,7 +24,22 @@
       "Bash(cargo doc:*)",
       "Bash(node -e \":*)",
       "Bash(grep -v \"^$\")",
-      "Bash(grep -r assetProtocol . --include=*.json --include=*.rs)"
+      "Bash(grep -r assetProtocol . --include=*.json --include=*.rs)",
+      "Bash(claude mcp:*)",
+      "Bash(find C:/Users/apeze/.claude/ -name *.json -maxdepth 1)",
+      "Bash(cargo search:*)",
+      "Bash(cargo info:*)",
+      "Bash(curl -s https://docs.anthropic.com/en/docs/claude-code/mcp)",
+      "Bash(cd /tmp)",
+      "Bash(curl -sL https://docs.rs/rmcp/latest/rmcp/)",
+      "Bash(curl -sL https://raw.githubusercontent.com/anthropics/rmcp/main/examples/servers/src/common/counter.rs)",
+      "Bash(curl -sL https://raw.githubusercontent.com/anthropics/rmcp/main/examples/servers/src/bin/counter_axum_streamable_http.rs)",
+      "Bash(curl -sL https://raw.githubusercontent.com/modelcontextprotocol/rust-sdk/main/examples/servers/src/common/counter.rs)",
+      "Bash(curl:*)",
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:github.com)",
+      "Bash(find *)"
     ]
   }
 }

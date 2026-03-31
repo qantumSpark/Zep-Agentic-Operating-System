@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
 import type { CliEvent, RateLimitEvent, ResultEvent } from "../types/events";
 import { useWorkflowStore, type BackendWorkflowPayload } from "../stores/workflowStore";
 import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore";
@@ -7,6 +9,22 @@ import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
+import { formatDuration } from "../utils/formatDuration";
+
+/** Cached notification permission — doesn't change at runtime */
+let notificationPermissionCached: boolean | null = null;
+
+/** Send a native notification if permission is granted, otherwise log to console */
+async function notifyIfPermitted(title: string, body: string): Promise<void> {
+  if (notificationPermissionCached === null) {
+    notificationPermissionCached = await isPermissionGranted();
+  }
+  if (notificationPermissionCached) {
+    sendNotification({ title, body });
+  } else {
+    console.info(`[Notify] ${title}: ${body}`);
+  }
+}
 
 /**
  * Hook that listens to Tauri events for session/workflow updates.
@@ -38,14 +56,18 @@ export function useTauriEvents() {
               );
               sessionStore.updateConnections({ gopeak: !!hasGoPeak });
             }
-            sessionStore.updateConnections({ cli: true });
+            if (!sessionStore.connections.cli) {
+              sessionStore.updateConnections({ cli: true });
+            }
           }
 
           // Rate limit event
           else if (payload.type === "rate_limit_event") {
             const rle = payload as RateLimitEvent;
             if (rle.rate_limit_info?.status === "allowed") {
-              sessionStore.updateConnections({ cli: true });
+              if (!sessionStore.connections.cli) {
+                sessionStore.updateConnections({ cli: true });
+              }
             }
           }
 
@@ -54,15 +76,52 @@ export function useTauriEvents() {
             const result = payload as ResultEvent;
             if (result.usage) {
               const u = result.usage as any;
+              const inputTokens = u.input_tokens || 0;
+              const outputTokens = u.output_tokens || 0;
               sessionStore.updateTokenUsage(
-                u.input_tokens || 0,
-                u.output_tokens || 0,
+                inputTokens,
+                outputTokens,
                 u.cache_read_input_tokens || 0
               );
+
+              // Record tokens per workflow phase
+              const phase = useWorkflowStore.getState().phase;
+              if (phase) {
+                sessionStore.recordPhaseTokens(phase, inputTokens, outputTokens);
+              }
             }
             if (result.duration_ms) {
               sessionStore.setDuration(
                 Math.floor(result.duration_ms / 1000)
+              );
+
+              // Notify for long-running tasks (> 2 minutes)
+              if (result.duration_ms > 120_000) {
+                notifyIfPermitted(
+                  "Tache terminee",
+                  `Session terminee en ${formatDuration(result.duration_ms)}`
+                );
+              }
+            }
+
+            // Save session log to .memory/sessions/
+            const { sessionId: sid, tokens: { input, output }, duration, agentTimings } = useSessionStore.getState();
+            const currentPhase = useWorkflowStore.getState().phase;
+
+            if (sid && (input > 0 || output > 0)) {
+              invoke("save_session_log", {
+                data: {
+                  session_id: sid,
+                  phase: currentPhase || "unknown",
+                  tokens_input: input,
+                  tokens_output: output,
+                  duration_secs: duration,
+                  agent_timings: Object.entries(agentTimings).map(
+                    ([name, duration_ms]) => ({ name, duration_ms })
+                  ),
+                },
+              }).catch((e: unknown) =>
+                console.error("Failed to save session log:", e)
               );
             }
           }
@@ -75,6 +134,15 @@ export function useTauriEvents() {
         (event) => {
           const workflowStore = useWorkflowStore.getState();
           workflowStore.setFullState(event.payload);
+
+          // Notify when a gate is waiting for validation
+          const state = event.payload;
+          if (state.phase && state.gate_validated === false) {
+            notifyIfPermitted(
+              "Gate prete",
+              `Phase "${state.phase}" en attente de validation`
+            );
+          }
         }
       );
       unlisteners.push(workflowChangeListener);
@@ -115,16 +183,12 @@ export function useTauriEvents() {
       );
       unlisteners.push(iterationUpdateListener);
 
-      // MCP notify events — show OS notification or log to console
+      // MCP notify events — show OS notification via tauri-plugin-notification
       const mcpNotifyListener = await listen<{ title: string; message: string }>(
         "mcp-notify",
         (event) => {
           const { title, message } = event.payload;
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(title, { body: message });
-          } else {
-            console.info(`[MCP Notify] ${title}: ${message}`);
-          }
+          notifyIfPermitted(title, message);
         }
       );
       unlisteners.push(mcpNotifyListener);

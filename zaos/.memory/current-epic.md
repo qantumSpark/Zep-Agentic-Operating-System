@@ -1,57 +1,46 @@
-# Epic active : Phase 4 — MCP Server zaos-ide
+# Epic active : Phase 5 — UX Polish
 
-> Milestone : 4 — MCP Server zaos-ide
+> Milestone : 5 — UX Polish
 > Date de debut : 2026-03-31
 > Statut : EN COURS
 
 ## Objectif
 
-Implementer un serveur MCP Streamable HTTP embarque dans le process Tauri, permettant a Claude Code CLI de piloter ZAOS (lire l'etat, afficher des diffs, capturer des screenshots, envoyer des notifications). Communication bidirectionnelle via le standard MCP.
+Polir l'experience utilisateur de ZAOS : historique de sessions, metriques, notifications natives, raccourcis clavier, theme clair/sombre, et retour visuel d'activite en temps reel.
 
 ## Architecture
 
-```
-Claude Code CLI
-    | HTTP direct (Streamable HTTP transport)
-    v
-ZAOS Tauri App (rmcp StreamableHttpService sur axum, 127.0.0.1:{port}/mcp)
-    | Arc<AppState> direct
-    v
-WorkflowEngine, ScreenshotOrchestrator, AppHandle
-```
+4 streams paralleles, 12 taches :
 
-- rmcp 1.3.0 (SDK officiel MCP en Rust) avec transport-streamable-http-server
-- Serveur axum demarre dans Tauri setup(), port aleatoire (bind port 0)
-- Auth par token ephemere UUID, verifie sur chaque requete
-- .mcp.json auto-genere au demarrage, nettoye a la fermeture
-- Claude Code se connecte via `type: "http"` (pas de bridge stdio necessaire)
+- **Stream A (Sessions & Metriques)** : T1 → T2 → T3
+- **Stream B (Dashboard & Notifications)** : T4 → T5
+- **Stream C (Input & Theme)** : T6 → T7
+- **Stream D (Activity Feedback)** : T8 → T9 → T10 → T11 → T12
+
+### Corrections post-verification
+
+- Notifications : `tauri-plugin-notification` (pas browser Notification API — ne marche pas dans WebView2/Windows)
+- Glow streaming : pseudo-element + `opacity` animation (GPU-accelerated, pas `box-shadow`)
+- Theme persistence : Zustand `persist` middleware (pas localStorage manuel)
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| A1 | Add rmcp + axum + schemars to Cargo.toml | `Cargo.toml` | EN COURS | rmcp 1.3, axum 0.8, schemars 1.0 |
-| A2 | Rewrite mcp_server/mod.rs — rmcp server + axum | `mcp_server/mod.rs` | TODO | StreamableHttpService, token auth, 4 tool stubs |
-| A3 | Wire MCP server start into main.rs setup() | `main.rs` | TODO | Pass Arc<AppState>, spawn tokio task |
-| B1 | Implement get_ui_state tool | `mcp_server/mod.rs` | TODO | Workflow state + session info |
-| B2 | Implement notify tool | `mcp_server/mod.rs` | TODO | Emit Tauri event → frontend toast |
-| B3 | Implement capture_screenshot tool | `mcp_server/mod.rs` | TODO | Delegate to ScreenshotOrchestrator |
-| B4 | Implement show_diff tool | `mcp_server/mod.rs` | TODO | Emit Tauri event with diff payload |
-| C1 | Auto-generate .mcp.json on server start | `mcp_server/mod.rs` | TODO | type:http, url with port |
-| C2 | Cleanup on shutdown — remove .mcp.json + port file | `main.rs` | TODO | Graceful shutdown hook |
-| D1 | Add mcp-show-diff event listener | `useTauriEvents.ts` | TODO | + diffStore or inline state |
-| D2 | Create DiffViewer component | `DiffViewer.tsx` + `DashboardPanel.tsx` | TODO | Render diff payload |
-| D3 | Add mcp-notify listener + toast display | `useTauriEvents.ts` + UI | TODO | OS notification or in-app toast |
+| T1 | Historique de sessions (navigation, recherche) | `SessionHistory.tsx`, `sessionStore.ts`, `DashboardPanel.tsx` | TODO | Utilise list_sessions IPC existant |
+| T2 | Metriques par session (tokens/phase, temps/agent) | `SessionMetrics.tsx`, `sessionStore.ts`, `useTauriEvents.ts`, `useStreaming.ts`, `DashboardPanel.tsx` | TODO | Record phase tokens + agent timings |
+| T3 | Auto-generation session logs `.memory/sessions/` | `session/logger.rs`, `session/mod.rs`, `commands.rs`, `main.rs`, `useTauriEvents.ts` | TODO | IPC save_session_log, tokio::fs |
+| T4 | Dashboard au startup (resume projet) | `StartupDashboard.tsx`, `ChatPanel.tsx` | TODO | Remplace "No messages" par resume |
+| T5 | Notifications natives pour gates et taches longues | `useTauriEvents.ts`, `App.tsx`, `tauri.conf.json` | TODO | tauri-plugin-notification |
+| T6 | Raccourcis clavier | `useKeyboardShortcuts.ts`, `App.tsx`, `InputBar.tsx` | TODO | Ctrl+N focus, Ctrl+K clear, Ctrl+G gate |
+| T7 | Theme system (dark/light) | `themeStore.ts`, `app.css`, `App.tsx`, `StatusBar.tsx` | TODO | CSS variables + Zustand persist |
+| T8 | Heartbeat visuel StatusBar | `StatusBar.tsx` | TODO | Pulsing dot quand CLI actif |
+| T9 | "Last seen Xs ago" sur agents | `agentsStore.ts`, `AgentsSection.tsx`, `useStreaming.ts` | TODO | lastSeenAt + ticking display |
+| T10 | Stream preview dans StatusBar | `chatStore.ts`, `StatusBar.tsx` | TODO | Derniere ligne tronquee |
+| T11 | Glow sur ChatPanel pendant streaming | `ChatPanel.tsx`, `app.css` | TODO | pseudo-element + opacity animation |
+| T12 | Sub-agent tool_use dans ActionsFeed | `actionsStore.ts`, `useStreaming.ts`, `ActionsFeed.tsx` | TODO | parentId + indentation CSS |
 
-## Streams de travail
+## Dependencies nouvelles
 
-- **Stream A (Fondation MCP):** A1 → A2 → A3 — serveur operationnel avec stubs
-- **Stream B (Tool impls):** B1 + B2 + B3 + B4 (parallelisable apres A3)
-- **Stream C (Integration CLI):** C1 + C2 (apres A3)
-- **Stream D (Frontend):** D1 + D2 + D3 (parallelisable avec B)
-
-## Dependencies Rust ajoutees
-
-- `rmcp = { version = "1.3", features = ["server", "macros", "transport-streamable-http-server"] }`
-- `axum = "0.8"`
-- `schemars = "1.0"`
+- `tauri-plugin-notification` (T5)
+- Aucune dep npm nouvelle

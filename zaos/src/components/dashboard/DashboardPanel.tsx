@@ -5,6 +5,8 @@ import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
 import { AgentsSection } from "./AgentsSection";
 import { ScreenshotGallery } from "./ScreenshotGallery";
+import { SessionHistory } from "./SessionHistory";
+import { SessionMetrics } from "./SessionMetrics";
 import { DiffViewer } from "./DiffViewer";
 import { IterationTracker } from "./IterationTracker";
 
@@ -44,6 +46,14 @@ export function DashboardPanel() {
 
       <CollapsibleSection title="Screenshots" defaultOpen={false}>
         <ScreenshotGallery />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Sessions" defaultOpen={false}>
+        <SessionHistory />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Metriques" defaultOpen={false}>
+        <SessionMetrics />
       </CollapsibleSection>
     </div>
   );

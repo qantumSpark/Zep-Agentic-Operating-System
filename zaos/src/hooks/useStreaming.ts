@@ -5,6 +5,7 @@ import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
 import { useAgentsStore } from "../stores/agentsStore";
 import { usePermissionStore } from "../stores/permissionStore";
+import { useSessionStore } from "../stores/sessionStore";
 import { formatToolSummary } from "../utils/toolFormatters";
 
 /**
@@ -41,8 +42,17 @@ export function useStreaming() {
             }
           }
         }
+        // Update lastSeen for running delegations on sub-agent activity
+        const ptuid = (payload as Record<string, unknown>).parent_tool_use_id as string | undefined;
+        if (ptuid) {
+          const agentsStore = useAgentsStore.getState();
+          if (agentsStore.delegations.some((d) => d.id === ptuid && d.status === "running")) {
+            agentsStore.updateLastSeen(ptuid);
+          }
+        }
+
         // Handle stream events (deltas)
-        else if (payload.type === "stream_event") {
+        if (payload.type === "stream_event") {
           const streamEvent = payload as StreamDeltaEvent;
           const innerEvent = streamEvent.event;
 
@@ -112,6 +122,7 @@ export function useStreaming() {
                 timestamp: Date.now(),
                 status: "running",
                 details: block.input,
+                parentId: assistantEvent.parent_tool_use_id || undefined,
               });
 
               // Detect agent delegation (tool_use with name "Agent")
@@ -162,13 +173,18 @@ export function useStreaming() {
 
                 // Complete agent delegation if this tool_result matches one
                 const agentsStore = useAgentsStore.getState();
-                const matchesDelegation = agentsStore.delegations.some(
+                const matchingDelegation = agentsStore.delegations.find(
                   (d) => d.id === block.tool_use_id && d.status === "running"
                 );
-                if (matchesDelegation) {
+                if (matchingDelegation) {
+                  const duration = Date.now() - matchingDelegation.startedAt;
                   agentsStore.completeDelegation(
                     block.tool_use_id,
                     isError ? "error" : "completed"
+                  );
+                  useSessionStore.getState().recordAgentTiming(
+                    matchingDelegation.agentType,
+                    duration
                   );
                 }
 

@@ -1,19 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAgentsStore, DelegationEntry } from "../../stores/agentsStore";
+import { formatDuration } from "../../utils/formatDuration";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDuration(startedAt: number, endedAt: number | null): string {
+function formatDelegationDuration(startedAt: number, endedAt: number | null): string {
   if (endedAt === null) return "running\u2026";
-  const ms = endedAt - startedAt;
-  if (ms < 1_000) return `${ms}ms`;
-  const seconds = Math.floor(ms / 1_000);
-  if (seconds < 60) return `${seconds}s`;
+  return formatDuration(endedAt - startedAt);
+}
+
+function formatLastSeen(now: number, lastSeenAt: number): string {
+  const seconds = Math.floor((now - lastSeenAt) / 1_000);
+  if (seconds < 60) return `active ${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}m ${remainingSeconds}s`;
+  return `active ${minutes}m ago`;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +60,15 @@ export function AgentsSection() {
     () => [...delegations].reverse().slice(0, 10),
     [delegations],
   );
+
+  const hasRunning = recentDelegations.some((d) => d.status === "running");
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!hasRunning) return;
+    const id = setInterval(() => setNow(Date.now()), 1_000);
+    return () => clearInterval(id);
+  }, [hasRunning]);
 
   return (
     <div className="space-y-4 text-sm">
@@ -119,7 +130,12 @@ export function AgentsSection() {
                   </p>
 
                   <div className="flex items-center gap-2 text-zinc-500 mt-0.5">
-                    <span>{formatDuration(d.startedAt, d.endedAt)}</span>
+                    <span>{formatDelegationDuration(d.startedAt, d.endedAt)}</span>
+                    {d.status === "running" && (
+                      <span className="text-zinc-500 text-xs">
+                        {formatLastSeen(now, d.lastSeenAt)}
+                      </span>
+                    )}
                     <span className="text-zinc-600">&middot;</span>
                     <span>
                       {new Date(d.startedAt).toLocaleTimeString()}

@@ -12,8 +12,6 @@ export function InputBar() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
-    } else if (e.key === "Escape") {
-      setText("");
     }
   };
 
@@ -52,6 +50,7 @@ export function InputBar() {
   return (
     <div className="flex gap-2 items-end">
       <textarea
+        id="main-input"
         ref={textareaRef}
         value={text}
         onChange={(e) => setText(e.target.value)}

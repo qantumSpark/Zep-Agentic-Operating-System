@@ -4,6 +4,7 @@ import type { Message } from "../types/events";
 interface ChatState {
   messages: Message[];
   streamingTextBuffer: string;
+  lastStreamLine: string;
   isStreaming: boolean;
   isThinking: boolean;
 
@@ -21,6 +22,7 @@ interface ChatState {
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   streamingTextBuffer: "",
+  lastStreamLine: "",
   isStreaming: false,
   isThinking: false,
 
@@ -41,15 +43,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })),
 
   appendStreamText: (text: string) =>
-    set((state) => ({
-      streamingTextBuffer: state.streamingTextBuffer + text,
-    })),
+    set((state) => {
+      const newBuffer = state.streamingTextBuffer + text;
+      const lastNewline = newBuffer.lastIndexOf('\n');
+      const lastLine = lastNewline === -1 ? newBuffer : newBuffer.slice(lastNewline + 1);
+      const trimmed = lastLine.trim();
+      const lastStreamLine = trimmed.length > 80 ? trimmed.slice(0, 80) + '...' : trimmed;
+      return {
+        streamingTextBuffer: newBuffer,
+        lastStreamLine,
+      };
+    }),
 
   getStreamingTextBuffer: () => get().streamingTextBuffer,
 
   clearStreamingBuffer: () =>
     set({
       streamingTextBuffer: "",
+      lastStreamLine: "",
     }),
 
   setStreaming: (streaming: boolean) =>
@@ -66,6 +77,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       messages: [],
       streamingTextBuffer: "",
+      lastStreamLine: "",
       isStreaming: false,
       isThinking: false,
     }),

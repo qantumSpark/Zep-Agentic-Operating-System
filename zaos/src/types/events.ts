@@ -346,4 +346,5 @@ export interface Action {
   status: "pending" | "running" | "success" | "error";
   details?: Record<string, unknown>;
   resultPreview?: string;
+  parentId?: string; // parent_tool_use_id — set when action comes from a sub-agent
 }

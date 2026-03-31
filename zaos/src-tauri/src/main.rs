@@ -65,6 +65,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             commands::send_prompt,
@@ -76,6 +77,7 @@ fn main() {
             commands::get_memory_state,
             commands::check_cli_auth,
             commands::list_sessions,
+            commands::save_session_log,
             commands::get_screenshots,
             commands::add_screenshot,
             commands::delete_screenshot,

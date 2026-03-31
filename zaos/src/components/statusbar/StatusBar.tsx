@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { useChatStore } from "../../stores/chatStore";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useWorkflowStore } from "../../stores/workflowStore";
+import { useThemeStore } from "../../stores/themeStore";
+import { formatDuration } from "../../utils/formatDuration";
 
 /**
  * Bottom status bar: tokens, duration, connections, mode
@@ -14,26 +17,22 @@ export function StatusBar() {
   const model = useSessionStore((state) => state.model);
   const startTime = useSessionStore((state) => state.startTime);
   const mode = useWorkflowStore((state) => state.mode);
+  const { theme, toggleTheme } = useThemeStore();
+  const isStreaming = useChatStore((state) => state.isStreaming);
+  const isThinking = useChatStore((state) => state.isThinking);
+  const lastStreamLine = useChatStore((state) => state.lastStreamLine);
+  const isActive = isStreaming || isThinking;
   const [displayDuration, setDisplayDuration] = useState(duration);
 
   useEffect(() => {
     setDisplayDuration(duration);
-    if (!startTime) return;
+    if (!startTime || !isStreaming) return;
 
     const interval = setInterval(() => {
       setDisplayDuration((d) => d + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [duration, startTime]);
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
-    if (minutes > 0) return `${minutes}m ${secs}s`;
-    return `${secs}s`;
-  };
+  }, [duration, startTime, isStreaming]);
 
   const totalTokens = tokens.input + tokens.output;
   const maxTokens = 200000;
@@ -41,6 +40,12 @@ export function StatusBar() {
 
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-zinc-800 border-t border-zinc-700 text-xs text-zinc-300 gap-4">
+      {/* Heartbeat */}
+      <span
+        className={`w-2 h-2 rounded-full ${isActive ? "bg-green-400 animate-pulse" : "bg-zinc-600"}`}
+        title={isActive ? "CLI active" : "CLI idle"}
+      />
+      <div className="w-px h-4 bg-zinc-600" />
       {/* Token usage */}
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-yellow-500">⚡</span>
@@ -60,8 +65,17 @@ export function StatusBar() {
       {/* Duration */}
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-blue-400">⏱</span>
-        <span>{formatDuration(displayDuration)}</span>
+        <span>{formatDuration(displayDuration * 1000)}</span>
       </div>
+      {/* Stream preview */}
+      {isStreaming && lastStreamLine && (
+        <>
+          <div className="w-px h-4 bg-zinc-600" />
+          <span className="text-zinc-400 truncate max-w-48 text-[10px] font-mono" title={lastStreamLine}>
+            {lastStreamLine}
+          </span>
+        </>
+      )}
       <div className="w-px h-4 bg-zinc-600" />
       {/* Connections */}
       <div className="flex items-center gap-3 min-w-0">
@@ -79,6 +93,15 @@ export function StatusBar() {
         {model && <span className="text-zinc-600">·</span>}
         <span className="capitalize">{mode}</span>
       </div>
+      <div className="w-px h-4 bg-zinc-600" />
+      {/* Theme toggle */}
+      <button
+        onClick={toggleTheme}
+        className="text-zinc-400 hover:text-zinc-200 transition-colors px-1"
+        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        {theme === "dark" ? "\u2600" : "\u263E"}
+      </button>
     </div>
   );
 }
