@@ -1,0 +1,13 @@
+{
+  "blocked_extensions": [
+    ".rs",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".css"
+  ],
+  "auto_sync": true,
+  "hooks_enabled": true,
+  "disabled_rules": []
+}

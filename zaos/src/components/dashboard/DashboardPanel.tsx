@@ -4,11 +4,14 @@ import { PipelineSection } from "./PipelineSection";
 import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
 import { AgentsSection } from "./AgentsSection";
+import { AgentsManager } from "./AgentsManager";
+import { RulesManager } from "./RulesManager";
 import { ScreenshotGallery } from "./ScreenshotGallery";
 import { SessionHistory } from "./SessionHistory";
 import { SessionMetrics } from "./SessionMetrics";
 import { DiffViewer } from "./DiffViewer";
 import { IterationTracker } from "./IterationTracker";
+import { HooksManager } from "./HooksManager";
 
 /**
  * Dashboard container: vertically stacked collapsible sections
@@ -32,8 +35,20 @@ export function DashboardPanel() {
         <ActionsFeed />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Agents" defaultOpen={false}>
+      <CollapsibleSection title="Workflow Agents" defaultOpen={false}>
+        <AgentsManager />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Delegations" defaultOpen={false}>
         <AgentsSection />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Hooks" defaultOpen={false}>
+        <HooksManager />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Rules" defaultOpen={false}>
+        <RulesManager />
       </CollapsibleSection>
 
       <CollapsibleSection title="Iteration Loop" defaultOpen={false}>

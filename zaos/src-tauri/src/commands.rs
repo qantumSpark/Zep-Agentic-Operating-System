@@ -1,3 +1,4 @@
+use crate::deployer;
 use crate::events::CliEvent;
 use crate::memory::{MemoryReader, MemoryStateResponse};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
@@ -393,4 +394,152 @@ pub async fn request_capture(
         success: true,
         message: "Capture requested".into(),
     })
+}
+
+// =============================================================================
+// Deployer Commands
+// =============================================================================
+
+#[derive(Debug, Serialize)]
+pub struct WorkflowKitStatus {
+    pub deployed: bool,
+    pub agent_count: usize,
+    pub rule_count: usize,
+    pub hooks_active: bool,
+    pub last_deployed: Option<String>,
+    pub config: deployer::config::WorkflowKitConfig,
+}
+
+/// Deploy workflow kit: sync agents, rules, settings, and hooks binary
+#[tauri::command]
+pub async fn deploy_workflow_kit(
+    state: State<'_, AppState>,
+) -> Result<deployer::sync::SyncReport, String> {
+    tracing::info!("deploy_workflow_kit called");
+    deployer::deploy(&state.project_dir).map_err(|e| e.to_string())
+}
+
+/// Get the current status of deployed workflow kit components
+#[tauri::command]
+pub async fn get_workflow_kit_status(
+    state: State<'_, AppState>,
+) -> Result<WorkflowKitStatus, String> {
+    tracing::info!("get_workflow_kit_status called");
+    let config = deployer::config::WorkflowKitConfig::load(&state.project_dir);
+    let manifest = deployer::sync::DeployManifest::load(&state.project_dir);
+
+    // Count agents
+    let agents_dir = state.project_dir.join(".claude").join("agents");
+    let agent_count = std::fs::read_dir(&agents_dir)
+        .map(|entries| entries.filter_map(|e| e.ok()).count())
+        .unwrap_or(0);
+
+    // Count rules
+    let rules_dir = state.project_dir.join(".claude").join("rules");
+    let rule_count = std::fs::read_dir(&rules_dir)
+        .map(|entries| entries.filter_map(|e| e.ok()).count())
+        .unwrap_or(0);
+
+    let settings_exists = state
+        .project_dir
+        .join(".claude")
+        .join("settings.json")
+        .exists();
+
+    Ok(WorkflowKitStatus {
+        deployed: agent_count > 0,
+        agent_count,
+        rule_count,
+        hooks_active: settings_exists && config.hooks_enabled,
+        last_deployed: manifest.last_deployed,
+        config,
+    })
+}
+
+/// Update the workflow kit configuration
+#[tauri::command]
+pub async fn update_workflow_kit_config(
+    state: State<'_, AppState>,
+    config: deployer::config::WorkflowKitConfig,
+) -> Result<(), String> {
+    tracing::info!("update_workflow_kit_config called");
+    config.save(&state.project_dir).map_err(|e| e.to_string())
+}
+
+// =============================================================================
+// Agent CRUD Commands
+// =============================================================================
+
+#[derive(Debug, Serialize)]
+pub struct AgentInfo {
+    pub name: String,
+    pub description: String,
+}
+
+/// List all agent files in .claude/agents/ with name and first-line description
+#[tauri::command]
+pub async fn list_agents(
+    state: State<'_, AppState>,
+) -> Result<Vec<AgentInfo>, String> {
+    let agents_dir = state.project_dir.join(".claude").join("agents");
+    let mut agents = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(&agents_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map_or(false, |e| e == "md") {
+                let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
+                let description = std::fs::read_to_string(&path)
+                    .ok()
+                    .and_then(|c| c.lines().next().map(|l| l.to_string()))
+                    .unwrap_or_default();
+                agents.push(AgentInfo { name, description });
+            }
+        }
+    }
+
+    agents.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(agents)
+}
+
+/// Read a single agent file
+#[tauri::command]
+pub async fn read_agent(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    tracing::info!("read_agent called: {}", name);
+    let path = state.project_dir.join(".claude").join("agents").join(format!("{}.md", name));
+    std::fs::read_to_string(&path).map_err(|e| format!("Failed to read agent {}: {}", name, e))
+}
+
+/// Create or update an agent file
+#[tauri::command]
+pub async fn save_agent(
+    state: State<'_, AppState>,
+    name: String,
+    content: String,
+) -> Result<(), String> {
+    tracing::info!("save_agent called: {}", name);
+    let agents_dir = state.project_dir.join(".claude").join("agents");
+    std::fs::create_dir_all(&agents_dir).map_err(|e| e.to_string())?;
+    let path = agents_dir.join(format!("{}.md", name));
+    std::fs::write(&path, content).map_err(|e| format!("Failed to save agent {}: {}", name, e))?;
+    tracing::info!("Agent saved: {}", name);
+    Ok(())
+}
+
+/// Delete an agent file
+#[tauri::command]
+pub async fn delete_agent(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<(), String> {
+    tracing::info!("delete_agent called: {}", name);
+    let path = state.project_dir.join(".claude").join("agents").join(format!("{}.md", name));
+    if path.exists() {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to delete agent {}: {}", name, e))?;
+        tracing::info!("Agent deleted: {}", name);
+    }
+    Ok(())
 }

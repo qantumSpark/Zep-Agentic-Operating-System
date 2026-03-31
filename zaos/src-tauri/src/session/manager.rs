@@ -107,6 +107,21 @@ impl SessionManager {
     pub async fn start_session(&mut self) -> Result<broadcast::Receiver<CliEvent>> {
         let (tx, rx) = broadcast::channel(512);
 
+        // Auto-sync workflow kit before spawning CLI
+        let config = crate::deployer::config::WorkflowKitConfig::load(&self.project_dir);
+        if config.auto_sync {
+            match crate::deployer::deploy(&self.project_dir) {
+                Ok(report) => {
+                    if !report.created.is_empty() || !report.updated.is_empty() {
+                        tracing::info!("Workflow kit synced before session start");
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("Workflow kit sync failed (non-fatal): {}", e);
+                }
+            }
+        }
+
         let mut cmd = Command::new("claude");
         cmd.arg("-p")
             .arg("--input-format")

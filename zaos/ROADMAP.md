@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 4 TERMINEE** — MCP Server zaos-ide complet, pret pour Phase 5 (UX Polish)
+> Statut global : **Phase 6 TERMINEE** — Workflow Kit Integration complet
 
 ---
 
@@ -142,18 +142,40 @@
 
 ## Phase 5 — UX Polish
 
-- [ ] Historique de sessions (navigation, recherche)
-- [ ] Metriques par session (tokens/phase, temps/agent)
-- [ ] Auto-generation des session logs dans `.memory/sessions/`
-- [ ] Dashboard au startup (resume projet, etat workflow)
-- [ ] Notifications OS pour gates et taches longues
-- [ ] Raccourcis clavier configurables
-- [ ] Theme system
-- [ ] Activity Feedback — heartbeat visuel dans StatusBar quand le CLI est actif
-- [ ] Activity Feedback — "last seen Xs ago" sur les agents running
-- [ ] Activity Feedback — stream preview (derniere ligne en cours) dans StatusBar
-- [ ] Activity Feedback — indicateur visuel (glow/bordure) sur ChatPanel pendant streaming
-- [ ] Activity Feedback — sub-agent tool_use dans ActionsFeed avec indentation
+- [x] Historique de sessions (navigation, recherche)
+- [x] Metriques par session (tokens/phase, temps/agent)
+- [x] Auto-generation des session logs dans `.memory/sessions/`
+- [x] Dashboard au startup (resume projet, etat workflow)
+- [x] Notifications OS pour gates et taches longues (tauri-plugin-notification)
+- [x] Raccourcis clavier configurables (useKeyboardShortcuts hook)
+- [x] Theme system (dark/light, Zustand persist, CSS variables)
+- [x] Activity Feedback — heartbeat visuel dans StatusBar quand le CLI est actif
+- [x] Activity Feedback — "last seen Xs ago" sur les agents running
+- [x] Activity Feedback — stream preview (derniere ligne en cours) dans StatusBar
+- [x] Activity Feedback — indicateur visuel (glow/bordure) sur ChatPanel pendant streaming
+- [x] Activity Feedback — sub-agent tool_use dans ActionsFeed avec indentation
+
+---
+
+## Phase 6 — Workflow Kit Integration
+
+- [x] Config types .zaos/config.json (deployer/config.rs)
+- [x] Embed resources dans tauri.conf.json
+- [x] Deployer sync engine (hash compare, write missing/updated, manifest fast-path)
+- [x] Deployer module + IPC commands (deploy, get_status, update_config)
+- [x] Bootstrap complet dans init.rs (.zaos/, .claude/, agents, hooks, rules)
+- [x] zaos-hooks binary scaffold (Rust CLI, [[bin]] target)
+- [x] zaos-hooks inject-context (role Orchestrateur + regles + phase)
+- [x] zaos-hooks block-code (check extension + plan + mode)
+- [x] zaos-hooks on-compact + welcome (reinjecte contexte)
+- [x] workflowKitStore (agents, hooks, rules, config)
+- [x] AgentsManager CRUD (liste + edit via read_agent + add + delete)
+- [x] HooksManager (statut + toggle + shared Toggle component)
+- [x] RulesManager (liste + toggle + shared components)
+- [x] Remplacer AgentsSection par nouvelles sections
+- [x] Auto-deploy dans start_session()
+- [x] Watcher .claude/ → refresh frontend (filtered to agents/ changes)
+- [x] IPC agents CRUD (read/write/delete .md files)
 
 ---
 
@@ -168,5 +190,6 @@
 | Phase 2 | 13 | 13 | 0 | 0 | 100% |
 | Phase 3 | 13 | 13 | 0 | 0 | 100% |
 | Phase 4 | 7 | 7 | 0 | 0 | 100% |
-| Phase 5 | 12 | 0 | 0 | 12 | 0% |
-| **Total** | **87** | **79** | **3** | **5** | **91%** |
+| Phase 5 | 12 | 12 | 0 | 0 | 100% |
+| Phase 6 | 17 | 17 | 0 | 0 | 100% |
+| **Total** | **109** | **105** | **3** | **0** | **96%** |

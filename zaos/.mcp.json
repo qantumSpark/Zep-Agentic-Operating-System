@@ -2,10 +2,10 @@
   "mcpServers": {
     "zaos-ide": {
       "headers": {
-        "Authorization": "Bearer 54f32648-48f9-40ad-8f0c-71a8988eac40"
+        "Authorization": "Bearer 9a72e518-ba6a-480a-b5c5-d44c2e0479fd"
       },
       "type": "http",
-      "url": "http://127.0.0.1:53207/mcp"
+      "url": "http://127.0.0.1:51476/mcp"
     }
   }
 }

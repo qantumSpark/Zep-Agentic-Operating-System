@@ -2,6 +2,7 @@
 name = "zaos"
 version = "0.1.0"
 edition = "2021"
+default-run = "zaos"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -32,6 +33,10 @@ libc = "0.2"
 
 [dev-dependencies]
 tempfile = "3"
+
+[[bin]]
+name = "zaos-hooks"
+path = "src/bin/zaos_hooks.rs"
 
 [profile.release]
 opt-level = "z"

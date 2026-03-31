@@ -7,32 +7,35 @@
 
 | # | Milestone | Statut | Epics |
 |---|---|---|---|
-| 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
-| 2 | Dashboard temps reel | TERMINE | Stream A (4/4), Stream B (8/8), Stream C (4/4) + trace reference |
-| 3 | Screenshots & visuels | TERMINE | 13/13 taches implementees, test utilisateur valide |
-| 4 | MCP Server zaos-ide | TERMINE | Serveur local, Tools, .mcp.json |
-| 5 | UX Polish | EN COURS | 0/12 taches, 4 streams paralleles |
+| 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | 47 taches |
+| 2 | Dashboard temps reel | TERMINE | 13 taches |
+| 3 | Screenshots & visuels | TERMINE | 13 taches |
+| 4 | MCP Server zaos-ide | TERMINE | 7 taches |
+| 5 | UX Polish | TERMINE | 12 taches, review simplify done |
+| 6 | Workflow Kit Integration | TERMINE | 17/17 taches, review simplify done |
 
 ## Epic active
 
-Phase 5 — UX Polish : Sessions, Metriques, Notifications, Raccourcis, Theme, Activity Feedback
+Phase 6 — Workflow Kit Integration : TERMINEE
 
-## Ce qui est fait (Phase 5)
+## Ce qui est fait (Phase 6)
 
-Rien encore — plan verifie, pret pour implementation.
+- Deployer (config, sync engine, manifest, hooks binary deploy)
+- zaos-hooks binary (inject-context, block-code, on-compact, welcome)
+- Frontend CRUD (workflowKitStore, AgentsManager, HooksManager, RulesManager)
+- Integration (auto-deploy, .claude/ watcher, IPC agents CRUD)
+- Simplify review: 9 fixes (invoke bug, edit truncation, shared components, etc.)
 
 ## Bugs connus
 
-- `list_sessions` retourne toujours vide (priorite basse — a investiguer en T1)
+- `list_sessions` retourne toujours vide (priorite basse)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
-- Asset protocol scope pas encore configure (tauri.conf.json)
 
 ## Technical debt
 
-- Phase stringly-typed en Rust → devrait etre un enum
-- `as any` casts dans useTauriEvents.ts (5 occurrences)
-- Messages/actions arrays unbounded (pas de cap)
-- Event names stringly-typed sans constantes partagees
+- Phase stringly-typed en Rust
+- `as any` casts dans useTauriEvents.ts
+- Event names stringly-typed
 
 ## Blocages
 
@@ -40,7 +43,4 @@ Aucun
 
 ## Prochaines priorites
 
-1. T1-T4-T6-T8 en parallele (premiere vague)
-2. T2-T5-T7-T9 en parallele (deuxieme vague)
-3. T3-T10 en parallele (troisieme vague)
-4. T11 puis T12 (sequential, Stream D fin)
+Toutes les phases (1-6) terminees. Pret pour test utilisateur et commit.

@@ -7,6 +7,7 @@
 )]
 
 mod commands;
+mod deployer;
 mod events;
 mod init;
 mod memory;
@@ -82,6 +83,13 @@ fn main() {
             commands::add_screenshot,
             commands::delete_screenshot,
             commands::request_capture,
+            commands::deploy_workflow_kit,
+            commands::get_workflow_kit_status,
+            commands::update_workflow_kit_config,
+            commands::list_agents,
+            commands::read_agent,
+            commands::save_agent,
+            commands::delete_agent,
         ])
         .setup(move |app| {
             let state = app.state::<AppState>();

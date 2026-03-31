@@ -12,6 +12,8 @@ import { useSessionStore } from "./stores/sessionStore";
 import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
 import { useScreenshotStore } from "./stores/screenshotStore";
 import { useThemeStore } from "./stores/themeStore";
+import { useWorkflowKitStore } from "./stores/workflowKitStore";
+import type { AgentDef } from "./stores/workflowKitStore";
 import type { Screenshot } from "./types/screenshots";
 
 /**
@@ -62,6 +64,42 @@ export function App() {
       } else {
         console.error("get_screenshots failed:", screenshotResult.reason);
       }
+
+      // Load workflow kit status and agents
+      invoke<{
+        deployed: boolean;
+        agent_count: number;
+        rule_count: number;
+        hooks_active: boolean;
+        last_deployed: string | null;
+        config: {
+          blocked_extensions: string[];
+          auto_sync: boolean;
+          hooks_enabled: boolean;
+          disabled_rules: string[];
+        };
+      }>("get_workflow_kit_status")
+        .then((status) => {
+          const kitStore = useWorkflowKitStore.getState();
+          kitStore.setDeployed(status.deployed);
+          kitStore.setConfig(status.config);
+          if (status.last_deployed) {
+            kitStore.setLastDeployedAt(status.last_deployed);
+          }
+        })
+        .catch((err) => console.error("get_workflow_kit_status failed:", err));
+
+      invoke<{ name: string; description: string }[]>("list_agents")
+        .then((agents) => {
+          const agentDefs: AgentDef[] = agents.map((a) => ({
+            name: a.name,
+            description: a.description,
+            deployed: true,
+            custom: false,
+          }));
+          useWorkflowKitStore.getState().setAgents(agentDefs);
+        })
+        .catch((err) => console.error("list_agents failed:", err));
     })();
   }, []);
 

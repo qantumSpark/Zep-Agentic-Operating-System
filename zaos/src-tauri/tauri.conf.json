@@ -39,6 +39,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "../reference/agents/*": "reference/agents/",
+      "../reference/rules/*": "reference/rules/",
+      "../reference/hooks/*": "reference/hooks/",
+      "../reference/settings.json": "reference/settings.json",
+      "../reference/CLAUDE.md": "reference/CLAUDE.md"
+    }
   }
 }

@@ -8,6 +8,7 @@ import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore"
 import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
+import { useWorkflowKitStore, type AgentDef } from "../stores/workflowKitStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -203,6 +204,27 @@ export function useTauriEvents() {
         useDiffStore.getState().addDiff(event.payload);
       });
       unlisteners.push(mcpShowDiffListener);
+
+      // .claude/ directory change events — refresh agents list (only for agents/ changes)
+      const claudeDirChangeListener = await listen<{ file: string }>(
+        "claude-dir-change",
+        (event) => {
+          const file = (event.payload as { file?: string })?.file ?? "";
+          if (file && !file.includes("agents")) return;
+          invoke<{ name: string; description: string }[]>("list_agents")
+            .then((raw) => {
+              const mapped: AgentDef[] = raw.map((a) => ({
+                name: a.name,
+                description: a.description,
+                deployed: true,
+                custom: false,
+              }));
+              useWorkflowKitStore.getState().setAgents(mapped);
+            })
+            .catch(console.error);
+        }
+      );
+      unlisteners.push(claudeDirChangeListener);
     };
 
     setupListeners();

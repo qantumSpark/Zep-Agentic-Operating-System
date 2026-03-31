@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "\"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/.zaos/bin/zaos-hooks.exe\" block-code",
+            "timeout": 5,
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "\"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/.zaos/bin/zaos-hooks.exe\" on-compact",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "compact"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "\"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/.zaos/bin/zaos-hooks.exe\" inject-context",
+            "timeout": 5,
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  }
+}

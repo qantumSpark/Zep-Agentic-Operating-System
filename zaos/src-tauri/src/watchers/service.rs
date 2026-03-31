@@ -18,6 +18,8 @@ pub enum WatchCategory {
     Memory,
     /// New image files in `.screenshots/` directory
     Screenshot,
+    /// Changes inside the `.claude/` directory
+    Claude,
 }
 
 /// Watches `.workflow/state.json` and `.memory/` for changes,
@@ -98,10 +100,23 @@ impl FileWatcherService {
             );
         }
 
+        // Watch .claude/ directory (recursive — agents, settings, etc.)
+        let claude_dir = self.project_dir.join(".claude");
+        if claude_dir.exists() {
+            watcher.watch(&claude_dir, RecursiveMode::Recursive)?;
+            tracing::info!("Watching .claude directory: {:?}", claude_dir);
+        } else {
+            tracing::warn!(
+                ".claude directory does not exist yet, skipping watch: {:?}",
+                claude_dir
+            );
+        }
+
         // Clone paths and handles for the async task
         let workflow_dir_owned = workflow_dir;
         let memory_dir_owned = memory_dir;
         let screenshots_dir_owned = screenshots_dir;
+        let claude_dir_owned = claude_dir;
         let project_dir = self.project_dir.clone();
         let app_handle = app_handle.clone();
         let state_file_path = workflow_dir_owned.join("state.json");
@@ -142,6 +157,8 @@ impl FileWatcherService {
                         Some(WatchCategory::Memory)
                     } else if path.starts_with(&screenshots_dir_owned) && is_image {
                         Some(WatchCategory::Screenshot)
+                    } else if path.starts_with(&claude_dir_owned) {
+                        Some(WatchCategory::Claude)
                     } else {
                         None
                     };
@@ -248,6 +265,23 @@ impl FileWatcherService {
                                                 e
                                             );
                                         }
+                                    }
+                                }
+                                WatchCategory::Claude => {
+                                    tracing::info!(".claude directory changed: {:?}", path);
+                                    let changed_file = path
+                                        .file_name()
+                                        .and_then(|f| f.to_str())
+                                        .unwrap_or("unknown")
+                                        .to_string();
+                                    if let Err(e) = app_handle.emit(
+                                        "claude-dir-change",
+                                        serde_json::json!({ "file": changed_file }),
+                                    ) {
+                                        tracing::warn!(
+                                            "Failed to emit claude-dir-change: {}",
+                                            e
+                                        );
                                     }
                                 }
                             }

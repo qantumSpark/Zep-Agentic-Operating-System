@@ -94,6 +94,38 @@ pub fn ensure_project_dirs(project_dir: &Path) {
         || "[]".to_string(),
     );
 
+    // --- .zaos/ ---
+    let zaos_dir = project_dir.join(".zaos");
+    ensure_dir(&zaos_dir);
+    ensure_file(
+        &zaos_dir.join("config.json"),
+        || {
+            let config = crate::deployer::config::WorkflowKitConfig::default();
+            serde_json::to_string_pretty(&config).unwrap_or_else(|_| "{}".to_string())
+        },
+    );
+
+    // --- .claude/ directories ---
+    ensure_dir(&project_dir.join(".claude"));
+    ensure_dir(&project_dir.join(".claude").join("agents"));
+    ensure_dir(&project_dir.join(".claude").join("rules"));
+
+    // --- Deploy workflow kit (agents, rules, settings) ---
+    match crate::deployer::deploy(project_dir) {
+        Ok(report) => {
+            if !report.created.is_empty() || !report.updated.is_empty() {
+                tracing::info!(
+                    "Workflow kit deployed: {} created, {} updated",
+                    report.created.len(),
+                    report.updated.len()
+                );
+            }
+        }
+        Err(e) => {
+            tracing::warn!("Workflow kit deploy failed (non-fatal): {}", e);
+        }
+    }
+
     tracing::info!("Project directories initialized");
 }
 

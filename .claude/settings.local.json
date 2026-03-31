@@ -39,7 +39,13 @@
       "WebFetch(domain:docs.rs)",
       "WebFetch(domain:v2.tauri.app)",
       "WebFetch(domain:github.com)",
-      "Bash(find *)"
+      "Bash(find *)",
+      "Bash(node *)",
+      "Bash(cargo run:*)",
+      "Bash(echo \"exit code: $?\")",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:claudelog.com)",
+      "WebFetch(domain:www.eesel.ai)"
     ]
   }
 }
