@@ -90,6 +90,8 @@ fn main() {
             commands::read_agent,
             commands::save_agent,
             commands::delete_agent,
+            commands::switch_project,
+            commands::get_project_info,
         ])
         .setup(move |app| {
             let state = app.state::<AppState>();
@@ -98,14 +100,14 @@ fn main() {
             let handle = app.handle().clone();
 
             // Start file watchers
-            match watcher.start(handle.clone(), orch.clone()) {
+            match watcher.blocking_lock().start(handle.clone(), orch.clone()) {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }
 
             // Start MCP server
             let wf_engine = state.workflow_engine.clone();
-            let project_dir = state.project_dir.clone();
+            let project_dir = state.project_dir.blocking_read().clone();
             let store = mcp_handle_store.clone();
 
             tauri::async_runtime::spawn(async move {

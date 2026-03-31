@@ -26,11 +26,23 @@ pub enum WatchCategory {
 /// bridging notify's synchronous callbacks into the tokio async runtime.
 pub struct FileWatcherService {
     project_dir: PathBuf,
+    task_handle: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
 impl FileWatcherService {
     pub fn new(project_dir: PathBuf) -> Self {
-        Self { project_dir }
+        Self {
+            project_dir,
+            task_handle: None,
+        }
+    }
+
+    /// Stop the watcher task. Safe to call even if not started.
+    pub fn stop(&mut self) {
+        if let Some(handle) = self.task_handle.take() {
+            handle.abort();
+            tracing::info!("FileWatcherService stopped");
+        }
     }
 
     /// Start watching for file changes.
@@ -39,7 +51,7 @@ impl FileWatcherService {
     /// applies a 300ms per-category debounce, and emits Tauri events on detected changes.
     /// Workflow changes emit `workflow-change` with the parsed WorkflowState.
     pub fn start(
-        &self,
+        &mut self,
         app_handle: tauri::AppHandle,
         screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -124,7 +136,7 @@ impl FileWatcherService {
         // Spawn async consumer — owns the watcher so it stays alive
         // Use tauri::async_runtime::spawn (not tokio::spawn) because setup() may
         // run before the tokio runtime handle is available on the current thread.
-        tauri::async_runtime::spawn(async move {
+        let handle = tauri::async_runtime::spawn(async move {
             // Keep watcher alive for the lifetime of this task
             let _watcher = watcher;
 
@@ -293,6 +305,7 @@ impl FileWatcherService {
             tracing::info!("File watcher task ended");
         });
 
+        self.task_handle = Some(handle);
         Ok(())
     }
 }
