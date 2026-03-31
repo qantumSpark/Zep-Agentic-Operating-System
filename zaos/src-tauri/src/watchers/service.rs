@@ -309,3 +309,11 @@ impl FileWatcherService {
         Ok(())
     }
 }
+
+impl Drop for FileWatcherService {
+    fn drop(&mut self) {
+        if let Some(handle) = self.task_handle.take() {
+            handle.abort();
+        }
+    }
+}

@@ -41,6 +41,10 @@ impl AppState {
             project_dir: Arc::new(RwLock::new(project_dir)),
         }
     }
+
+    pub async fn project_dir(&self) -> PathBuf {
+        self.project_dir.read().await.clone()
+    }
 }
 // =============================================================================
 // Response Types
@@ -295,7 +299,7 @@ pub async fn save_session_log(
     state: State<'_, AppState>,
     data: crate::session::logger::SessionLogData,
 ) -> Result<(), String> {
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     crate::session::logger::write_session_log(&project_dir, &data)
         .await
         .map_err(|e| e.to_string())
@@ -307,7 +311,7 @@ pub async fn get_memory_state(
     state: State<'_, AppState>,
 ) -> Result<MemoryStateResponse, String> {
     tracing::info!("get_memory_state called");
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let reader = MemoryReader::new(project_dir);
     reader.read_all().await
 }
@@ -420,7 +424,7 @@ pub async fn deploy_workflow_kit(
     state: State<'_, AppState>,
 ) -> Result<deployer::sync::SyncReport, String> {
     tracing::info!("deploy_workflow_kit called");
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     deployer::deploy(&project_dir).map_err(|e| e.to_string())
 }
 
@@ -430,7 +434,7 @@ pub async fn get_workflow_kit_status(
     state: State<'_, AppState>,
 ) -> Result<WorkflowKitStatus, String> {
     tracing::info!("get_workflow_kit_status called");
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let config = deployer::config::WorkflowKitConfig::load(&project_dir);
     let manifest = deployer::sync::DeployManifest::load(&project_dir);
 
@@ -463,7 +467,7 @@ pub async fn update_workflow_kit_config(
     config: deployer::config::WorkflowKitConfig,
 ) -> Result<(), String> {
     tracing::info!("update_workflow_kit_config called");
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     config.save(&project_dir).map_err(|e| e.to_string())
 }
 
@@ -482,7 +486,7 @@ pub struct AgentInfo {
 pub async fn list_agents(
     state: State<'_, AppState>,
 ) -> Result<Vec<AgentInfo>, String> {
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let agents_dir = project_dir.join(".claude").join("agents");
     let mut agents = Vec::new();
 
@@ -511,7 +515,7 @@ pub async fn read_agent(
     name: String,
 ) -> Result<String, String> {
     tracing::info!("read_agent called: {}", name);
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read agent {}: {}", name, e))
 }
@@ -524,7 +528,7 @@ pub async fn save_agent(
     content: String,
 ) -> Result<(), String> {
     tracing::info!("save_agent called: {}", name);
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let agents_dir = project_dir.join(".claude").join("agents");
     std::fs::create_dir_all(&agents_dir).map_err(|e| e.to_string())?;
     let path = agents_dir.join(format!("{}.md", name));
@@ -540,7 +544,7 @@ pub async fn delete_agent(
     name: String,
 ) -> Result<(), String> {
     tracing::info!("delete_agent called: {}", name);
-    let project_dir = state.project_dir.read().await.clone();
+    let project_dir = state.project_dir().await;
     let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
     if path.exists() {
         std::fs::remove_file(&path).map_err(|e| format!("Failed to delete agent {}: {}", name, e))?;
@@ -559,19 +563,25 @@ pub struct ProjectInfo {
     pub name: String,
 }
 
+impl ProjectInfo {
+    fn from_path(dir: &std::path::Path) -> Self {
+        let path = dir.to_string_lossy().to_string();
+        let name = dir
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| path.clone());
+        Self { path, name }
+    }
+}
+
 /// Get current project info (path and name)
 #[tauri::command]
 pub async fn get_project_info(
     state: State<'_, AppState>,
 ) -> Result<ProjectInfo, String> {
     tracing::info!("get_project_info called");
-    let project_dir = state.project_dir.read().await;
-    let path = project_dir.to_string_lossy().to_string();
-    let name = project_dir
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| path.clone());
-    Ok(ProjectInfo { path, name })
+    let project_dir = state.project_dir().await;
+    Ok(ProjectInfo::from_path(&project_dir))
 }
 
 /// Switch to a different project directory
@@ -605,20 +615,20 @@ pub async fn switch_project(
     // 4. Init new project dirs
     crate::init::ensure_project_dirs(&new_dir);
 
-    // 5. Update project_dir
-    *state.project_dir.write().await = new_dir.clone();
-
-    // 6. Replace session_manager
+    // 5. Replace session_manager
     *state.session_manager.lock().await = SessionManager::new(new_dir.clone());
 
-    // 7. Replace workflow_engine
+    // 6. Replace workflow_engine
     *state.workflow_engine.lock().await = WorkflowEngine::new(new_dir.clone());
 
-    // 8. Replace screenshot_orchestrator
+    // 7. Replace screenshot_orchestrator
     *state.screenshot_orchestrator.lock().await = ScreenshotOrchestrator::new(
         new_dir.join(".screenshots"),
         Box::new(FilesystemAdapter),
     );
+
+    // 8. Update project_dir (after all services are replaced)
+    *state.project_dir.write().await = new_dir.clone();
 
     // 9. Restart watchers
     let mut watcher = state.watcher_service.lock().await;
@@ -628,15 +638,7 @@ pub async fn switch_project(
         .map_err(|e| format!("Failed to start watchers: {}", e))?;
 
     // 10. Build ProjectInfo
-    let name = new_dir
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| path.clone());
-
-    let info = ProjectInfo {
-        path: new_dir.to_string_lossy().to_string(),
-        name,
-    };
+    let info = ProjectInfo::from_path(&new_dir);
 
     // 11. Emit project-changed event
     app.emit("project-changed", &info)
