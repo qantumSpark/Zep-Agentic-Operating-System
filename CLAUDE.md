@@ -60,6 +60,7 @@ This project uses a structured workflow with persistent memory. Before coding:
 4. Follow phases: comprehension → spec → architecture → implementation → review → closure
 5. Each phase has a gate — user must validate before advancing
 6. Update `.memory/state.md` and `.memory/current-epic.md` after completing work
+7. **After completing any phase or milestone:** update `ROADMAP.md` (mark tasks done, update progress table and status line), `.memory/state.md` (milestone status, priorities), and `.memory/current-epic.md` (task statuses). These files must always reflect the current state of the project.
 
 ## Key Conventions
 

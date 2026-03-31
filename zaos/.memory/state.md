@@ -9,13 +9,13 @@
 |---|---|---|---|
 | 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | Chat complet, Interactive Permissions, Phase 1 Finition (6/6) |
 | 2 | Dashboard temps reel | TERMINE | Stream A (4/4), Stream B (8/8), Stream C (4/4) + trace reference |
-| 3 | Screenshots & visuels | EN COURS | 13/13 taches implementees, en attente test utilisateur |
+| 3 | Screenshots & visuels | TERMINE | 13/13 taches implementees, test utilisateur valide |
 | 4 | MCP Server zaos-ide | Non commence | Serveur local, Tools, .mcp.json |
 | 5 | UX Polish | Non commence | Sessions, Metriques, Notifications |
 
 ## Epic active
 
-Phase 3 — Screenshots & Visuels (13/13 taches implementees, test utilisateur en attente)
+Aucune epic active — Phase 3 terminee, en attente de direction utilisateur
 
 ## Ce qui est fait
 
@@ -46,6 +46,6 @@ Aucun
 
 ## Prochaines priorites
 
-1. Test utilisateur Phase 3 — valider galerie, watcher, zoom
-2. Configurer asset protocol scope pour servir les images
-3. Phase 4 : MCP Server zaos-ide
+1. Phase 4 : MCP Server zaos-ide
+2. Phase 5 : UX Polish
+3. Phase 3.5 : diff pixel, auto ProjectType, Lighthouse, annotations

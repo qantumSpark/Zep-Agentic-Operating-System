@@ -13,7 +13,18 @@
       "Bash(cargo build:*)",
       "Bash(cargo test:*)",
       "Bash(cargo check:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(find ~/.claude -name *.json -type f)",
+      "Bash(ls:*)",
+      "Bash(find '/c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/reference/traces' -type f -name *.jsonl)",
+      "Bash(find '/c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src' -type f \\\\\\(-name *store* -o -name *Store* -o -name *handler* -o -name *Handler* \\\\\\))",
+      "Read(//c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/$APPDATA/Claude/**)",
+      "Read(//c/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/$USERPROFILE/.claude/**)",
+      "Bash(python3 -c \"import sys,json; d=json.loads\\(sys.stdin.readline\\(\\)\\); print\\(json.dumps\\(d, indent=2\\)\\)\")",
+      "Bash(cargo doc:*)",
+      "Bash(node -e \":*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -r assetProtocol . --include=*.json --include=*.rs)"
     ]
   }
 }

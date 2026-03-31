@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
-> Derniere mise a jour : 2026-03-30
-> Statut global : **Phase 2 TERMINEE** — Dashboard temps reel complet, pret pour Phase 3 (Screenshots & Visuels)
+> Derniere mise a jour : 2026-03-31
+> Statut global : **Phase 3 TERMINEE** — Screenshots & Visuels complet, pret pour Phase 4 (MCP Server zaos-ide)
 
 ---
 
@@ -114,17 +114,17 @@
 
 ### 3.1 Screenshot Manager (Rust)
 
-- [ ] watch_directory() — surveiller un dossier de screenshots
-- [ ] capture_on_demand() — appeler GoPeak via MCP pour capturer
-- [ ] get_gallery() — lister les screenshots avec metadata
-- [ ] cleanup_old() — nettoyer les vieux screenshots
-- [ ] compare() — diff visuel before/after
+- [x] watch_directory — surveiller `.screenshots/` (FileWatcher + WatchCategory::Screenshot)
+- [x] capture_on_demand — CaptureAdapter trait + FilesystemAdapter + CliMcpAdapter
+- [x] get_gallery — ScreenshotOrchestrator.get_gallery() + IPC get_screenshots
+- [x] cleanup_old — delete_screenshot IPC + orchestrator.delete_screenshot()
+- [x] compare — ComparisonView.tsx (side-by-side + slider mode)
 
 ### 3.2 Frontend Screenshots
 
-- [ ] ScreenshotGallery — afficher les captures avec zoom
-- [ ] Insertion inline de screenshots dans le chat
-- [ ] Before/after comparison view
+- [x] ScreenshotGallery — rewritten with live grid, zoom modal, capture, delete
+- [x] Insertion inline — screenshotStore + useTauriEvents listeners (screenshot-new, iteration-update)
+- [x] Before/after comparison view — ComparisonView.tsx
 
 ---
 
@@ -166,7 +166,7 @@
 | 1.3 Integration | 8 | 8 | 0 | 0 | 100% |
 | **Phase 1 Total** | **47** | **43** | **3** | **0** | **91%** |
 | Phase 2 | 13 | 13 | 0 | 0 | 100% |
-| Phase 3 | 8 | 0 | 0 | 8 | 0% |
+| Phase 3 | 13 | 13 | 0 | 0 | 100% |
 | Phase 4 | 7 | 0 | 0 | 7 | 0% |
 | Phase 5 | 12 | 0 | 0 | 12 | 0% |
-| **Total** | **87** | **59** | **3** | **25** | **68%** |
+| **Total** | **87** | **72** | **3** | **12** | **83%** |
