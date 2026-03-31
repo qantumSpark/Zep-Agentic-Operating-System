@@ -13,21 +13,23 @@
 | 4 | MCP Server zaos-ide | TERMINE | 7 taches |
 | 5 | UX Polish | TERMINE | 12 taches |
 | 6 | Workflow Kit Integration | TERMINE | 17 taches |
-| 7 | Project Portability & Workflow Init | TERMINE | 15/15 taches, 4 streams |
+| 7 | Project Portability & Workflow Init | TERMINE | 15 taches + CLAUDE.md deploy |
+| 8 | Workflow Integration Bugs | EN COURS | 8 taches, 3 vagues |
 
 ## Epic active
 
-Phase 7 — Project Portability : embedded content, project picker, workflow init
+Phase 8 — Workflow Integration Bugs : hooks display, format memoire, gate workflow
 
-## Ce qui est fait (Phase 7)
+## Ce qui est fait (Phase 8)
 
-- Vague 1 (A1-A4) : Embedded content — agents/rules compiles dans le binaire via include_str!(), sync reecrit sans source_dir, find_reference_dir supprime, bundle.resources vide.
-- Vague 2 (B1-B6) : Dynamic project dir — AppState.project_dir → Arc<RwLock<PathBuf>>, tous les commands mis a jour, switch_project + get_project_info ajoutes, main.rs mis a jour, FileWatcherService avec stop/restart et Drop.
-- Vague 3 (C1-C5) : Project picker UI — tauri-plugin-dialog, projectStore, ProjectPicker dans StatusBar, listener project-changed avec reset+reload complet, startup 6 invokes en parallele.
-- Vague 4 (D1-D3) : Workflow init — start_epic atomique (engine method), form dans WorkflowSection, CTA dans StartupDashboard, template current-epic.md compatible parser.
+- Diagnostic : 3 bugs identifies via test reel sur projet vierge
+- Plan : 8 taches en 3 vagues
 
 ## Bugs connus
 
+- Hooks affiches inactifs (frontend ne lit pas hooks_active)
+- Epic invisible dans dashboard (format memoire non specifie a Claude)
+- validate_gate deconnecte de Claude (pas de message, gate jamais reset)
 - `list_sessions` retourne toujours vide (priorite basse)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
 
@@ -36,6 +38,7 @@ Phase 7 — Project Portability : embedded content, project picker, workflow ini
 - Phase stringly-typed en Rust
 - `as any` casts dans useTauriEvents.ts
 - Event names stringly-typed
+- `welcome` hook command = dead code
 
 ## Blocages
 
@@ -43,4 +46,4 @@ Aucun
 
 ## Prochaines priorites
 
-Phase 7 terminee. Prochaine etape : Phase 8 (a definir).
+Vague 1 : hooks display fix (A1 + A2)

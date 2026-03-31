@@ -7,8 +7,8 @@
 
 - [architecture.md](architecture.md) — Stack Tauri v2 + React/TS + Rust, layout split-panel chat/dashboard
 - [conventions.md](conventions.md) — Standards TypeScript/React/Rust pour ZAOS
-- [state.md](state.md) — Phase 1 a 68%, backend Rust complet, frontend partiel
-- [current-epic.md](current-epic.md) — Aucune epic active
+- [state.md](state.md) — Phase 8 en cours, 7 milestones termines
+- [current-epic.md](current-epic.md) — Phase 8 : Workflow Integration Bugs (8 taches)
 
 ## Decisions
 

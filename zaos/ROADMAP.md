@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 7 TERMINE** — Project Portability & Workflow Init
+> Statut global : **Phase 8 EN COURS** — Workflow Integration Bugs
 
 ---
 
@@ -199,6 +199,27 @@
 
 ---
 
+## Phase 8 — Workflow Integration Bugs
+
+### 8.1 Hooks Display Fix
+
+- [ ] Brancher hooks_active du backend dans le frontend (App.tsx, useTauriEvents.ts)
+- [ ] Deriver le statut active par hook depuis hooks_active (workflowKitStore.ts)
+
+### 8.2 Format Memoire
+
+- [ ] Ajouter specs format exact dans CLAUDE.md (template current-epic.md + state.md)
+- [ ] Fixer templates par defaut dans init.rs (headings compatibles parser)
+- [ ] Ajouter rappel format dans inject-context hook (zaos_hooks.rs)
+
+### 8.3 Gate Workflow
+
+- [ ] Reset gate_validated dans next_phase() (engine.rs)
+- [ ] Envoyer message a Claude quand gate valide (commands.rs, auto-inject prompt)
+- [ ] Feedback visuel apres validate_gate (WorkflowSection.tsx)
+
+---
+
 ## Compteur de progression
 
 | Phase | Total | Done | Stub | TODO | % |
@@ -213,4 +234,5 @@
 | Phase 5 | 12 | 12 | 0 | 0 | 100% |
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
-| **Total** | **124** | **120** | **3** | **0** | **97%** |
+| Phase 8 | 8 | 0 | 0 | 8 | 0% |
+| **Total** | **132** | **120** | **3** | **8** | **91%** |
