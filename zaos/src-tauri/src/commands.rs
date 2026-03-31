@@ -1,5 +1,6 @@
 use crate::events::CliEvent;
 use crate::memory::{MemoryReader, MemoryStateResponse};
+use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
 use crate::workflow::{WorkflowEngine, WorkflowMode};
@@ -14,6 +15,7 @@ pub struct AppState {
     pub session_manager: Arc<Mutex<SessionManager>>,
     pub workflow_engine: Arc<Mutex<WorkflowEngine>>,
     pub watcher_service: Arc<FileWatcherService>,
+    pub screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
     pub project_dir: PathBuf,
 }
 
@@ -27,6 +29,12 @@ impl AppState {
                 WorkflowEngine::new(project_dir.clone()),
             )),
             watcher_service: Arc::new(FileWatcherService::new(project_dir.clone())),
+            screenshot_orchestrator: Arc::new(Mutex::new(
+                ScreenshotOrchestrator::new(
+                    project_dir.join(".screenshots"),
+                    Box::new(FilesystemAdapter),
+                ),
+            )),
             project_dir,
         }
     }
@@ -286,4 +294,92 @@ pub async fn get_memory_state(
     tracing::info!("get_memory_state called");
     let reader = MemoryReader::new(state.project_dir.clone());
     reader.read_all().await
+}
+
+// =============================================================================
+// Screenshot Response Types
+// =============================================================================
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetScreenshotsResponse {
+    pub screenshots: Vec<Screenshot>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ScreenshotActionResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+// =============================================================================
+// Screenshot Commands
+// =============================================================================
+
+/// List all screenshots, optionally filtered by session_id
+#[tauri::command]
+pub async fn get_screenshots(
+    session_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<GetScreenshotsResponse, String> {
+    tracing::info!("get_screenshots called, session_id={:?}", session_id);
+    let orch = state.screenshot_orchestrator.lock().await;
+    let screenshots = orch
+        .get_gallery(session_id.as_deref())
+        .await
+        .map_err(|e| format!("Failed to get screenshots: {}", e))?;
+    Ok(GetScreenshotsResponse { screenshots })
+}
+
+/// Import a screenshot from a file path
+#[tauri::command]
+pub async fn add_screenshot(
+    file_path: String,
+    state: State<'_, AppState>,
+) -> Result<Screenshot, String> {
+    tracing::info!("add_screenshot called, file_path={}", file_path);
+    let path = std::path::Path::new(&file_path);
+    let orch = state.screenshot_orchestrator.lock().await;
+    orch.index_file(path)
+        .await
+        .map_err(|e| format!("Failed to add screenshot: {}", e))
+}
+
+/// Delete a screenshot by id
+#[tauri::command]
+pub async fn delete_screenshot(
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<ScreenshotActionResponse, String> {
+    tracing::info!("delete_screenshot called, id={}", id);
+    let orch = state.screenshot_orchestrator.lock().await;
+    let found = orch
+        .delete_screenshot(&id)
+        .await
+        .map_err(|e| format!("Failed to delete screenshot: {}", e))?;
+    Ok(ScreenshotActionResponse {
+        success: found,
+        message: if found {
+            "Deleted".into()
+        } else {
+            "Not found".into()
+        },
+    })
+}
+
+/// Request a new capture via the active adapter
+#[tauri::command]
+pub async fn request_capture(
+    url: Option<String>,
+    iteration_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<ScreenshotActionResponse, String> {
+    tracing::info!("request_capture called, url={:?}, iteration_id={:?}", url, iteration_id);
+    let orch = state.screenshot_orchestrator.lock().await;
+    orch.request_capture(url, None, iteration_id)
+        .await
+        .map_err(|e| format!("Failed to request capture: {}", e))?;
+    Ok(ScreenshotActionResponse {
+        success: true,
+        message: "Capture requested".into(),
+    })
 }

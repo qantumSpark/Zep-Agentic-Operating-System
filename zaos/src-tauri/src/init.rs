@@ -1,5 +1,5 @@
 // Project directory initialization
-// Ensures .workflow/ and .memory/ directories exist with default files at startup.
+// Ensures .workflow/, .memory/, and .screenshots/ directories exist with default files at startup.
 
 use crate::workflow::state::WorkflowState;
 use std::fs::{self, OpenOptions};
@@ -81,6 +81,14 @@ pub fn ensure_project_dirs(project_dir: &Path) {
             )
             .to_string()
         },
+    );
+
+    // --- .screenshots/ ---
+    let screenshots_dir = project_dir.join(".screenshots");
+    ensure_dir(&screenshots_dir);
+    ensure_file(
+        &screenshots_dir.join("index.json"),
+        || "[]".to_string(),
     );
 
     tracing::info!("Project directories initialized");

@@ -69,13 +69,18 @@ fn main() {
             commands::get_memory_state,
             commands::check_cli_auth,
             commands::list_sessions,
+            commands::get_screenshots,
+            commands::add_screenshot,
+            commands::delete_screenshot,
+            commands::request_capture,
         ])
         .setup(|app| {
             let state = app.state::<AppState>();
             let watcher = state.watcher_service.clone();
+            let orch = state.screenshot_orchestrator.clone();
             let handle = app.handle().clone();
 
-            match watcher.start(handle) {
+            match watcher.start(handle, orch) {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }

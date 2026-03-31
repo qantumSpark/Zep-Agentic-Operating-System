@@ -4,6 +4,8 @@ import type { CliEvent, RateLimitEvent, ResultEvent } from "../types/events";
 import { useWorkflowStore, type BackendWorkflowPayload } from "../stores/workflowStore";
 import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore";
 import { useSessionStore } from "../stores/sessionStore";
+import { useScreenshotStore } from "../stores/screenshotStore";
+import type { Screenshot, Iteration } from "../types/screenshots";
 
 /**
  * Hook that listens to Tauri events for session/workflow updates.
@@ -93,6 +95,24 @@ export function useTauriEvents() {
         sessionStore.updateConnections({ cli: payload.healthy || false });
       });
       unlisteners.push(cliHealthListener);
+
+      // Screenshot events — new screenshot captured
+      const screenshotNewListener = await listen<Screenshot>(
+        "screenshot-new",
+        (event) => {
+          useScreenshotStore.getState().addScreenshot(event.payload);
+        }
+      );
+      unlisteners.push(screenshotNewListener);
+
+      // Iteration events — iteration created or status updated
+      const iterationUpdateListener = await listen<Iteration>(
+        "iteration-update",
+        (event) => {
+          useScreenshotStore.getState().updateIteration(event.payload);
+        }
+      );
+      unlisteners.push(iterationUpdateListener);
     };
 
     setupListeners();

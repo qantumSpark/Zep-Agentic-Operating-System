@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { SplitPane } from "./components/common/SplitPane";
 import { ChatPanel } from "./components/chat/ChatPanel";
@@ -8,6 +8,8 @@ import { useTauriEvents } from "./hooks/useTauriEvents";
 import { useStreaming } from "./hooks/useStreaming";
 import { useSessionStore } from "./stores/sessionStore";
 import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
+import { useScreenshotStore } from "./stores/screenshotStore";
+import type { Screenshot } from "./types/screenshots";
 
 /**
  * Main App component
@@ -22,18 +24,26 @@ export function App() {
   useEffect(() => {
     console.log("ZAOS initialized");
     (async () => {
-      try {
-        const result = await invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth");
-        useSessionStore.getState().setCliAuth(result.authenticated, result.version, result.message);
-      } catch (err) {
-        console.error("check_cli_auth failed:", err);
+      const [authResult, memResult, screenshotResult] = await Promise.allSettled([
+        invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
+        invoke<MemoryStateResponse>("get_memory_state"),
+        invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
+      ]);
+      if (authResult.status === "fulfilled") {
+        useSessionStore.getState().setCliAuth(authResult.value.authenticated, authResult.value.version, authResult.value.message);
+      } else {
+        console.error("check_cli_auth failed:", authResult.reason);
         useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
       }
-      try {
-        const memState = await invoke<MemoryStateResponse>("get_memory_state");
-        useMemoryStore.getState().setMemoryState(memState);
-      } catch (err) {
-        console.error("get_memory_state failed:", err);
+      if (memResult.status === "fulfilled") {
+        useMemoryStore.getState().setMemoryState(memResult.value);
+      } else {
+        console.error("get_memory_state failed:", memResult.reason);
+      }
+      if (screenshotResult.status === "fulfilled") {
+        useScreenshotStore.getState().setScreenshots(screenshotResult.value.screenshots);
+      } else {
+        console.error("get_screenshots failed:", screenshotResult.reason);
       }
     })();
   }, []);

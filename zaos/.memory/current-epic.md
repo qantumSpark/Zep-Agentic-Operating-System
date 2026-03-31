@@ -1,45 +1,61 @@
-# Epic active : Phase 2 — Dashboard Temps Reel
+# Epic active : Phase 3 — Screenshots & Visuels
 
-> Milestone : 2 — Dashboard temps reel
-> Date de debut : 2026-03-30
-> Statut : TERMINEE
+> Milestone : 3 — Screenshots & visuels
+> Date de debut : 2026-03-31
+> Statut : EN COURS — implementation terminee, en attente de test utilisateur
 
 ## Objectif
 
-Rendre le dashboard ZAOS vivant : remplacer toutes les donnees statiques/hardcodees par des informations temps reel provenant (a) des events CLI deja en place, (b) de file watchers sur `.workflow/state.json` et `.memory/`, et (c) d'une nouvelle commande IPC pour l'etat memoire.
+Implementer une boucle iterative de capture/evaluation/correction de screenshots. Le Rust orchestre via des adaptateurs (filesystem passif + CLI-MCP actif), le FileWatcher detecte les fichiers, et le frontend affiche la galerie live avec suivi des iterations.
+
+## Architecture
+
+```
+ScreenshotOrchestrator (choisit l'adaptateur selon ProjectType)
+  ├── FilesystemAdapter (passif: attend le fichier)
+  └── CliMcpAdapter (actif: envoie prompt au CLI → CLI utilise MCP)
+          ↓
+FileWatcher (.screenshots/) → index.json → emit "screenshot-new" → screenshotStore → Gallery
+```
+
+Boucle iterative : Capture → Evaluation → Rapport → Correction → Re-capture → Comparaison
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Creer module `watchers/` Rust avec FileWatcherService (notify crate, debounce 300ms) | `watchers/mod.rs`, `watchers/service.rs` | VALIDATED | notify v6, RecommendedWatcher + mpsc bridge, debounce 300ms, Windows path fix |
-| 2 | Enregistrer FileWatcherService dans AppState et spawn au setup Tauri | `commands.rs`, `main.rs` | VALIDATED | Arc<FileWatcherService> dans AppState. start(app_handle) dans setup closure |
-| 3 | Emettre `workflow-change` depuis watcher quand state.json change | `watchers/service.rs` | VALIDATED | tokio::fs::read_to_string → serde parse → app.emit("workflow-change", &state) |
-| 4 | Mettre a jour pipelineProgress dans workflowStore depuis workflow-change | `useTauriEvents.ts`, `workflowStore.ts` | VALIDATED | setFullState() + derivePipelineProgress(). Vite ignore fix |
-| 5 | Implementer read_index() — parser INDEX.md | `memory/reader.rs` | VALIDATED | MemoryIndexEntry/Section structs, section grouping, 12 tests |
-| 6 | Implementer read_state() — parser state.md milestones, epic, blocages | `memory/reader.rs` | VALIDATED | MilestoneEntry, state-machine parser, 12 tests |
-| 7 | Implementer read_current_epic() — parser current-epic.md tasks table | `memory/reader.rs` | VALIDATED | EpicTask/CurrentEpic structs, backtick stripping, 4 tests |
-| 8 | Creer commande IPC get_memory_state | `commands.rs`, `main.rs` | VALIDATED | MemoryStateResponse, graceful degradation, registered in invoke_handler |
-| 9 | Creer memoryStore Zustand | `memoryStore.ts` | VALIDATED | 6 interfaces TS, applyMemoryResponse helper, setMemoryState/updateFromWatcher/reset |
-| 10 | Emettre memory-change depuis watcher quand .memory/ change | `watchers/service.rs` | VALIDATED | MemoryReader + MemoryStateResponse, graceful error handling |
-| 11 | Ajouter listener memory-change dans useTauriEvents | `useTauriEvents.ts` | VALIDATED | Same pattern as workflow-change → memoryStore.updateFromWatcher |
-| 12 | Creer MemorySection.tsx dans le dashboard | `MemorySection.tsx`, `DashboardPanel.tsx` | VALIDATED | Milestones, epic, tasks table, blocages avec StatusBadge |
-| 13 | Creer agentsStore Zustand | `agentsStore.ts` | VALIDATED | DelegationEntry, availableAgents, activeAgent, delegations, 5 actions |
-| 14 | Detecter delegation agent dans useStreaming (tool_use "Agent" + parent_tool_use_id) | `useStreaming.ts` | VALIDATED | system/init → setAvailableAgents, tool_use Agent → addDelegation, tool_result → completeDelegation |
-| 15 | Remplacer AgentsSection hardcodee par donnees live agentsStore | `AgentsSection.tsx` | VALIDATED | Live agents list, delegation history, status badges, duration |
-| 16 | Appeler get_memory_state au startup pour etat initial | `App.tsx` | VALIDATED | invoke("get_memory_state") → memoryStore.setMemoryState |
-| 17 | Capturer trace reference avec delegation Task et valider detection | `reference/traces/` | VALIDATED | trace-agent-delegation.jsonl — Agent tool_use avec subagent_type general-purpose |
+| A1 | Types enrichis : Screenshot, Iteration, ProjectType, CaptureContext | `screenshots/types.rs` | DONE | 10 types, serde camelCase |
+| A2 | Index JSON persistant (load/save/add/get_by) | `screenshots/index.rs` | DONE | Atomic write, 10 tests |
+| A3 | Etendre FileWatcher avec WatchCategory::Screenshot | `watchers/service.rs` | DONE | 500ms debounce, image filter |
+| A4 | Creer `.screenshots/` + `index.json` au demarrage | `init.rs` | DONE | OpenOptions::create_new |
+| B1 | Trait CaptureAdapter + FilesystemAdapter (passif) | `screenshots/adapters.rs` | DONE | async_trait, 2 tests |
+| B2 | CliMcpAdapter — prompt formate au CLI via SessionManager | `screenshots/adapters.rs` | DONE | 3 tests prompt formatting |
+| B3 | ScreenshotOrchestrator — remplace le stub manager.rs | `screenshots/orchestrator.rs` | DONE | 6 tests |
+| B4 | 4 commandes IPC + enregistrement main.rs | `commands.rs` + `main.rs` | DONE | get_screenshots, add_screenshot, delete_screenshot, request_capture |
+| C1 | screenshotStore Zustand + types TS | `screenshotStore.ts` + `types/screenshots.ts` | DONE | 8 actions, cap 100 |
+| C2 | Listeners screenshot-new + iteration-update | `useTauriEvents.ts` + `App.tsx` | DONE | + initial load |
+| C3 | Reecrire ScreenshotGallery (grille live, zoom, capture, delete) | `ScreenshotGallery.tsx` | DONE | convertFileSrc, zoom modal, Escape |
+| C4 | IterationTracker — section dashboard boucle iterative | `IterationTracker.tsx` + `DashboardPanel.tsx` | DONE | StatusFlow, badges, history |
+| D1 | ComparisonView — before/after cote a cote avec slider | `ComparisonView.tsx` | DONE | Side-by-side + slider mode |
 
 ## Streams de travail
 
-- **Stream A (Watchers + Pipeline):** 1 → 2 → 3 → 4
-- **Stream B (Memory):** 5,6,7 (parallel) → 8 + 9 (parallel) → 10 → 11 → 12 + 16
-- **Stream C (Agents):** 13 → 14 → 15 + 17
+- **Stream A (Fondations Rust):** A1 + A2 + A4 (parallele) → A3 — TERMINE
+- **Stream B (Orchestration):** B1 → B2 → B3 → B4 — TERMINE
+- **Stream C (Frontend):** C1 → C2 → C3 → C4 — TERMINE
+- **Stream D (Comparaison):** D1 — TERMINE
 
-## Workflow par tache
+## Tests
 
-1. Agent Architect → plan d'implementation
-2. Agent Codeur → implementation
-3. Agent Reviewer → review + tests
-4. Retour utilisateur → test manuel + validation
-5. Mise a jour memoire → tache suivante
+22 tests Rust passent (index: 10, adapters: 5, orchestrator: 6, manager: 1)
+
+## Defere a Phase 3.5
+
+- Diff visuel pixel-a-pixel
+- Detection automatique ProjectType
+- Lighthouse scoring par capture
+- Annotations sur screenshots
+- Cleanup automatique par age
+- Adaptateurs mobile (ADB, iOS Simulator)
+- Multi-viewport
+- Asset protocol scope (tauri.conf.json + capabilities) — a tester manuellement

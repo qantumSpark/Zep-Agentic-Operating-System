@@ -1,4 +1,3 @@
-import React from "react";
 import { CollapsibleSection } from "../common/CollapsibleSection";
 import { WorkflowSection } from "./WorkflowSection";
 import { PipelineSection } from "./PipelineSection";
@@ -6,6 +5,7 @@ import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
 import { AgentsSection } from "./AgentsSection";
 import { ScreenshotGallery } from "./ScreenshotGallery";
+import { IterationTracker } from "./IterationTracker";
 
 /**
  * Dashboard container: vertically stacked collapsible sections
@@ -31,6 +31,10 @@ export function DashboardPanel() {
 
       <CollapsibleSection title="Agents" defaultOpen={false}>
         <AgentsSection />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Iteration Loop" defaultOpen={false}>
+        <IterationTracker />
       </CollapsibleSection>
 
       <CollapsibleSection title="Screenshots" defaultOpen={false}>
