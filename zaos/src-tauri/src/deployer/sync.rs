@@ -52,6 +52,16 @@ enum SyncOutcome {
     Skipped,
 }
 
+impl SyncReport {
+    fn record(&mut self, outcome: SyncOutcome, path: String) {
+        match outcome {
+            SyncOutcome::Created => self.created.push(path),
+            SyncOutcome::Updated => self.updated.push(path),
+            SyncOutcome::Skipped => self.skipped.push(path),
+        }
+    }
+}
+
 /// Sync a single file from source content to target path.
 fn sync_file(
     target: &Path,
@@ -118,11 +128,7 @@ fn sync_embedded(
         let rel_path = format!("{}/{}", subdir, file.filename);
         let target = target_dir.join(file.filename);
 
-        match sync_file(&target, file.content.as_bytes(), manifest, &rel_path)? {
-            SyncOutcome::Created => report.created.push(rel_path),
-            SyncOutcome::Updated => report.updated.push(rel_path),
-            SyncOutcome::Skipped => report.skipped.push(rel_path),
-        }
+        report.record(sync_file(&target, file.content.as_bytes(), manifest, &rel_path)?, rel_path);
     }
     Ok(())
 }
@@ -174,11 +180,7 @@ pub fn sync_settings(
     let target = project_dir.join(".claude").join("settings.json");
     let rel_path = "settings.json";
 
-    match sync_file(&target, content.as_bytes(), manifest, rel_path)? {
-        SyncOutcome::Created => report.created.push(rel_path.to_string()),
-        SyncOutcome::Updated => report.updated.push(rel_path.to_string()),
-        SyncOutcome::Skipped => report.skipped.push(rel_path.to_string()),
-    }
+    report.record(sync_file(&target, content.as_bytes(), manifest, rel_path)?, rel_path.to_string());
 
     Ok(())
 }
@@ -192,11 +194,7 @@ pub fn sync_claude_md(
     let target = project_dir.join("CLAUDE.md");
     let rel_path = "CLAUDE.md";
 
-    match sync_file(&target, super::embedded::CLAUDE_MD.as_bytes(), manifest, rel_path)? {
-        SyncOutcome::Created => report.created.push(rel_path.to_string()),
-        SyncOutcome::Updated => report.updated.push(rel_path.to_string()),
-        SyncOutcome::Skipped => report.skipped.push(rel_path.to_string()),
-    }
+    report.record(sync_file(&target, super::embedded::CLAUDE_MD.as_bytes(), manifest, rel_path)?, rel_path.to_string());
     Ok(())
 }
 
@@ -224,9 +222,11 @@ pub fn sync_all(
     )?;
     sync_claude_md(project_dir, &mut manifest, &mut report)?;
 
-    // Update manifest timestamp
-    manifest.last_deployed = Some(chrono::Utc::now().to_rfc3339());
-    manifest.save(project_dir)?;
+    // Only persist manifest when something actually changed
+    if !report.created.is_empty() || !report.updated.is_empty() {
+        manifest.last_deployed = Some(chrono::Utc::now().to_rfc3339());
+        manifest.save(project_dir)?;
+    }
 
     tracing::info!(
         "Sync complete: {} created, {} updated, {} skipped",
