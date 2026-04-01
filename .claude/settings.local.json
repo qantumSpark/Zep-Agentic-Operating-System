@@ -45,7 +45,24 @@
       "Bash(echo \"exit code: $?\")",
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:claudelog.com)",
-      "WebFetch(domain:www.eesel.ai)"
+      "WebFetch(domain:www.eesel.ai)",
+      "Bash(grep *)",
+      "Bash(wc:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:gist.github.com)",
+      "Bash('C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hooks.exe' help)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash('C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hooks.exe' inject-context)",
+      "Bash('C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hooks.exe' on-compact)",
+      "Bash('C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hooks.exe' enforce-gate)",
+      "Read(//tmp/**)",
+      "Bash('C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hook*)",
+      "Bash(cygpath:*)",
+      "Bash(CLAUDE_PROJECT_DIR=\"C:/Users/apeze/Documents/Test Project\" \"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/src-tauri/target/debug/zaos-hooks.exe\" enforce-gate)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(head:*)"
     ]
-  }
+  },
+  "prefersReducedMotion": false
 }

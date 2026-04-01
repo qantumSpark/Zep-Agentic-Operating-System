@@ -1,16 +1,17 @@
 {
   "files": {
-    "agents/reviewer.md": "91f1ae7c1cc655b7",
+    "agents/tester.md": "23ec126c143ee11e",
+    "CLAUDE.md": "7aa3127a2f1c7421",
+    "rules/02-anti-hallucination.mdc": "b4694bf79fab2667",
+    "agents/playtester.md": "052713d9683c8f4b",
+    "agents/coder.md": "8becedff222de49a",
+    "agents/architect.md": "729a5de2191e1ebd",
+    "rules/01-always.mdc": "62e909ea5a8fd10a",
     "rules/03-code-review.mdc": "a22c92d56337e56c",
     "rules/04-memory-hygiene.mdc": "26b0b1e25725fd10",
-    "agents/playtester.md": "052713d9683c8f4b",
-    "settings.json": "d57d360d237581d6",
-    "agents/tester.md": "23ec126c143ee11e",
-    "rules/01-always.mdc": "62e909ea5a8fd10a",
-    "agents/architect.md": "729a5de2191e1ebd",
-    "agents/coder.md": "8becedff222de49a",
-    "agents/researcher.md": "ccaaa787965b6216",
-    "rules/02-anti-hallucination.mdc": "b4694bf79fab2667"
+    "agents/reviewer.md": "91f1ae7c1cc655b7",
+    "settings.json": "d12f79259aaafc33",
+    "agents/researcher.md": "ccaaa787965b6216"
   },
-  "last_deployed": "2026-03-31T18:22:40.993473600+00:00"
+  "last_deployed": "2026-04-01T13:33:00.467896100+00:00"
 }

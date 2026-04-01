@@ -6,5 +6,6 @@
   "gate_validated": false,
   "last_updated": "2026-03-31T18:22:40.994956100+00:00",
   "history": [],
-  "session": null
+  "session": null,
+  "permission_mode": "accept-edits"
 }
