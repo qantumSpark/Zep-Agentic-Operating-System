@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -16,6 +16,8 @@ export function WorkflowSection() {
   const [epicDesc, setEpicDesc] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
+  const gateTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(gateTimerRef.current), []);
 
   const handleStartEpic = async () => {
     if (!epicName.trim() || isStarting) return;
@@ -36,7 +38,7 @@ export function WorkflowSection() {
       const response = await invoke<{ success: boolean; next_phase: string; message: string }>("validate_gate");
       if (response.success) {
         setGateMessage(`Phase avancée à : ${response.next_phase}`);
-        setTimeout(() => setGateMessage(null), 2000);
+        gateTimerRef.current = setTimeout(() => setGateMessage(null), 2000);
       }
     } catch (error) {
       console.error("Failed to validate gate:", error);

@@ -220,18 +220,22 @@ pub async fn validate_gate(
         .await
         .map_err(|e| format!("Failed to advance phase: {}", e))?;
 
-    // Notify Claude CLI session about the gate validation
-    drop(workflow); // Release engine lock before acquiring session lock to avoid deadlock
-    let mut session = state.session_manager.lock().await;
-    if session.is_session_started() {
-        let msg = format!(
-            "[GATE VALIDE] L'utilisateur a valide le gate. Phase avancee a : {}. Procede avec cette phase.",
-            next_phase
-        );
-        if let Err(e) = session.send_message(&msg).await {
-            tracing::warn!("Failed to notify Claude about gate validation: {}", e);
+    // Fire-and-forget: notify Claude CLI without blocking the IPC response
+    drop(workflow);
+    let session_manager = state.session_manager.clone();
+    let phase_for_msg = next_phase.clone();
+    tokio::spawn(async move {
+        let mut session = session_manager.lock().await;
+        if session.is_session_started() {
+            let msg = format!(
+                "[GATE VALIDE] L'utilisateur a valide le gate. Phase avancee a : {}. Procede avec cette phase.",
+                phase_for_msg
+            );
+            if let Err(e) = session.send_message(&msg).await {
+                tracing::warn!("Failed to notify Claude about gate validation: {}", e);
+            }
         }
-    }
+    });
 
     Ok(ValidateGateResponse {
         success: true,
