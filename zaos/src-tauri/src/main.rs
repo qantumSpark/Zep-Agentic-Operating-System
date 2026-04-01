@@ -12,6 +12,7 @@ mod events;
 mod init;
 mod memory;
 mod mcp_server;
+mod runtime;
 mod screenshots;
 mod session;
 mod watchers;

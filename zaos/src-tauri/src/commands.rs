@@ -399,12 +399,15 @@ pub async fn get_workflow_state(
 }
 /// Check CLI authentication status
 #[tauri::command]
-pub async fn check_cli_auth() -> Result<CheckAuthResponse, String> {
-    match SessionManager::check_cli_auth().await {
+pub async fn check_cli_auth(
+    state: State<'_, AppState>,
+) -> Result<CheckAuthResponse, String> {
+    let session = state.session_manager.lock().await;
+    match session.check_cli_auth().await {
         Ok(version) => Ok(CheckAuthResponse {
             authenticated: true,
             version: version.trim().to_string(),
-            message: "Claude CLI authenticated".to_string(),
+            message: format!("{} authenticated", session.runtime_name()),
         }),
         Err(_) => Ok(CheckAuthResponse {
             authenticated: false,
