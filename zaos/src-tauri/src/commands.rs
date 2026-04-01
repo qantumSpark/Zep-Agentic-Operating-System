@@ -219,6 +219,20 @@ pub async fn validate_gate(
         .next_phase()
         .await
         .map_err(|e| format!("Failed to advance phase: {}", e))?;
+
+    // Notify Claude CLI session about the gate validation
+    drop(workflow); // Release engine lock before acquiring session lock to avoid deadlock
+    let mut session = state.session_manager.lock().await;
+    if session.is_session_started() {
+        let msg = format!(
+            "[GATE VALIDE] L'utilisateur a valide le gate. Phase avancee a : {}. Procede avec cette phase.",
+            next_phase
+        );
+        if let Err(e) = session.send_message(&msg).await {
+            tracing::warn!("Failed to notify Claude about gate validation: {}", e);
+        }
+    }
+
     Ok(ValidateGateResponse {
         success: true,
         next_phase,

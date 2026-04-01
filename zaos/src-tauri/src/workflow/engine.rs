@@ -112,6 +112,7 @@ impl WorkflowEngine {
             phase => return Err(WorkflowError::InvalidPhase(phase.to_string())),
         };
 
+        self.current_state.gate_validated = false;
         self.set_phase(next.to_string()).await?;
         Ok(next.to_string())
     }

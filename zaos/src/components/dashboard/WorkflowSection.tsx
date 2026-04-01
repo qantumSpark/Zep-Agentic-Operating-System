@@ -15,6 +15,7 @@ export function WorkflowSection() {
   const [epicName, setEpicName] = useState("");
   const [epicDesc, setEpicDesc] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const [gateMessage, setGateMessage] = useState<string | null>(null);
 
   const handleStartEpic = async () => {
     if (!epicName.trim() || isStarting) return;
@@ -32,7 +33,11 @@ export function WorkflowSection() {
 
   const handleValidateGate = async () => {
     try {
-      await invoke("validate_gate");
+      const response = await invoke<{ success: boolean; next_phase: string; message: string }>("validate_gate");
+      if (response.success) {
+        setGateMessage(`Phase avancée à : ${response.next_phase}`);
+        setTimeout(() => setGateMessage(null), 2000);
+      }
     } catch (error) {
       console.error("Failed to validate gate:", error);
     }
@@ -131,12 +136,19 @@ export function WorkflowSection() {
 
       {/* Gate Button */}
       {phase && (
-        <button
-          onClick={handleValidateGate}
-          className="w-full bg-green-600 hover:bg-green-700 text-white rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2"
-        >
-          Validate Gate ▶
-        </button>
+        <>
+          <button
+            onClick={handleValidateGate}
+            className="w-full bg-green-600 hover:bg-green-700 text-white rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2"
+          >
+            Validate Gate ▶
+          </button>
+          {gateMessage && (
+            <p className="text-green-400 text-xs text-center mt-1 animate-pulse">
+              {gateMessage}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
