@@ -1,28 +1,19 @@
-# Epic active : Phase 8 — Workflow Integration Bugs
+# Epic active : Phase 9.1 — Pipeline Mecanique (Hooks)
 
-> Milestone : 8 — Workflow fiable end-to-end
-> Date de debut : 2026-03-31
+> Milestone : 9 — Field-Tested Corrections
 > Statut : TERMINE
 
 ## Objectif
 
-Corriger 3 bugs identifies lors du premier test reel sur un projet vierge : hooks affiches inactifs, format memoire non specifie (epic invisible dans le dashboard), et validate_gate deconnecte de Claude.
+Rendre le pipeline mecanique : block-code bloque le code hors implementation/test, inject-context donne des DO/DON'T explicites par phase, rappel memoire apres chaque task.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| A1 | Brancher hooks_active dans le frontend | `App.tsx`, `useTauriEvents.ts` | DONE | setHooks() apres get_workflow_kit_status |
-| A2 | Deriver active par hook depuis hooks_active | `workflowKitStore.ts` | DONE | Supprime welcome dead code, garde 3 hooks |
-| B1 | Ajouter specs format memoire dans CLAUDE.md | `reference/CLAUDE.md` | DONE | Section STRICT avec templates exacts |
-| B2 | Fixer templates init.rs | `init.rs` | DONE | Headings compatibles parser |
-| B3 | Ajouter specs format dans inject-context | `zaos_hooks.rs` | DONE | FORMAT_REMINDER injecte a chaque prompt |
-| C1 | Reset gate_validated dans next_phase | `engine.rs` | DONE | gate_validated = false avant set_phase |
-| C2 | Envoyer message a Claude quand gate valide | `commands.rs` | DONE | send_message apres drop workflow lock |
-| C3 | Feedback visuel apres validate_gate | `WorkflowSection.tsx` | DONE | Message temporaire 2s "Phase avancee a..." |
-
-## Vagues
-
-1. A1 + A2 (hooks display fix — frontend only)
-2. B1 + B2 + B3 (format memoire — CLAUDE.md + init + hooks)
-3. C1 + C2 + C3 (gate workflow — engine + commands + frontend)
+| 1 | Ajouter constante CODE_ALLOWED_PHASES | `zaos_hooks.rs` | DONE | ["implementation", "test"] |
+| 2 | Check phase dans cmd_block_code | `zaos_hooks.rs` | DONE | exit 2 si phase hors liste en mode pipeline |
+| 3 | Rewrite get_phase_instructions DO/DON'T | `zaos_hooks.rs` | DONE | 8 phases avec objectif, FAIS, NE FAIS PAS, agent, gate |
+| 4 | Ajouter constante MEMORY_REMINDER | `zaos_hooks.rs` | DONE | Rappel maj current-epic.md apres chaque task |
+| 5 | Injecter MEMORY_REMINDER dans inject-context | `zaos_hooks.rs` | DONE | Apres FORMAT_REMINDER |
+| 6 | Injecter MEMORY_REMINDER dans on-compact | `zaos_hooks.rs` | DONE | Apres NON_NEGOTIABLE_RULES + FORMAT_REMINDER |

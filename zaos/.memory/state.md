@@ -19,7 +19,7 @@
 
 ## Epic active
 
-Aucune — Phase 9 planifiee, pas encore demarree.
+Epic 9.1.1 + 9.1.4 TERMINE (6/6 tasks). Prochains : 9.1.2 + 9.1.3 (pipeline brainstorming + gate enforcement).
 
 ## Bugs connus
 

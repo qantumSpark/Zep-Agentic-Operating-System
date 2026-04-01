@@ -227,10 +227,10 @@
 
 ### 9.1 Pipeline Mecanique (CRITIQUE)
 
-- [ ] Epic 9.1.1 — Phase-aware hook : block-code bloque le code hors implementation/test en mode pipeline
+- [x] Epic 9.1.1 — Phase-aware hook : block-code bloque le code hors implementation/test en mode pipeline
 - [ ] Epic 9.1.2 — Brainstorming → Pipeline : exemple parcours complet dans CLAUDE.md + bouton distinct
 - [ ] Epic 9.1.3 — Gate enforcement mecanique : bloquer actions de phase suivante sans gate valide
-- [ ] Epic 9.1.4 — Inject-context directif : DO/DON'T par phase + rappel memoire apres chaque task
+- [x] Epic 9.1.4 — Inject-context directif : DO/DON'T par phase + rappel memoire apres chaque task
 
 ### 9.2 Agents Unifies (HAUTE)
 
@@ -265,5 +265,5 @@
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
-| Phase 9 | 28 | 0 | 0 | 28 | 0% |
-| **Total** | **160** | **128** | **3** | **28** | **80%** |
+| Phase 9 | 28 | 6 | 0 | 22 | 21% |
+| **Total** | **160** | **134** | **3** | **22** | **84%** |

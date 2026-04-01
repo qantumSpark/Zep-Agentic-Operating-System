@@ -75,16 +75,116 @@ fn load_file_full(path: &Path) -> String {
 
 fn get_phase_instructions(phase: &str) -> &'static str {
     match phase {
-        "comprehension" => "Phase COMPREHENSION: Avant de planifier, clarifie le besoin avec l'utilisateur (scope, stack, contraintes, priorites). Sur un projet vierge, pose des questions. Sur un projet existant, analyse le code. Delegue au Researcher si besoin d'infos externes.",
-        "specification" => "Phase SPECIFICATION: Redige les specifications. Delegue a l'Architect.",
-        "architecture" => "Phase ARCHITECTURE: Concois l'architecture. Delegue a l'Architect.",
-        "implementation" => {
-            "Phase IMPLEMENTATION: Code les taches du plan. Delegue au Coder agent."
-        }
-        "review" => "Phase REVIEW: Revise le code produit. Delegue au Reviewer.",
-        "test" => "Phase TEST: Teste le code produit. Delegue au Tester.",
-        "closure" => "Phase CLOSURE: Mets a jour la memoire et ferme l'epic.",
-        "idle" => "Phase IDLE: Aucun epic actif. Quand l'utilisateur demande une feature, pose des questions de cadrage AVANT de lancer le pipeline (stack technique, scope, contraintes, public cible). Ne pas improviser.",
+        "idle" => "\
+Phase IDLE\n\
+Objectif: Cadrage initial.\n\
+FAIS:\n\
+- Poser des questions de cadrage (stack, scope, contraintes, public)\n\
+- Brainstormer les milestones avec l'utilisateur\n\
+- Lire le code existant pour comprendre le contexte\n\
+NE FAIS PAS:\n\
+- Coder quoi que ce soit\n\
+- Creer des plans ou des fichiers\n\
+- Lancer le pipeline sans cadrage\n\
+Gate: L'utilisateur lance start_epic.",
+
+        "comprehension" => "\
+Phase COMPREHENSION\n\
+Objectif: Comprendre le besoin et l'existant.\n\
+FAIS:\n\
+- Clarifier les requirements avec l'utilisateur\n\
+- Lire le code existant en profondeur\n\
+- Deleguer au Researcher pour infos externes\n\
+NE FAIS PAS:\n\
+- Ecrire du code\n\
+- Creer une architecture\n\
+- Creer des fichiers source\n\
+Agent: Researcher\n\
+Gate: L'utilisateur valide que la comprehension est complete.",
+
+        "specification" => "\
+Phase SPECIFICATION\n\
+Objectif: Rediger les specs fonctionnelles.\n\
+FAIS:\n\
+- Documenter les requirements precis\n\
+- Identifier les cas limites\n\
+- Definir les criteres d'acceptation\n\
+- Deleguer a l'Architect\n\
+NE FAIS PAS:\n\
+- Ecrire du code\n\
+- Creer des fichiers source\n\
+Agent: Architect\n\
+Gate: L'utilisateur valide les specs.",
+
+        "architecture" => "\
+Phase ARCHITECTURE\n\
+Objectif: Concevoir l'architecture et le plan de tasks.\n\
+FAIS:\n\
+- Designer l'architecture technique\n\
+- Creer le plan de tasks dans current-epic.md\n\
+- Deleguer a l'Architect\n\
+- Verifier le plan avec le Researcher\n\
+NE FAIS PAS:\n\
+- Ecrire du code\n\
+- Creer des fichiers source\n\
+- Commencer l'implementation\n\
+Agent: Architect\n\
+Gate: L'utilisateur valide l'architecture et le plan.",
+
+        "implementation" => "\
+Phase IMPLEMENTATION\n\
+Objectif: Coder les tasks du plan.\n\
+FAIS:\n\
+- Implementer les tasks de current-epic.md une par une\n\
+- Deleguer au Coder\n\
+- Mettre a jour current-epic.md apres CHAQUE task (marquer DONE)\n\
+- Suivre l'ordre du plan\n\
+NE FAIS PAS:\n\
+- Sauter des tasks\n\
+- Ajouter des features hors plan\n\
+- Passer en review sans terminer toutes les tasks\n\
+Agent: Coder\n\
+Gate: Toutes les tasks sont DONE, l'utilisateur valide.",
+
+        "review" => "\
+Phase REVIEW\n\
+Objectif: Reviser le code produit.\n\
+FAIS:\n\
+- Verifier la qualite, lisibilite, conventions\n\
+- Deleguer au Reviewer\n\
+- Signaler les problemes trouves\n\
+NE FAIS PAS:\n\
+- Ecrire de nouvelles features\n\
+- Modifier l'architecture\n\
+- Passer a la suite sans review complete\n\
+Agent: Reviewer\n\
+Gate: L'utilisateur valide que la review est complete.",
+
+        "test" => "\
+Phase TEST\n\
+Objectif: Tester le code produit.\n\
+FAIS:\n\
+- Ecrire et executer les tests\n\
+- Deleguer au Tester\n\
+- Verifier les cas limites\n\
+NE FAIS PAS:\n\
+- Ecrire de nouvelles features\n\
+- Modifier l'architecture\n\
+Agent: Tester\n\
+Gate: L'utilisateur valide que les tests passent.",
+
+        "closure" => "\
+Phase CLOSURE\n\
+Objectif: Mettre a jour la memoire et fermer l'epic.\n\
+FAIS:\n\
+- Mettre a jour state.md, current-epic.md, ROADMAP.md\n\
+- Resumer ce qui a ete fait\n\
+NE FAIS PAS:\n\
+- Coder quoi que ce soit\n\
+- Ajouter des features\n\
+- Ouvrir une nouvelle epic sans validation\n\
+Gate: L'utilisateur valide la closure.",
+
         _ => "Phase inconnue. Demande clarification a l'utilisateur.",
     }
 }
@@ -105,6 +205,14 @@ FORMAT MEMOIRE (obligatoire pour le dashboard):\
 \n- current-epic.md: heading '# Epic active : <nom>', blockquotes '> Milestone :', '> Statut :', sections '## Objectif', '## Tasks' avec tableau 5 colonnes (# | Task | Fichier(s) | Statut | Notes)\
 \n- state.md: sections '## Milestones' (tableau 4 col), '## Epic active', '## Blocages'\
 \n- Statuts tasks: A FAIRE, EN COURS, TODO, DONE, VALIDATED, BLOQUE";
+
+const CODE_ALLOWED_PHASES: &[&str] = &["implementation", "test"];
+
+const MEMORY_REMINDER: &str = "\
+RAPPEL MEMOIRE (apres chaque task terminee):\
+\n1. Mettre a jour current-epic.md IMMEDIATEMENT (marquer la task DONE dans le tableau)\
+\n2. Ne PAS attendre la fin de session pour mettre a jour\
+\n3. Le dashboard ZAOS lit current-epic.md en temps reel — les infos doivent etre a jour";
 
 // ---------------------------------------------------------------------------
 // B2: inject-context — called on every UserPromptSubmit
@@ -141,6 +249,10 @@ fn cmd_inject_context() {
 
     // 3b. Format reminder for memory files
     context.push_str(FORMAT_REMINDER);
+    context.push_str("\n\n");
+
+    // 3c. Memory reminder
+    context.push_str(MEMORY_REMINDER);
     context.push_str("\n\n");
 
     // 5. First 20 lines of current-epic.md
@@ -208,6 +320,18 @@ fn cmd_block_code() {
         process::exit(0);
     }
 
+    // Phase enforcement (pipeline mode only)
+    let st = state.as_ref().unwrap(); // safe: we exited above if state is None
+    if !CODE_ALLOWED_PHASES.contains(&st.phase.as_str()) {
+        eprintln!(
+            "BLOQUE: Phase actuelle = '{}'. L'ecriture de code (.rs/.ts/.tsx) \
+             n'est autorisee qu'en phase implementation ou test. \
+             Termine la phase {} d'abord.",
+            st.phase, st.phase
+        );
+        process::exit(2);
+    }
+
     // If current-epic.md doesn't exist → exit 2
     let epic_path = project_dir.join(".memory").join("current-epic.md");
     let epic_content = match fs::read_to_string(&epic_path) {
@@ -270,6 +394,12 @@ fn cmd_on_compact() {
 
     // 3. Non-negotiable rules
     println!("{}\n", NON_NEGOTIABLE_RULES);
+
+    // 3b. Format reminder
+    println!("{}\n", FORMAT_REMINDER);
+
+    // 3c. Memory reminder
+    println!("{}\n", MEMORY_REMINDER);
 
     // 4. Full content of current-epic.md
     let epic_path = project_dir.join(".memory").join("current-epic.md");
