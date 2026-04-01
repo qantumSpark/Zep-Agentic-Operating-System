@@ -1,12 +1,12 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { ControlRequest } from "../types/events";
+import type { ApprovalRequestedEvent } from "../types/zaosEvents";
 
 interface PermissionState {
-  pendingRequests: ControlRequest[];
+  pendingRequests: ApprovalRequestedEvent[];
 
   // Actions
-  addRequest: (request: ControlRequest) => void;
+  addRequest: (request: ApprovalRequestedEvent) => void;
   removeRequest: (id: string) => void;
   respondToRequest: (id: string, allow: boolean) => Promise<void>;
 }
@@ -14,21 +14,21 @@ interface PermissionState {
 export const usePermissionStore = create<PermissionState>((set, get) => ({
   pendingRequests: [],
 
-  addRequest: (request: ControlRequest) =>
+  addRequest: (request: ApprovalRequestedEvent) =>
     set((state) => ({
       pendingRequests: [...state.pendingRequests, request],
     })),
 
   removeRequest: (id: string) =>
     set((state) => ({
-      pendingRequests: state.pendingRequests.filter((r) => r.request_id !== id),
+      pendingRequests: state.pendingRequests.filter((r) => r.requestId !== id),
     })),
 
   respondToRequest: async (id: string, allow: boolean) => {
     try {
       // Find the pending request to get its tool input
-      const pending = get().pendingRequests.find((r) => r.request_id === id);
-      const toolInput = pending?.request?.input ?? pending?.input ?? null;
+      const pending = get().pendingRequests.find((r) => r.requestId === id);
+      const toolInput = pending?.toolInput ?? null;
 
       await invoke("respond_permission", {
         id,

@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-04-01
-> Statut global : **Phase 10 TERMINE** — Test Run #2 Fixes (8 findings corriges)
+> Statut global : **Phase 11 TERMINE** — V1.5 Stabilisation (3 sprints audit : securite, runtime, events)
 
 ---
 
@@ -284,6 +284,40 @@
 
 ---
 
+## Phase 11 — V1.5 Stabilisation (Audit Sprints)
+
+> 3 sprints issus d'un audit de code. Objectif : stabiliser la base technique,
+> decoupler le runtime, normaliser le modele d'evenements. "Claude-first but agnostic-ready."
+
+### 11.1 Sprint 1 — Securite & Stabilite
+
+- [x] Path traversal prevention dans agent CRUD (`commands.rs` — `validate_safe_name()`)
+- [x] Screenshot path validation (`commands.rs` + `orchestrator.rs` — canonicalize + starts_with)
+- [x] CSP headers (`tauri.conf.json` — default-src 'self', script-src, style-src, img-src, connect-src)
+- [x] Asset protocol scope restriction (`tauri.conf.json` — `.screenshots/**` + `$APPDATA/**` au lieu de `**`)
+- [x] Retrait `shell:allow-execute` (`capabilities/default.json`)
+- [x] Extensions bloquees elargies dans hooks (`zaos_hooks.rs` — +.js, .jsx, .css)
+- [x] Remplacement des `as any` par types corrects (`useTauriEvents.ts`)
+- [x] Gate bypass prevention — `validate_gate` verifie `gate_ready` (`engine.rs`)
+
+### 11.2 Sprint 2 — Couche d'Abstraction Runtime
+
+- [x] Trait `AgentRuntime` (Send + Sync, async-trait) (`runtime/mod.rs`)
+- [x] `ClaudeRuntime` — implementation complete extraite de SessionManager (`runtime/claude.rs`)
+- [x] `SessionManager` — thin wrapper delegant a `Box<dyn AgentRuntime>` (`session/manager.rs`)
+
+### 11.3 Sprint 3 — Modele d'Evenements Normalise
+
+- [x] `ZaosEvent` — 15 types provider-neutral (discriminated union) (`types/zaosEvents.ts`)
+- [x] `mapClaudeEvent()` — mapper Claude → ZAOS (`adapters/claudeMapper.ts`)
+- [x] Refactoring `useStreaming.ts` — for/switch sur ZaosEvent au lieu de if/else sur CliEvent
+- [x] Refactoring `useTauriEvents.ts` — session/tokens/result via events normalises
+- [x] `permissionStore.ts` — `ControlRequest` → `ApprovalRequestedEvent`
+- [x] `PermissionRequestBlock.tsx` — acces champs normalises (plus de nested `.request.`)
+- [x] `Message.permissionRequest` → `ApprovalRequestedEvent` (`events.ts`)
+
+---
+
 ## Compteur de progression
 
 | Phase | Total | Done | Stub | TODO | % |
@@ -301,4 +335,5 @@
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
 | Phase 9 | 28 | 28 | 0 | 0 | 100% |
 | Phase 10 | 15 | 15 | 0 | 0 | 100% |
-| **Total** | **175** | **175** | **0** | **0** | **100%** |
+| Phase 11 | 18 | 18 | 0 | 0 | 100% |
+| **Total** | **193** | **193** | **0** | **0** | **100%** |

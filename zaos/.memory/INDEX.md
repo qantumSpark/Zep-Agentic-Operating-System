@@ -7,8 +7,8 @@
 
 - [architecture.md](architecture.md) — Stack Tauri v2 + React/TS + Rust, layout split-panel chat/dashboard
 - [conventions.md](conventions.md) — Standards TypeScript/React/Rust pour ZAOS
-- [state.md](state.md) — Phase 8 terminee, Phase 9 planifiee (17 findings)
-- [current-epic.md](current-epic.md) — Aucune epic active
+- [state.md](state.md) — Phase 11 terminee, 193/193 tasks, V1.5 stabilise
+- [current-epic.md](current-epic.md) — Phase 11 V1.5 Stabilisation — TERMINE (18 tasks)
 - [test-findings.md](test-findings.md) — 17 findings du premier test run reel (2026-04-01)
 - [test-findings-run2.md](test-findings-run2.md) — 8 findings du test run #2 (2026-04-01, post Phase 9)
 

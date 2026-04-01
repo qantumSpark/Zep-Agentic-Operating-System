@@ -3,6 +3,8 @@
  * Mapping of Claude Code CLI event types to TypeScript interfaces
  */
 
+import type { ApprovalRequestedEvent } from "./zaosEvents";
+
 export type CliEvent =
   | SystemEvent
   | StreamDeltaEvent
@@ -334,7 +336,7 @@ export interface Message {
     isError?: boolean;
   };
   thinking?: string;
-  permissionRequest?: ControlRequest;
+  permissionRequest?: ApprovalRequestedEvent;
 }
 
 export interface Action {

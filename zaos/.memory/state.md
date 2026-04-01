@@ -17,10 +17,11 @@
 | 8 | Workflow Integration Bugs | TERMINE | 8 taches |
 | 9 | Field-Tested Corrections | TERMINE | 28 taches, 5 milestones, 8 epics |
 | 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
+| 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
 
 ## Epic active
 
-Phase 10 — Test Run #2 Fixes — TERMINE (15/15 taches)
+Aucune — Phase 11 TERMINE (193/193 taches total)
 
 ## Bugs connus
 
@@ -31,10 +32,11 @@ Phase 10 — Test Run #2 Fixes — TERMINE (15/15 taches)
 
 - Phase stringly-typed en Rust
 - permission_mode stringly-typed (devrait etre enum comme WorkflowMode)
-- `as any` casts dans useTauriEvents.ts
 - Event names stringly-typed
 - `welcome` hook command = dead code
 - pipelineProgress objet recree a chaque workflow-change (pas de diff)
+- `Message` et `Action` types encore dans events.ts (devraient etre dans un fichier UI separe)
+- Erreurs TS pre-existantes dans claudeMapper.ts (mode standalone sans tsconfig)
 
 ## Blocages
 
@@ -42,5 +44,5 @@ Aucun
 
 ## Prochaines priorites
 
-Phase 10 COMPLETE. 175/175 tasks. 8 findings du test run #2 corriges.
-Prochaines options : Phase 11 (nouvelles features), test run #3 de validation, ou polish general.
+Phase 11 COMPLETE. 193/193 tasks. V1.5 stabilise : securite, runtime abstrait, events normalises.
+Prochaines options : test run #3 de validation, nouvelles features, ou polish general.

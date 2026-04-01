@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { formatToolSummary } from "../../utils/toolFormatters";
 import { getToolIcon } from "../../utils/toolIcons";
 import { usePermissionStore } from "../../stores/permissionStore";
-import type { ControlRequest } from "../../types/events";
+import type { ApprovalRequestedEvent } from "../../types/zaosEvents";
 
 interface PermissionRequestBlockProps {
-  request: ControlRequest;
+  request: ApprovalRequestedEvent;
 }
 
 export function PermissionRequestBlock({ request }: PermissionRequestBlockProps) {
@@ -14,18 +14,16 @@ export function PermissionRequestBlock({ request }: PermissionRequestBlockProps)
   const [decision, setDecision] = useState<"allow" | "deny" | null>(null);
   const respondToRequest = usePermissionStore((s) => s.respondToRequest);
 
-  // Tool info lives in request.request (nested object from CLI)
-  const nested = request.request;
-  const toolName = nested?.tool_name || request.tool || "Unknown";
-  const toolInput = nested?.input || request.input || {};
-  const description = nested?.description || request.message || "Permission requested";
+  const toolName = request.toolName || "Unknown";
+  const toolInput = request.toolInput || {};
+  const description = request.description || "Permission requested";
   const icon = getToolIcon(toolName);
   const summary = formatToolSummary(toolName, toolInput as Record<string, unknown>);
 
   const handleResponse = async (allow: boolean) => {
     setResponded(true);
     setDecision(allow ? "allow" : "deny");
-    await respondToRequest(request.request_id, allow);
+    await respondToRequest(request.requestId, allow);
   };
 
   return (
