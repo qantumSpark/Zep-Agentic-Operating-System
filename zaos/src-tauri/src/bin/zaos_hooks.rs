@@ -359,28 +359,48 @@ fn cmd_block_code() {
         process::exit(0); // allow on read error — don't block the user
     }
 
-    let file_path = match serde_json::from_str::<serde_json::Value>(&stdin_buf) {
-        Ok(val) => val
-            .get("tool_input")
-            .and_then(|ti| ti.get("file_path"))
-            .and_then(|fp| fp.as_str())
-            .unwrap_or("")
-            .to_string(),
+    // Extract file paths — supports both Write/Edit (single file_path)
+    // and MultiEdit (edits array with file_path in each entry)
+    let file_paths: Vec<String> = match serde_json::from_str::<serde_json::Value>(&stdin_buf) {
+        Ok(val) => {
+            let ti = val.get("tool_input");
+            let mut paths = Vec::new();
+            // Single file_path (Write, Edit)
+            if let Some(fp) = ti.and_then(|t| t.get("file_path")).and_then(|f| f.as_str()) {
+                paths.push(fp.to_string());
+            }
+            // MultiEdit: edits array with file_path per entry
+            if let Some(edits) = ti.and_then(|t| t.get("edits")).and_then(|e| e.as_array()) {
+                for edit in edits {
+                    if let Some(fp) = edit.get("file_path").and_then(|f| f.as_str()) {
+                        paths.push(fp.to_string());
+                    }
+                }
+            }
+            paths
+        }
         Err(_) => {
             eprintln!("zaos-hooks block-code: JSON stdin invalide");
             process::exit(0);
         }
     };
 
-    // Get file extension
-    let extension = Path::new(&file_path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| format!(".{}", e))
-        .unwrap_or_default();
+    if file_paths.is_empty() {
+        process::exit(0); // No file path found — allow
+    }
 
-    // If extension NOT in blocked_extensions → exit 0 (allow non-code files)
-    if !config.blocked_extensions.contains(&extension) {
+    // Check if ANY targeted file has a blocked extension
+    let has_blocked_file = file_paths.iter().any(|fp| {
+        let extension = Path::new(fp)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| format!(".{}", e))
+            .unwrap_or_default();
+        config.blocked_extensions.contains(&extension)
+    });
+
+    // If no blocked extensions → exit 0 (allow non-code files)
+    if !has_blocked_file {
         process::exit(0);
     }
 

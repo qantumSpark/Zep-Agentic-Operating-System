@@ -1,4 +1,4 @@
-import React from "react";
+/* React 19 JSX transform */
 
 export function statusColor(status: string): string {
   const s = status.toUpperCase().trim();

@@ -88,16 +88,20 @@ function mapStreamEvent(event: StreamDeltaEvent): ZaosEvent[] {
 
   switch (inner.type) {
     case "content_block_start": {
-      const blockType = inner.content_block?.type as "text" | "thinking" | "tool_use" | undefined;
+      const startEvt = inner as import("../types/events").ContentBlockStartEvent;
+      const blockType = startEvt.content_block?.type as "text" | "thinking" | "tool_use" | undefined;
       events.push({ type: "stream_control", action: "block_start", blockType });
       break;
     }
     case "content_block_delta": {
-      const delta = inner.delta;
+      const deltaEvt = inner as import("../types/events").ContentBlockDeltaEvent;
+      const delta = deltaEvt.delta;
       if (delta.type === "text_delta") {
-        events.push({ type: "message_delta", text: delta.text });
+        const td = delta as import("../types/events").TextDeltaContent;
+        events.push({ type: "message_delta", text: td.text });
       } else if (delta.type === "thinking_delta") {
-        events.push({ type: "thinking_delta", text: delta.thinking });
+        const tk = delta as import("../types/events").ThinkingDeltaContent;
+        events.push({ type: "thinking_delta", text: tk.thinking });
       }
       break;
     }
@@ -129,38 +133,42 @@ function mapAssistantEvent(event: AssistantEvent): ZaosEvent[] {
 
   for (const block of msg.content) {
     switch (block.type) {
-      case "text":
-        if ("text" in block && block.text) {
+      case "text": {
+        const textBlock = block as import("../types/events").TextBlock;
+        if (textBlock.text) {
           events.push({
             type: "message_complete",
             messageId: msg.id,
-            text: block.text,
+            text: textBlock.text,
           });
         }
         break;
+      }
 
-      case "tool_use":
-        if ("id" in block) {
-          events.push({
-            type: "tool_call_started",
-            id: block.id,
-            name: block.name,
-            input: block.input as Record<string, unknown>,
-            parentToolUseId: event.parent_tool_use_id || undefined,
-            messageId: msg.id,
-          });
-        }
+      case "tool_use": {
+        const toolBlock = block as import("../types/events").ToolUseBlock;
+        events.push({
+          type: "tool_call_started",
+          id: toolBlock.id,
+          name: toolBlock.name,
+          input: toolBlock.input,
+          parentToolUseId: event.parent_tool_use_id || undefined,
+          messageId: msg.id,
+        });
         break;
+      }
 
-      case "thinking":
-        if ("thinking" in block && block.thinking) {
+      case "thinking": {
+        const thinkingBlock = block as import("../types/events").ThinkingBlock;
+        if (thinkingBlock.thinking) {
           events.push({
             type: "thinking_complete",
             messageId: msg.id,
-            text: block.thinking,
+            text: thinkingBlock.thinking,
           });
         }
         break;
+      }
 
       default:
         break;
@@ -245,7 +253,6 @@ function mapRateLimitEvent(event: RateLimitEvent): ZaosEvent[] {
 // ---------------------------------------------------------------------------
 
 function mapResultEvent(event: ResultEvent): ZaosEvent[] {
-  const usage = event.usage as Record<string, unknown> | undefined;
   const events: ZaosEvent[] = [
     {
       type: "run_completed",
@@ -260,12 +267,12 @@ function mapResultEvent(event: ResultEvent): ZaosEvent[] {
     },
   ];
 
-  if (usage) {
+  if (event.usage) {
     events.push({
       type: "token_usage",
-      inputTokens: (usage.input_tokens as number) || 0,
-      outputTokens: (usage.output_tokens as number) || 0,
-      cacheReadTokens: (usage.cache_read_input_tokens as number) || 0,
+      inputTokens: event.usage.input_tokens || 0,
+      outputTokens: event.usage.output_tokens || 0,
+      cacheReadTokens: event.usage.cache_read_input_tokens || 0,
       durationMs: event.duration_ms,
       costUsd: event.total_cost_usd,
     });

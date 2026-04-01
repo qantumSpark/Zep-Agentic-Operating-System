@@ -1,4 +1,4 @@
-import React from "react";
+/* React 19 JSX transform */
 
 /**
  * Animated "thinking" indicator shown when Claude is thinking

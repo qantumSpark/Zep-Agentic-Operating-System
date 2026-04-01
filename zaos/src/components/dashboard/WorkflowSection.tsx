@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -20,7 +20,7 @@ export function WorkflowSection() {
   const [isStarting, setIsStarting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
-  const gateTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const gateTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(gateTimerRef.current), []);
 
   const handleStartEpic = async () => {

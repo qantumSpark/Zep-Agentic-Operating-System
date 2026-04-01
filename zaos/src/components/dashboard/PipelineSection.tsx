@@ -1,4 +1,4 @@
-import React from "react";
+/* React 19 JSX transform */
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { PHASE_ORDER } from "../../types/workflow";
 

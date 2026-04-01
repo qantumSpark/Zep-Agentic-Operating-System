@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useActionsStore } from "../../stores/actionsStore";
 import { getToolIcon } from "../../utils/toolIcons";
 

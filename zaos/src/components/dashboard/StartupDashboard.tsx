@@ -1,4 +1,4 @@
-import React from "react";
+/* React 19 JSX transform */
 import { useMemoryStore } from "../../stores/memoryStore";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { useSessionStore } from "../../stores/sessionStore";

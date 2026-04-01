@@ -4,6 +4,47 @@ use thiserror::Error;
 use tokio::fs;
 use tokio::sync::broadcast;
 
+/// Check if current-epic.md has any tasks in active state (TODO, EN COURS, etc.).
+/// Returns false if all tasks are DONE/VALIDATED or if the table is empty.
+fn has_active_tasks(epic_content: &str) -> bool {
+    let mut found_data_row = false;
+
+    for line in epic_content.lines() {
+        let trimmed = line.trim_start();
+        if !trimmed.starts_with('|') || trimmed.contains("---") {
+            continue;
+        }
+
+        let cells: Vec<&str> = trimmed.split('|').map(|c| c.trim()).collect();
+        if cells.len() < 6 {
+            continue;
+        }
+
+        let first_cell = cells[1];
+        if first_cell == "#" || first_cell == "Task" || first_cell == "Statut" {
+            continue;
+        }
+
+        found_data_row = true;
+
+        let status = cells[4].to_uppercase();
+        if status.contains("TODO")
+            || status.contains("EN COURS")
+            || status.contains("A FAIRE")
+            || status.contains("IN_PROGRESS")
+            || status.contains("BLOQUE")
+        {
+            return true;
+        }
+    }
+
+    if !found_data_row {
+        return true; // No data rows = plan not yet created = consider active
+    }
+
+    false
+}
+
 #[derive(Error, Debug)]
 pub enum WorkflowError {
     #[error("IO error: {0}")]
@@ -91,13 +132,40 @@ impl WorkflowEngine {
         Ok(())
     }
 
-    /// Validate gate for current phase
+    /// Validate gate for current phase.
+    ///
+    /// In pipeline mode during implementation, additionally verifies that all
+    /// tasks in current-epic.md are complete (DONE/VALIDATED) before allowing
+    /// the gate to pass.
     pub async fn validate_gate(&mut self) -> Result<bool> {
         if !self.current_state.gate_ready {
             return Err(WorkflowError::InvalidPhase(
                 "Cannot validate gate: work not complete (gate_ready is false)".to_string(),
             ));
         }
+
+        // In pipeline implementation phase, verify task completion
+        if self.current_state.mode == WorkflowMode::Pipeline
+            && self.current_state.phase == "implementation"
+        {
+            let epic_path = self
+                .state_path
+                .parent()
+                .and_then(|wf| wf.parent())
+                .map(|proj| proj.join(".memory").join("current-epic.md"));
+
+            if let Some(path) = epic_path {
+                if let Ok(content) = fs::read_to_string(&path).await {
+                    if has_active_tasks(&content) {
+                        return Err(WorkflowError::InvalidPhase(
+                            "Cannot validate gate: tasks still active in current-epic.md"
+                                .to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+
         self.current_state.gate_validated = true;
         self.current_state.gate_ready = false;
         self.persist_and_notify().await?;

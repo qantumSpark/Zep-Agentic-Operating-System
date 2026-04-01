@@ -44,7 +44,7 @@ function formatTimestamp(iso: string): string {
 
 function DiffEntryCard({
   entry,
-  index,
+  index: _index,
   isActive,
   onSelect,
 }: {

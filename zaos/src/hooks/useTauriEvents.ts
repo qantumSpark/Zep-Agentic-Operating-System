@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
-import type { CliEvent } from "../types/events";
-import { mapClaudeEvent } from "../adapters/claudeMapper";
+import type { ZaosEvent } from "../types/zaosEvents";
 import { useWorkflowStore, type BackendWorkflowPayload } from "../stores/workflowStore";
 import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -39,110 +38,102 @@ export function useTauriEvents() {
     let unlisteners: UnlistenFn[] = [];
 
     const setupListeners = async () => {
-      const agentEventListener = await listen<CliEvent>(
+      const agentEventListener = await listen<ZaosEvent>(
         "agent-event",
         (event) => {
           const sessionStore = useSessionStore.getState();
-          const payload = event.payload;
-          const zaosEvents = mapClaudeEvent(payload);
+          const ze = event.payload;
 
-          for (const ze of zaosEvents) {
-            switch (ze.type) {
-              case "session_init": {
-                if (ze.model) {
-                  sessionStore.setModel(ze.model);
-                }
-                if (ze.sessionId) {
-                  sessionStore.setSessionId(ze.sessionId);
-                  sessionStore.setStartTime(Date.now());
-                }
-                if (ze.mcpServers) {
-                  const hasGoPeak = (ze.mcpServers as { name?: string }[])?.some(
-                    (srv) => srv.name?.includes("gopeak")
-                  );
-                  sessionStore.updateConnections({ gopeak: !!hasGoPeak });
-                }
+          switch (ze.type) {
+            case "session_init": {
+              if (ze.model) {
+                sessionStore.setModel(ze.model);
+              }
+              if (ze.sessionId) {
+                sessionStore.setSessionId(ze.sessionId);
+                sessionStore.setStartTime(Date.now());
+              }
+              if (ze.mcpServers) {
+                const hasGoPeak = (ze.mcpServers as { name?: string }[])?.some(
+                  (srv) => srv.name?.includes("gopeak")
+                );
+                sessionStore.updateConnections({ gopeak: !!hasGoPeak });
+              }
+              if (!sessionStore.connections.cli) {
+                sessionStore.updateConnections({ cli: true });
+              }
+              break;
+            }
+
+            case "rate_limited": {
+              if (ze.status === "allowed") {
                 if (!sessionStore.connections.cli) {
                   sessionStore.updateConnections({ cli: true });
                 }
-                break;
               }
-
-              case "rate_limited": {
-                if (ze.status === "allowed") {
-                  if (!sessionStore.connections.cli) {
-                    sessionStore.updateConnections({ cli: true });
-                  }
-                }
-                break;
-              }
-
-              case "token_usage": {
-                sessionStore.updateTokenUsage(
-                  ze.inputTokens,
-                  ze.outputTokens,
-                  ze.cacheReadTokens
-                );
-
-                // Record tokens per workflow phase
-                const phase = useWorkflowStore.getState().phase;
-                if (phase) {
-                  sessionStore.recordPhaseTokens(phase, ze.inputTokens, ze.outputTokens);
-                }
-                break;
-              }
-
-              case "run_completed": {
-                if (ze.durationMs) {
-                  sessionStore.setDuration(
-                    Math.floor(ze.durationMs / 1000)
-                  );
-
-                  // Notify for long-running tasks (> 2 minutes)
-                  if (ze.durationMs > 120_000) {
-                    notifyIfPermitted(
-                      "Tache terminee",
-                      `Session terminee en ${formatDuration(ze.durationMs)}`
-                    );
-                  }
-                }
-
-                // Save session log to .memory/sessions/
-                const { sessionId: sid, tokens: { input, output }, duration, agentTimings } = useSessionStore.getState();
-                const currentPhase = useWorkflowStore.getState().phase;
-
-                if (sid && (input > 0 || output > 0)) {
-                  invoke("save_session_log", {
-                    data: {
-                      session_id: ze.sessionId || sid,
-                      phase: currentPhase || "unknown",
-                      tokens_input: input,
-                      tokens_output: output,
-                      duration_secs: duration,
-                      agent_timings: Object.entries(agentTimings).map(
-                        ([name, duration_ms]) => ({ name, duration_ms })
-                      ),
-                    },
-                  }).catch((e: unknown) =>
-                    console.error("Failed to save session log:", e)
-                  );
-                }
-
-                // Cleanup stale running delegations — result event means turn is over
-                const agentsStore = useAgentsStore.getState();
-                const staleDelegations = agentsStore.delegations.filter(
-                  (d) => d.status === "running"
-                );
-                for (const stale of staleDelegations) {
-                  agentsStore.completeDelegation(stale.id, "completed");
-                }
-                break;
-              }
-
-              default:
-                // session_init and other events handled by useStreaming
-                break;
+              break;
             }
+
+            case "token_usage": {
+              sessionStore.updateTokenUsage(
+                ze.inputTokens,
+                ze.outputTokens,
+                ze.cacheReadTokens
+              );
+
+              const phase = useWorkflowStore.getState().phase;
+              if (phase) {
+                sessionStore.recordPhaseTokens(phase, ze.inputTokens, ze.outputTokens);
+              }
+              break;
+            }
+
+            case "run_completed": {
+              if (ze.durationMs) {
+                sessionStore.setDuration(
+                  Math.floor(ze.durationMs / 1000)
+                );
+
+                if (ze.durationMs > 120_000) {
+                  notifyIfPermitted(
+                    "Tache terminee",
+                    `Session terminee en ${formatDuration(ze.durationMs)}`
+                  );
+                }
+              }
+
+              const { sessionId: sid, tokens: { input, output }, duration, agentTimings } = useSessionStore.getState();
+              const currentPhase = useWorkflowStore.getState().phase;
+
+              if (sid && (input > 0 || output > 0)) {
+                invoke("save_session_log", {
+                  data: {
+                    session_id: ze.sessionId || sid,
+                    phase: currentPhase || "unknown",
+                    tokens_input: input,
+                    tokens_output: output,
+                    duration_secs: duration,
+                    agent_timings: Object.entries(agentTimings).map(
+                      ([name, duration_ms]) => ({ name, duration_ms })
+                    ),
+                  },
+                }).catch((e: unknown) =>
+                  console.error("Failed to save session log:", e)
+                );
+              }
+
+              const agentsStore = useAgentsStore.getState();
+              const staleDelegations = agentsStore.delegations.filter(
+                (d) => d.status === "running"
+              );
+              for (const stale of staleDelegations) {
+                agentsStore.completeDelegation(stale.id, "completed");
+              }
+              break;
+            }
+
+            default:
+              break;
           }
         }
       );

@@ -210,9 +210,11 @@ pub async fn send_prompt(
                         }
                     }
 
-                    // Emit to frontend
-                    if let Err(e) = app_handle.emit("agent-event", &event) {
-                        tracing::error!("Failed to emit event: {}", e);
+                    // Map to ZAOS normalized events and emit each
+                    for zaos_event in crate::events::mapper::map_cli_event(&event) {
+                        if let Err(e) = app_handle.emit("agent-event", &zaos_event) {
+                            tracing::error!("Failed to emit ZAOS event: {}", e);
+                        }
                     }
 
                     // Detect successful turn end → set gate_ready = true

@@ -10,5 +10,13 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 
+# TypeScript build artifacts (tsc -b with composite projects)
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.d.ts.map
+
+# Machine-specific Claude Code settings
+.claude/settings.local.json
+
 # MCP server ephemeral files
 .zaos/mcp-port.json
