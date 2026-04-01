@@ -31,7 +31,10 @@ struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            blocked_extensions: vec![".rs".into(), ".ts".into(), ".tsx".into()],
+            blocked_extensions: vec![
+                ".rs".into(), ".ts".into(), ".tsx".into(),
+                ".js".into(), ".jsx".into(), ".css".into(),
+            ],
             hooks_enabled: true,
             disabled_rules: vec![],
         }

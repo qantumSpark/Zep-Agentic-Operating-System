@@ -48,6 +48,20 @@ impl AppState {
         self.project_dir.read().await.clone()
     }
 }
+/// Validate that a resource name contains only safe characters (no path traversal)
+fn validate_safe_name(name: &str) -> Result<(), String> {
+    if name.is_empty() {
+        return Err("Name cannot be empty".to_string());
+    }
+    if name.contains('/') || name.contains('\\') || name.contains("..") || name.contains('\0') {
+        return Err(format!("Invalid name '{}': contains path traversal characters", name));
+    }
+    if name.starts_with('.') {
+        return Err(format!("Invalid name '{}': cannot start with '.'", name));
+    }
+    Ok(())
+}
+
 // =============================================================================
 // Response Types
 // =============================================================================
@@ -478,6 +492,20 @@ pub async fn add_screenshot(
 ) -> Result<Screenshot, String> {
     tracing::info!("add_screenshot called, file_path={}", file_path);
     let path = std::path::Path::new(&file_path);
+
+    // Validate path is within screenshots directory
+    {
+        let orch = state.screenshot_orchestrator.lock().await;
+        let screenshots_dir = orch.screenshots_dir();
+        let canonical_file = std::fs::canonicalize(path)
+            .map_err(|e| format!("Invalid screenshot path: {}", e))?;
+        let canonical_dir = std::fs::canonicalize(screenshots_dir)
+            .map_err(|e| format!("Screenshots directory error: {}", e))?;
+        if !canonical_file.starts_with(&canonical_dir) {
+            return Err("Screenshot path must be within the screenshots directory".to_string());
+        }
+    }
+
     let orch = state.screenshot_orchestrator.lock().await;
     orch.index_file(path)
         .await
@@ -635,6 +663,7 @@ pub async fn read_agent(
     name: String,
 ) -> Result<String, String> {
     tracing::info!("read_agent called: {}", name);
+    validate_safe_name(&name)?;
     let project_dir = state.project_dir().await;
     let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read agent {}: {}", name, e))
@@ -648,6 +677,7 @@ pub async fn save_agent(
     content: String,
 ) -> Result<(), String> {
     tracing::info!("save_agent called: {}", name);
+    validate_safe_name(&name)?;
     let project_dir = state.project_dir().await;
     let agents_dir = project_dir.join(".claude").join("agents");
     std::fs::create_dir_all(&agents_dir).map_err(|e| e.to_string())?;
@@ -664,6 +694,7 @@ pub async fn delete_agent(
     name: String,
 ) -> Result<(), String> {
     tracing::info!("delete_agent called: {}", name);
+    validate_safe_name(&name)?;
     let project_dir = state.project_dir().await;
     let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
     if path.exists() {
@@ -718,6 +749,15 @@ pub async fn switch_project(
     // 1. Validate path is a directory
     if !new_dir.is_dir() {
         return Err(format!("Path is not a directory: {}", path));
+    }
+
+    // Validate path is under user's home directory to prevent scope escape
+    if let Some(home) = dirs::home_dir() {
+        let canonical = new_dir.canonicalize()
+            .map_err(|e| format!("Invalid path: {}", e))?;
+        if !canonical.starts_with(&home) {
+            return Err("Projects must be under user home directory".to_string());
+        }
     }
 
     // 2. Kill session if running

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { sendNotification, isPermissionGranted } from "@tauri-apps/plugin-notification";
-import type { CliEvent, RateLimitEvent, ResultEvent } from "../types/events";
+import type { CliEvent, RateLimitEvent, ResultEvent, SystemEvent } from "../types/events";
 import { useWorkflowStore, type BackendWorkflowPayload } from "../stores/workflowStore";
 import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore";
 import { useSessionStore } from "../stores/sessionStore";
@@ -45,7 +45,7 @@ export function useTauriEvents() {
           const payload = event.payload;
           // System event (initialization)
           if (payload.type === "system") {
-            const sysEvent = payload as any;
+            const sysEvent = payload as SystemEvent;
             if (sysEvent.model) {
               sessionStore.setModel(sysEvent.model);
             }
@@ -55,7 +55,7 @@ export function useTauriEvents() {
             }
             if (sysEvent.mcp_servers) {
               const hasGoPeak = sysEvent.mcp_servers?.some(
-                (srv: any) => srv.name?.includes("gopeak")
+                (srv: { name?: string }) => srv.name?.includes("gopeak")
               );
               sessionStore.updateConnections({ gopeak: !!hasGoPeak });
             }
@@ -78,7 +78,7 @@ export function useTauriEvents() {
           else if (payload.type === "result") {
             const result = payload as ResultEvent;
             if (result.usage) {
-              const u = result.usage as any;
+              const u = result.usage;
               const inputTokens = u.input_tokens || 0;
               const outputTokens = u.output_tokens || 0;
               sessionStore.updateTokenUsage(
@@ -172,7 +172,7 @@ export function useTauriEvents() {
       // CLI health events
       const cliHealthListener = await listen("cli-health", (event) => {
         const sessionStore = useSessionStore.getState();
-        const payload = event.payload as any;
+        const payload = event.payload as { healthy?: boolean };
         sessionStore.updateConnections({ cli: payload.healthy || false });
       });
       unlisteners.push(cliHealthListener);

@@ -37,6 +37,11 @@ impl ScreenshotOrchestrator {
         }
     }
 
+    /// Get the screenshots directory path
+    pub fn screenshots_dir(&self) -> &Path {
+        &self.screenshots_dir
+    }
+
     /// Request a new screenshot capture via the configured adapter.
     ///
     /// Generates a UUID capture id, builds a [`CaptureContext`], and
@@ -125,6 +130,19 @@ impl ScreenshotOrchestrator {
         };
 
         let file_path = screenshot.path.clone();
+
+        // Validate path is within screenshots directory before deletion
+        if let (Ok(canonical_file), Ok(canonical_dir)) = (
+            file_path.canonicalize(),
+            self.screenshots_dir.canonicalize(),
+        ) {
+            if !canonical_file.starts_with(&canonical_dir) {
+                return Err(ScreenshotError::Io(std::io::Error::new(
+                    std::io::ErrorKind::PermissionDenied,
+                    "Cannot delete file outside screenshots directory",
+                )));
+            }
+        }
 
         match tokio::fs::remove_file(&file_path).await {
             Ok(()) => {

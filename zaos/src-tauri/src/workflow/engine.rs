@@ -93,6 +93,11 @@ impl WorkflowEngine {
 
     /// Validate gate for current phase
     pub async fn validate_gate(&mut self) -> Result<bool> {
+        if !self.current_state.gate_ready {
+            return Err(WorkflowError::InvalidPhase(
+                "Cannot validate gate: work not complete (gate_ready is false)".to_string(),
+            ));
+        }
         self.current_state.gate_validated = true;
         self.current_state.gate_ready = false;
         self.persist_and_notify().await?;
@@ -234,5 +239,28 @@ mod tests {
         let bugfix_pipeline = engine.get_pipeline_for_task_type("bugfix");
         assert_eq!(bugfix_pipeline.len(), 4);
         assert!(bugfix_pipeline.contains(&"implementation"));
+    }
+
+    #[tokio::test]
+    async fn test_validate_gate_requires_gate_ready() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"implementation","epic":"test","task":"","mode":"pipeline","gate_validated":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        // gate_ready defaults to false — validation should fail
+        let result = engine.validate_gate().await;
+        assert!(result.is_err());
+
+        // Set gate_ready and try again
+        engine.set_gate_ready(true).await.expect("set gate_ready");
+        let result = engine.validate_gate().await;
+        assert!(result.is_ok());
     }
 }
