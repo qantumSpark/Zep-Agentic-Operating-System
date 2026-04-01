@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
-> Derniere mise a jour : 2026-03-31
-> Statut global : **Phase 8 TERMINE** — Workflow Integration Bugs
+> Derniere mise a jour : 2026-04-01
+> Statut global : **Phase 9 A FAIRE** — Field-Tested Corrections (17 findings du premier test run)
 
 ---
 
@@ -220,6 +220,36 @@
 
 ---
 
+## Phase 9 — Field-Tested Corrections
+
+> 17 findings du premier test run reel sur un projet vierge (2026-04-01).
+> Findings detailles dans `.memory/test-findings.md`.
+
+### 9.1 Pipeline Mecanique (CRITIQUE)
+
+- [ ] Epic 9.1.1 — Phase-aware hook : block-code bloque le code hors implementation/test en mode pipeline
+- [ ] Epic 9.1.2 — Brainstorming → Pipeline : exemple parcours complet dans CLAUDE.md + bouton distinct
+- [ ] Epic 9.1.3 — Gate enforcement mecanique : bloquer actions de phase suivante sans gate valide
+- [ ] Epic 9.1.4 — Inject-context directif : DO/DON'T par phase + rappel memoire apres chaque task
+
+### 9.2 Agents Unifies (HAUTE)
+
+- [ ] Epic 9.2.1 — Fusionner Workflow Agents + Delegations en une section, fix dedup, mapping noms, pastille active, tri running-first
+
+### 9.3 Dashboard Temps Reel (HAUTE)
+
+- [ ] Epic 9.3.1 — Fix parser epic (0/6 vs 6/6), normalisation statuts, verification watcher, tokens par phase
+
+### 9.4 Permissions UX (HAUTE)
+
+- [ ] Epic 9.4.1 — Toggle "Accept Edits" (Write/Edit/WebSearch auto-approve), "Always allow" per tool, indicateur visuel
+
+### 9.5 Coordination Agents (HAUTE)
+
+- [ ] Epic 9.5.1 — Serialiser npm installs : regle + instruction inject-context
+
+---
+
 ## Compteur de progression
 
 | Phase | Total | Done | Stub | TODO | % |
@@ -235,4 +265,5 @@
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
-| **Total** | **132** | **128** | **3** | **0** | **97%** |
+| Phase 9 | 28 | 0 | 0 | 28 | 0% |
+| **Total** | **160** | **128** | **3** | **28** | **80%** |
