@@ -224,6 +224,7 @@ fn cmd_block_code() {
     // If current-epic.md has no active tasks → exit 2
     let has_active_tasks = epic_content.contains("TODO")
         || epic_content.contains("EN COURS")
+        || epic_content.contains("A FAIRE")
         || epic_content.contains("in_progress");
 
     if !has_active_tasks {
