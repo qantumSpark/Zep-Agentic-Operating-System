@@ -14,7 +14,7 @@
 | 5 | UX Polish | TERMINE | 12 taches |
 | 6 | Workflow Kit Integration | TERMINE | 17 taches |
 | 7 | Project Portability & Workflow Init | TERMINE | 15 taches + CLAUDE.md deploy |
-| 8 | Workflow Integration Bugs | EN COURS | 8 taches, 3 vagues |
+| 8 | Workflow Integration Bugs | TERMINE | 8 taches, 3 vagues |
 
 ## Epic active
 
@@ -22,15 +22,14 @@ Phase 8 — Workflow Integration Bugs : hooks display, format memoire, gate work
 
 ## Ce qui est fait (Phase 8)
 
-- Diagnostic : 3 bugs identifies via test reel sur projet vierge
-- Plan : 8 taches en 3 vagues
+- Vague 1 : hooks display fix (A1 + A2) + simplify applyKitStatus
+- Vague 2 : format memoire (B1 + B2 + B3) — CLAUDE.md + init.rs + hooks
+- Vague 3 : gate workflow (C1 + C2 + C3) — reset + notify + feedback
 
 ## Bugs connus
 
-- Hooks affiches inactifs (frontend ne lit pas hooks_active)
-- Epic invisible dans dashboard (format memoire non specifie a Claude)
-- validate_gate deconnecte de Claude (pas de message, gate jamais reset)
 - `list_sessions` retourne toujours vide (priorite basse)
+- `block-code` ne reconnait pas `A FAIRE` comme statut actif (pre-existant)
 - tsconfig.node.json reference issue (pre-existant, non bloquant)
 
 ## Technical debt
@@ -46,4 +45,4 @@ Aucun
 
 ## Prochaines priorites
 
-Vague 1 : hooks display fix (A1 + A2)
+Phase 8 terminee. Prochaine priorite a definir par l'utilisateur.

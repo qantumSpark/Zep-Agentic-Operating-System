@@ -2,7 +2,7 @@
 
 > Milestone : 8 — Workflow fiable end-to-end
 > Date de debut : 2026-03-31
-> Statut : EN COURS
+> Statut : TERMINE
 
 ## Objectif
 
@@ -12,14 +12,14 @@ Corriger 3 bugs identifies lors du premier test reel sur un projet vierge : hook
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| A1 | Brancher hooks_active dans le frontend | `App.tsx`, `useTauriEvents.ts` | A FAIRE | setHooks() apres get_workflow_kit_status |
-| A2 | Deriver active par hook depuis hooks_active | `workflowKitStore.ts` | A FAIRE | Map hooks_active boolean sur chaque hook |
-| B1 | Ajouter specs format memoire dans CLAUDE.md | `reference/CLAUDE.md` | A FAIRE | Template exact current-epic.md + state.md |
-| B2 | Fixer templates init.rs | `init.rs` | A FAIRE | Headings compatibles parser (# Epic active, ## Objectif, ## Tasks) |
-| B3 | Ajouter specs format dans inject-context | `zaos_hooks.rs` | A FAIRE | Rappeler le format dans le contexte injecte |
-| C1 | Reset gate_validated dans next_phase | `engine.rs` | A FAIRE | gate_validated = false apres avancement |
-| C2 | Envoyer message a Claude quand gate valide | `commands.rs` | A FAIRE | Auto-inject prompt via session.send_message |
-| C3 | Feedback visuel apres validate_gate | `WorkflowSection.tsx` | A FAIRE | Toast ou indication de la nouvelle phase |
+| A1 | Brancher hooks_active dans le frontend | `App.tsx`, `useTauriEvents.ts` | DONE | setHooks() apres get_workflow_kit_status |
+| A2 | Deriver active par hook depuis hooks_active | `workflowKitStore.ts` | DONE | Supprime welcome dead code, garde 3 hooks |
+| B1 | Ajouter specs format memoire dans CLAUDE.md | `reference/CLAUDE.md` | DONE | Section STRICT avec templates exacts |
+| B2 | Fixer templates init.rs | `init.rs` | DONE | Headings compatibles parser |
+| B3 | Ajouter specs format dans inject-context | `zaos_hooks.rs` | DONE | FORMAT_REMINDER injecte a chaque prompt |
+| C1 | Reset gate_validated dans next_phase | `engine.rs` | DONE | gate_validated = false avant set_phase |
+| C2 | Envoyer message a Claude quand gate valide | `commands.rs` | DONE | send_message apres drop workflow lock |
+| C3 | Feedback visuel apres validate_gate | `WorkflowSection.tsx` | DONE | Message temporaire 2s "Phase avancee a..." |
 
 ## Vagues
 
