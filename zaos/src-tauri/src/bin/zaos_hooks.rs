@@ -16,6 +16,8 @@ struct WorkflowState {
     task: String,
     mode: String,
     gate_validated: bool,
+    #[serde(default)]
+    gate_ready: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -74,18 +76,48 @@ fn load_file_full(path: &Path) -> String {
 }
 
 fn has_active_tasks(epic_content: &str) -> bool {
-    // Only check table rows (lines starting with |) to avoid false positives
-    // from blockquote headers like "> Statut : EN COURS"
-    epic_content
-        .lines()
-        .filter(|line| line.trim_start().starts_with('|'))
-        .any(|line| {
-            line.contains("TODO")
-                || line.contains("EN COURS")
-                || line.contains("A FAIRE")
-                || line.contains("in_progress")
-                || line.contains("BLOQUE")
-        })
+    let mut found_data_row = false;
+
+    for line in epic_content.lines() {
+        let trimmed = line.trim_start();
+        if !trimmed.starts_with('|') || trimmed.contains("---") {
+            continue;
+        }
+
+        // Split by | and check column count (header has "# | Task | Fichier(s) | Statut | Notes")
+        let cells: Vec<&str> = trimmed.split('|').map(|c| c.trim()).collect();
+        // A pipe-delimited row "| a | b | c | d | e |" splits into ["", "a", "b", "c", "d", "e", ""]
+        // We need at least 6 segments (5 columns + empty edges) for a valid task row
+        if cells.len() < 6 {
+            continue;
+        }
+
+        // Skip header row (first data column is "#" or column name)
+        let first_cell = cells[1];
+        if first_cell == "#" || first_cell == "Task" || first_cell == "Statut" {
+            continue;
+        }
+
+        found_data_row = true;
+
+        // Check status column (index 4 = 4th column = "Statut")
+        let status = cells[4].to_uppercase();
+        if status.contains("TODO")
+            || status.contains("EN COURS")
+            || status.contains("A FAIRE")
+            || status.contains("IN_PROGRESS")
+            || status.contains("BLOQUE")
+        {
+            return true;
+        }
+    }
+
+    // 0 data rows = plan not yet created = consider as active (don't block)
+    if !found_data_row {
+        return true;
+    }
+
+    false
 }
 
 fn get_phase_instructions(phase: &str) -> &'static str {
@@ -226,7 +258,9 @@ FORMAT MEMOIRE (obligatoire pour le dashboard):\
 \n- state.md: sections '## Milestones' (tableau 4 col), '## Epic active', '## Blocages'\
 \n- Statuts tasks: A FAIRE, EN COURS, TODO, DONE, VALIDATED, BLOQUE";
 
-const CODE_ALLOWED_PHASES: &[&str] = &["implementation", "test"];
+const CODE_ALLOWED_PHASES: &[&str] = &["implementation", "review", "test"];
+
+const GATE_ENFORCED_PHASES: &[&str] = &["implementation"];
 
 const MEMORY_REMINDER: &str = "\
 RAPPEL MEMOIRE (apres chaque task terminee):\
@@ -275,12 +309,14 @@ fn cmd_inject_context() {
     context.push_str(MEMORY_REMINDER);
     context.push_str("\n\n");
 
-    // 3d. Gate enforcement reminder (pipeline mode, all tasks done, gate not validated)
+    // 3d-5. Load current-epic.md once for both gate check and head display
+    let epic_path = project_dir.join(".memory").join("current-epic.md");
+    let epic_content = fs::read_to_string(&epic_path).unwrap_or_default();
+
+    // Gate enforcement reminder (pipeline mode, implementation phase, all tasks done)
     if let Some(ref st) = state {
-        if st.mode == "pipeline" && st.phase != "idle" && !st.gate_validated {
-            let epic_path = project_dir.join(".memory").join("current-epic.md");
-            let epic_for_gate = fs::read_to_string(&epic_path).unwrap_or_default();
-            if !epic_for_gate.is_empty() && !has_active_tasks(&epic_for_gate) {
+        if st.mode == "pipeline" && st.phase == "implementation" && !st.gate_validated {
+            if !epic_content.is_empty() && !has_active_tasks(&epic_content) {
                 context.push_str(
                     "⛔ ATTENTE GATE — Toutes les tasks sont terminees. \
                      L'utilisateur n'a PAS encore valide le gate. \
@@ -291,10 +327,9 @@ fn cmd_inject_context() {
         }
     }
 
-    // 5. First 20 lines of current-epic.md
-    let epic_path = project_dir.join(".memory").join("current-epic.md");
-    let epic_head = load_file_head(&epic_path, 20);
-    if !epic_head.is_empty() {
+    // First 20 lines of current-epic.md (reuse already-loaded content)
+    if !epic_content.is_empty() {
+        let epic_head: String = epic_content.lines().take(20).collect::<Vec<_>>().join("\n");
         context.push_str("--- EPIC EN COURS (20 premieres lignes) ---\n");
         context.push_str(&epic_head);
         context.push('\n');
@@ -417,8 +452,8 @@ fn cmd_enforce_gate() {
         _ => process::exit(0), // free mode or no state → allow
     };
 
-    // Skip idle phase (no gate to enforce)
-    if st.phase == "idle" {
+    // Only enforce gate in specific phases (implementation)
+    if !GATE_ENFORCED_PHASES.contains(&st.phase.as_str()) {
         process::exit(0);
     }
 
@@ -488,7 +523,7 @@ fn cmd_on_compact() {
 
     // 3d. Gate enforcement reminder
     if let Some(ref st) = state {
-        if st.mode == "pipeline" && st.phase != "idle" && !st.gate_validated {
+        if st.mode == "pipeline" && st.phase == "implementation" && !st.gate_validated {
             let epic_for_gate = load_file_full(&project_dir.join(".memory").join("current-epic.md"));
             if !epic_for_gate.is_empty() && !has_active_tasks(&epic_for_gate) {
                 println!(

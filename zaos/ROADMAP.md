@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-04-01
-> Statut global : **Phase 9 TERMINE** — Field-Tested Corrections (17 findings du premier test run)
+> Statut global : **Phase 10 TERMINE** — Test Run #2 Fixes (8 findings corriges)
 
 ---
 
@@ -250,6 +250,40 @@
 
 ---
 
+## Phase 10 — Test Run #2 Fixes
+
+> 8 findings du test run #2 (2026-04-01, post Phase 9).
+> Findings detailles dans `.memory/test-findings-run2.md`.
+
+### 10.1 Hooks Phase-Aware (CRITIQUE)
+
+- [x] CODE_ALLOWED_PHASES += "review" (Write/Edit autorise en review)
+- [x] GATE_ENFORCED_PHASES = ["implementation"] (enforce-gate restreint)
+- [x] has_active_tasks() retourne true quand 0 data rows + parse par colonne Statut
+- [x] Warning ATTENTE GATE restreint a phase implementation (inject-context + on-compact)
+
+### 10.2 Gate Quality Checkpoint (CRITIQUE)
+
+- [x] gate_ready: bool dans WorkflowState (serde default, backward compat)
+- [x] Reset gate_ready dans validate_gate, next_phase, start_epic, set_phase + set_gate_ready()
+- [x] gate_ready dans WorkflowStateResponse + get_workflow_state
+- [x] Detecter fin de turn reussie → gate_ready = true dans event forwarder
+- [x] Reset gate_ready = false au debut de send_prompt
+- [x] gate_ready dans struct hooks standalone (compat deserialization)
+- [x] gateReady dans workflowStore + BackendWorkflowPayload
+- [x] Bouton gate disabled/enabled + anti-double-clic + styles conditionnels
+
+### 10.3 Dashboard Empty State (MOYENNE)
+
+- [x] "Plan en attente..." quand 0 tasks + strip "(X/Y taches)" du activeEpic
+
+### 10.4 Delegation Tracking Fix (BASSE)
+
+- [x] Fallback result event : marquer delegations RUNNING comme completed
+- [x] Style "stale" pour delegations RUNNING > 10 min (opacity + badge)
+
+---
+
 ## Compteur de progression
 
 | Phase | Total | Done | Stub | TODO | % |
@@ -266,4 +300,5 @@
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
 | Phase 9 | 28 | 28 | 0 | 0 | 100% |
-| **Total** | **160** | **160** | **0** | **0** | **100%** |
+| Phase 10 | 15 | 15 | 0 | 0 | 100% |
+| **Total** | **175** | **175** | **0** | **0** | **100%** |

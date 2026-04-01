@@ -11,6 +11,7 @@ export interface BackendWorkflowPayload {
   task: string;
   mode: WorkflowMode;
   gate_validated: boolean;
+  gate_ready?: boolean;
   permission_mode?: string;
   last_updated: string;
   history?: Array<{
@@ -66,6 +67,7 @@ interface WorkflowStoreState {
   task: string;
   mode: WorkflowMode;
   gateValidated: boolean;
+  gateReady: boolean;
   permissionMode: string;
   pipelineProgress: Record<string, PhaseState>;
 
@@ -91,6 +93,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
   task: "",
   mode: "free",
   gateValidated: false,
+  gateReady: false,
   permissionMode: "strict",
   pipelineProgress: {},
 
@@ -119,6 +122,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       task: payload.task || "",
       mode: payload.mode || "free",
       gateValidated: payload.gate_validated ?? false,
+      gateReady: payload.gate_ready ?? false,
       permissionMode: payload.permission_mode || "strict",
       pipelineProgress,
     });
@@ -166,6 +170,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       task: "",
       mode: "free",
       gateValidated: false,
+      gateReady: false,
       permissionMode: "strict",
       pipelineProgress: {},
     }),

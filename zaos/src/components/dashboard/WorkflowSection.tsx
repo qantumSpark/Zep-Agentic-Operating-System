@@ -11,12 +11,14 @@ export function WorkflowSection() {
   const task = useWorkflowStore((state) => state.task);
   const mode = useWorkflowStore((state) => state.mode);
   const setMode = useWorkflowStore((state) => state.setMode);
+  const gateReady = useWorkflowStore((state) => state.gateReady);
   const permissionMode = useWorkflowStore((state) => state.permissionMode);
   const setPermissionMode = useWorkflowStore((state) => state.setPermissionMode);
 
   const [epicName, setEpicName] = useState("");
   const [epicDesc, setEpicDesc] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [gateMessage, setGateMessage] = useState<string | null>(null);
   const gateTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(gateTimerRef.current), []);
@@ -36,6 +38,8 @@ export function WorkflowSection() {
   };
 
   const handleValidateGate = async () => {
+    if (isValidating || !gateReady) return;
+    setIsValidating(true);
     try {
       const response = await invoke<{ success: boolean; next_phase: string; message: string }>("validate_gate");
       if (response.success) {
@@ -44,6 +48,8 @@ export function WorkflowSection() {
       }
     } catch (error) {
       console.error("Failed to validate gate:", error);
+    } finally {
+      setIsValidating(false);
     }
   };
 
@@ -167,13 +173,18 @@ export function WorkflowSection() {
       ) : null}
 
       {/* Gate Button */}
-      {phase && (
+      {phase && phase !== "idle" && (
         <>
           <button
             onClick={handleValidateGate}
-            className="w-full bg-green-600 hover:bg-green-700 text-white rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2"
+            disabled={!gateReady || isValidating}
+            className={`w-full rounded px-3 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2 mt-2 ${
+              gateReady && !isValidating
+                ? "bg-green-600 hover:bg-green-700 text-white"
+                : "bg-zinc-700 text-zinc-500 cursor-not-allowed"
+            }`}
           >
-            Validate Gate ▶
+            {isValidating ? "Validation..." : "Validate Gate ▶"}
           </button>
           {gateMessage && (
             <p className="text-green-400 text-xs text-center mt-1 animate-pulse">

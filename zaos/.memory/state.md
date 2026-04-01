@@ -16,10 +16,11 @@
 | 7 | Project Portability & Workflow Init | TERMINE | 15 taches |
 | 8 | Workflow Integration Bugs | TERMINE | 8 taches |
 | 9 | Field-Tested Corrections | TERMINE | 28 taches, 5 milestones, 8 epics |
+| 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
 
 ## Epic active
 
-Aucune — Phase 9 complete. Toutes les epics terminees (9.1.1-9.5.1).
+Phase 10 — Test Run #2 Fixes — TERMINE (15/15 taches)
 
 ## Bugs connus
 
@@ -41,5 +42,5 @@ Aucun
 
 ## Prochaines priorites
 
-Phase 9 COMPLETE. Projet a 97% (156/160 tasks, 3 stubs restants en Phase 1).
-Prochaines options : Phase 10 (nouvelles features), cleanup stubs Phase 1, ou polish general.
+Phase 10 COMPLETE. 175/175 tasks. 8 findings du test run #2 corriges.
+Prochaines options : Phase 11 (nouvelles features), test run #3 de validation, ou polish general.

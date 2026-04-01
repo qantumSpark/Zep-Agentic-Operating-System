@@ -83,6 +83,7 @@ pub struct WorkflowStateResponse {
     pub task: String,
     pub mode: String,
     pub gate_validated: bool,
+    pub gate_ready: bool,
     pub permission_mode: String,
 }
 
@@ -113,6 +114,17 @@ pub async fn send_prompt(
 ) -> Result<SendPromptResponse, String> {
     tracing::info!("send_prompt called with: {}", &text);
 
+    // Reset gate_ready — new prompt means new work
+    {
+        let mut engine = state.workflow_engine.lock().await;
+        let wf_state = engine.get_state();
+        if wf_state.gate_ready {
+            if let Err(e) = engine.set_gate_ready(false).await {
+                tracing::warn!("Failed to reset gate_ready: {}", e);
+            }
+        }
+    }
+
     let session_manager = state.session_manager.clone();
 
     // Single lock scope: start session if needed, then send message
@@ -127,6 +139,7 @@ pub async fn send_prompt(
             // Spawn event forwarder (runs for the lifetime of the session)
             let sm = session_manager.clone();
             let pm = state.permission_mode.clone();
+            let we = state.workflow_engine.clone();
             let app_handle = app.clone();
             tokio::spawn(async move {
                 tracing::info!("Event forwarder started");
@@ -186,6 +199,22 @@ pub async fn send_prompt(
                     // Emit to frontend
                     if let Err(e) = app_handle.emit("agent-event", &event) {
                         tracing::error!("Failed to emit event: {}", e);
+                    }
+
+                    // Detect successful turn end → set gate_ready = true
+                    if let CliEvent::Result(ref result) = event {
+                        if !result.is_error {
+                            let mut engine = we.lock().await;
+                            let wf = engine.get_state();
+                            if wf.mode == crate::workflow::WorkflowMode::Pipeline
+                                && wf.phase != "idle"
+                                && !wf.gate_validated
+                            {
+                                if let Err(e) = engine.set_gate_ready(true).await {
+                                    tracing::warn!("Failed to set gate_ready: {}", e);
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -350,6 +379,7 @@ pub async fn get_workflow_state(
         task: wf_state.task.clone(),
         mode: format!("{:?}", wf_state.mode).to_lowercase(),
         gate_validated: wf_state.gate_validated,
+        gate_ready: wf_state.gate_ready,
         permission_mode: wf_state.permission_mode.clone(),
     })
 }

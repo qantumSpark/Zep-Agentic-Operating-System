@@ -44,7 +44,9 @@ export function MemorySection() {
           <label className="text-zinc-400 text-xs uppercase tracking-wide">
             Active Epic
           </label>
-          <p className="text-zinc-100 font-medium mt-0.5">{activeEpic}</p>
+          <p className="text-zinc-100 font-medium mt-0.5">
+            {activeEpic.replace(/\s*\(\d+\/\d+\s*t[aâ]ches?\)/i, "")}
+          </p>
         </div>
       )}
 
@@ -58,6 +60,12 @@ export function MemorySection() {
             <p className="text-zinc-400 text-xs mt-0.5">
               {currentEpic.objective}
             </p>
+          )}
+
+          {currentEpic.tasks.length === 0 && (
+            <div className="mt-2 px-2 py-1.5 rounded bg-zinc-800/60 border border-zinc-700/50">
+              <p className="text-zinc-500 text-xs italic">Plan en attente...</p>
+            </div>
           )}
 
           {currentEpic.tasks.length > 0 && (() => {

@@ -10,6 +10,7 @@ import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
 import { useWorkflowKitStore, applyKitStatus, type AgentDef, type KitStatusResponse } from "../stores/workflowKitStore";
 import { useProjectStore } from "../stores/projectStore";
+import { useAgentsStore } from "../stores/agentsStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -126,6 +127,15 @@ export function useTauriEvents() {
                 console.error("Failed to save session log:", e)
               );
             }
+
+            // Cleanup stale running delegations — result event means turn is over
+            const agentsStore = useAgentsStore.getState();
+            const staleDelegations = agentsStore.delegations.filter(
+              (d) => d.status === "running"
+            );
+            for (const stale of staleDelegations) {
+              agentsStore.completeDelegation(stale.id, "completed");
+            }
           }
         }
       );
@@ -137,9 +147,9 @@ export function useTauriEvents() {
           const workflowStore = useWorkflowStore.getState();
           workflowStore.setFullState(event.payload);
 
-          // Notify when a gate is waiting for validation
+          // Notify when gate becomes ready for validation
           const state = event.payload;
-          if (state.phase && state.gate_validated === false) {
+          if (state.gate_ready && !state.gate_validated) {
             notifyIfPermitted(
               "Gate prete",
               `Phase "${state.phase}" en attente de validation`

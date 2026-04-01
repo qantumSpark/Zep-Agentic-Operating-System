@@ -85,6 +85,7 @@ impl WorkflowEngine {
             Some("manual transition".to_string()),
         );
         self.current_state.phase = new_phase;
+        self.current_state.gate_ready = false;
         self.persist_and_notify().await?;
         tracing::info!("Phase changed: {} -> {}", old_phase, self.current_state.phase);
         Ok(())
@@ -93,6 +94,7 @@ impl WorkflowEngine {
     /// Validate gate for current phase
     pub async fn validate_gate(&mut self) -> Result<bool> {
         self.current_state.gate_validated = true;
+        self.current_state.gate_ready = false;
         self.persist_and_notify().await?;
         tracing::info!("Gate validated for phase: {}", self.current_state.phase);
         Ok(true)
@@ -146,6 +148,7 @@ impl WorkflowEngine {
         let old_phase = self.current_state.phase.clone();
         self.current_state.epic = name;
         self.current_state.gate_validated = false;
+        self.current_state.gate_ready = false;
         self.current_state.record_transition(
             old_phase,
             "comprehension".to_string(),
@@ -204,6 +207,14 @@ impl WorkflowEngine {
     /// Get mutable current state
     pub fn get_state_mut(&mut self) -> &mut WorkflowState {
         &mut self.current_state
+    }
+
+    /// Set gate_ready flag and persist
+    pub async fn set_gate_ready(&mut self, ready: bool) -> Result<()> {
+        self.current_state.gate_ready = ready;
+        self.persist_and_notify().await?;
+        tracing::info!("Gate ready set to: {}", ready);
+        Ok(())
     }
 }
 

@@ -15,6 +15,8 @@ pub struct WorkflowState {
     pub task: String,
     pub mode: WorkflowMode,
     pub gate_validated: bool,
+    #[serde(default)]
+    pub gate_ready: bool,
     pub last_updated: String,
 
     // ZAOS extensions (optional)
@@ -75,6 +77,7 @@ impl Default for WorkflowState {
             task: "".to_string(),
             mode: WorkflowMode::default(),
             gate_validated: false,
+            gate_ready: false,
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
             session: None,
@@ -91,6 +94,7 @@ impl WorkflowState {
             task,
             mode: WorkflowMode::default(),
             gate_validated: false,
+            gate_ready: false,
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
             session: None,

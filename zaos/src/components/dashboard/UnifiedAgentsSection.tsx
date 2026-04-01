@@ -37,12 +37,21 @@ function StatusDot({ active }: { active: boolean }) {
   );
 }
 
-function DelegationBadge({ status }: { status: DelegationEntry["status"] }) {
+const STALE_THRESHOLD_MS = 600_000; // 10 minutes
+
+function DelegationBadge({ status, stale }: { status: DelegationEntry["status"]; stale?: boolean }) {
   const colors: Record<DelegationEntry["status"], string> = {
     running: "bg-blue-700/60 text-blue-300",
     completed: "bg-green-700/60 text-green-300",
     error: "bg-red-700/60 text-red-300",
   };
+  if (stale) {
+    return (
+      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase leading-none bg-zinc-700/60 text-zinc-400">
+        stale
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase leading-none ${colors[status]}`}
@@ -143,31 +152,36 @@ export function UnifiedAgentsSection() {
           </label>
 
           <div className="mt-1 space-y-1 max-h-64 overflow-y-auto">
-            {recentDelegations.map((d) => (
-              <div
-                key={d.id}
-                className={`flex items-start gap-2 px-2 py-1.5 rounded transition-colors text-xs ${
-                  d.status === "running"
-                    ? "bg-blue-500/10 ring-1 ring-blue-500/30"
-                    : "bg-zinc-800/30 hover:bg-zinc-800/50"
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-zinc-200">
-                      {capitalize(d.mappedAgent)}
-                    </span>
-                    <DelegationBadge status={d.status} />
-                    <span className="ml-auto text-zinc-500 flex-shrink-0">
-                      {timeAgo(d.startedAt, now)}
-                    </span>
+            {recentDelegations.map((d) => {
+              const isStale = d.status === "running" && now - d.startedAt > STALE_THRESHOLD_MS;
+              return (
+                <div
+                  key={d.id}
+                  className={`flex items-start gap-2 px-2 py-1.5 rounded transition-colors text-xs ${
+                    d.status === "running"
+                      ? isStale
+                        ? "bg-zinc-800/30 opacity-50"
+                        : "bg-blue-500/10 ring-1 ring-blue-500/30"
+                      : "bg-zinc-800/30 hover:bg-zinc-800/50"
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-zinc-200">
+                        {capitalize(d.mappedAgent)}
+                      </span>
+                      <DelegationBadge status={d.status} stale={isStale} />
+                      <span className="ml-auto text-zinc-500 flex-shrink-0">
+                        {timeAgo(d.startedAt, now)}
+                      </span>
+                    </div>
+                    <p className="text-zinc-400 mt-0.5 truncate">
+                      {truncate(d.description, 80)}
+                    </p>
                   </div>
-                  <p className="text-zinc-400 mt-0.5 truncate">
-                    {truncate(d.description, 80)}
-                  </p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
