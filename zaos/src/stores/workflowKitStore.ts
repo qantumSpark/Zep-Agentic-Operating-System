@@ -48,8 +48,9 @@ interface WorkflowKitState {
 }
 
 const DEFAULT_HOOKS: HookDef[] = [
-  { name: "inject-context", event: "UserPromptSubmit", active: false, description: "Injecte le role Orchestrateur et les regles a chaque prompt" },
-  { name: "block-code", event: "PreToolUse (Write|Edit)", active: false, description: "Bloque l'ecriture de code sans plan valide" },
+  { name: "inject-context", event: "UserPromptSubmit", active: false, description: "Injecte le role Orchestrateur, phase et gate a chaque prompt" },
+  { name: "block-code", event: "PreToolUse (Write|Edit)", active: false, description: "Bloque l'ecriture de code sans plan valide ou sans gate valide" },
+  { name: "enforce-gate", event: "PreToolUse (Bash)", active: false, description: "Bloque les commandes Bash quand le gate n'est pas valide" },
   { name: "on-compact", event: "SessionStart (compact)", active: false, description: "Reinjecte le contexte apres compaction" },
 ];
 

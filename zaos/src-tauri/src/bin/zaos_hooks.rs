@@ -73,20 +73,39 @@ fn load_file_full(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_default()
 }
 
+fn has_active_tasks(epic_content: &str) -> bool {
+    // Only check table rows (lines starting with |) to avoid false positives
+    // from blockquote headers like "> Statut : EN COURS"
+    epic_content
+        .lines()
+        .filter(|line| line.trim_start().starts_with('|'))
+        .any(|line| {
+            line.contains("TODO")
+                || line.contains("EN COURS")
+                || line.contains("A FAIRE")
+                || line.contains("in_progress")
+                || line.contains("BLOQUE")
+        })
+}
+
 fn get_phase_instructions(phase: &str) -> &'static str {
     match phase {
         "idle" => "\
 Phase IDLE\n\
-Objectif: Cadrage initial.\n\
+Objectif: Cadrage et brainstorming avant pipeline.\n\
 FAIS:\n\
-- Poser des questions de cadrage (stack, scope, contraintes, public)\n\
-- Brainstormer les milestones avec l'utilisateur\n\
+- Poser des questions de cadrage (stack, scope, contraintes, public, existant)\n\
+- Brainstormer les milestones avec l'utilisateur (proposer, challenger, iterer)\n\
+- Challenger le scope : identifier ce qui est MVP vs nice-to-have\n\
+- Identifier les incertitudes et les signaler\n\
 - Lire le code existant pour comprendre le contexte\n\
+- Quand les milestones sont valides, demander EXPLICITEMENT : 'On passe en mode pipeline ?'\n\
 NE FAIS PAS:\n\
 - Coder quoi que ce soit\n\
 - Creer des plans ou des fichiers\n\
-- Lancer le pipeline sans cadrage\n\
-Gate: L'utilisateur lance start_epic.",
+- Lancer le pipeline sans avoir brainstorme les milestones\n\
+- Passer en pipeline automatiquement sans confirmation de l'utilisateur\n\
+Gate: L'utilisateur confirme les milestones et lance start_epic.",
 
         "comprehension" => "\
 Phase COMPREHENSION\n\
@@ -255,6 +274,22 @@ fn cmd_inject_context() {
     context.push_str(MEMORY_REMINDER);
     context.push_str("\n\n");
 
+    // 3d. Gate enforcement reminder (pipeline mode, all tasks done, gate not validated)
+    if let Some(ref st) = state {
+        if st.mode == "pipeline" && st.phase != "idle" && !st.gate_validated {
+            let epic_path = project_dir.join(".memory").join("current-epic.md");
+            let epic_for_gate = fs::read_to_string(&epic_path).unwrap_or_default();
+            if !epic_for_gate.is_empty() && !has_active_tasks(&epic_for_gate) {
+                context.push_str(
+                    "⛔ ATTENTE GATE — Toutes les tasks sont terminees. \
+                     L'utilisateur n'a PAS encore valide le gate. \
+                     Tu NE DOIS PAS avancer a la phase suivante. \
+                     Resume ce qui a ete fait et demande a l'utilisateur de valider le gate.\n\n"
+                );
+            }
+        }
+    }
+
     // 5. First 20 lines of current-epic.md
     let epic_path = project_dir.join(".memory").join("current-epic.md");
     let epic_head = load_file_head(&epic_path, 20);
@@ -346,12 +381,16 @@ fn cmd_block_code() {
     };
 
     // If current-epic.md has no active tasks → exit 2
-    let has_active_tasks = epic_content.contains("TODO")
-        || epic_content.contains("EN COURS")
-        || epic_content.contains("A FAIRE")
-        || epic_content.contains("in_progress");
-
-    if !has_active_tasks {
+    if !has_active_tasks(&epic_content) {
+        // All tasks done but gate not validated → block (gate enforcement)
+        if !st.gate_validated {
+            eprintln!(
+                "BLOQUE: Toutes les tasks sont terminees mais le gate n'est pas valide. \
+                 Attends que l'utilisateur valide le gate avant de continuer. \
+                 Ne passe PAS a la phase suivante sans validation."
+            );
+            process::exit(2);
+        }
         eprintln!(
             "BLOQUE: Ecriture de code interdite sans plan valide. \
              Creez un plan dans current-epic.md d'abord."
@@ -361,6 +400,51 @@ fn cmd_block_code() {
 
     // All checks passed → allow
     process::exit(0);
+}
+
+// ---------------------------------------------------------------------------
+// B3b: enforce-gate — called on PreToolUse for Bash (gate enforcement)
+// ---------------------------------------------------------------------------
+
+fn cmd_enforce_gate() {
+    let project_dir = get_project_dir();
+    let state = load_state(&project_dir);
+
+    // Only enforce in pipeline mode
+    let st = match state {
+        Some(ref s) if s.mode == "pipeline" => s,
+        _ => process::exit(0), // free mode or no state → allow
+    };
+
+    // Skip idle phase (no gate to enforce)
+    if st.phase == "idle" {
+        process::exit(0);
+    }
+
+    // If gate is validated → allow
+    if st.gate_validated {
+        process::exit(0);
+    }
+
+    // Check if all tasks are done in current-epic.md
+    let epic_path = project_dir.join(".memory").join("current-epic.md");
+    let epic_content = match fs::read_to_string(&epic_path) {
+        Ok(c) => c,
+        Err(_) => process::exit(0), // no epic file → allow
+    };
+
+    // If tasks are still active → allow (work in progress)
+    if has_active_tasks(&epic_content) {
+        process::exit(0);
+    }
+
+    // All tasks done + gate not validated → block
+    eprintln!(
+        "BLOQUE: Toutes les tasks sont terminees mais le gate n'est pas valide. \
+         Attends que l'utilisateur valide le gate avant d'executer des commandes. \
+         Ne passe PAS a la phase suivante sans validation."
+    );
+    process::exit(2);
 }
 
 // ---------------------------------------------------------------------------
@@ -400,6 +484,20 @@ fn cmd_on_compact() {
 
     // 3c. Memory reminder
     println!("{}\n", MEMORY_REMINDER);
+
+    // 3d. Gate enforcement reminder
+    if let Some(ref st) = state {
+        if st.mode == "pipeline" && st.phase != "idle" && !st.gate_validated {
+            let epic_for_gate = load_file_full(&project_dir.join(".memory").join("current-epic.md"));
+            if !epic_for_gate.is_empty() && !has_active_tasks(&epic_for_gate) {
+                println!(
+                    "⛔ ATTENTE GATE — Toutes les tasks sont terminees. \
+                     L'utilisateur n'a PAS encore valide le gate. \
+                     Tu NE DOIS PAS avancer a la phase suivante.\n"
+                );
+            }
+        }
+    }
 
     // 4. Full content of current-epic.md
     let epic_path = project_dir.join(".memory").join("current-epic.md");
@@ -530,10 +628,11 @@ fn main() {
     match command {
         "inject-context" => cmd_inject_context(),
         "block-code" => cmd_block_code(),
+        "enforce-gate" => cmd_enforce_gate(),
         "on-compact" => cmd_on_compact(),
         "welcome" => cmd_welcome(),
         _ => {
-            eprintln!("Usage: zaos-hooks <inject-context|block-code|on-compact|welcome>");
+            eprintln!("Usage: zaos-hooks <inject-context|block-code|enforce-gate|on-compact|welcome>");
             process::exit(1);
         }
     }

@@ -1,19 +1,18 @@
-# Epic active : Phase 9.1 — Pipeline Mecanique (Hooks)
+# Epic active : Phase 9.1.2+9.1.3 — Brainstorming Pipeline + Gate Enforcement
 
 > Milestone : 9 — Field-Tested Corrections
 > Statut : TERMINE
 
 ## Objectif
 
-Rendre le pipeline mecanique : block-code bloque le code hors implementation/test, inject-context donne des DO/DON'T explicites par phase, rappel memoire apres chaque task.
+Guider la transition brainstorming → pipeline avec un parcours complet dans CLAUDE.md, et rendre les gates mecaniques via hooks (block-code, enforce-gate, inject-context).
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Ajouter constante CODE_ALLOWED_PHASES | `zaos_hooks.rs` | DONE | ["implementation", "test"] |
-| 2 | Check phase dans cmd_block_code | `zaos_hooks.rs` | DONE | exit 2 si phase hors liste en mode pipeline |
-| 3 | Rewrite get_phase_instructions DO/DON'T | `zaos_hooks.rs` | DONE | 8 phases avec objectif, FAIS, NE FAIS PAS, agent, gate |
-| 4 | Ajouter constante MEMORY_REMINDER | `zaos_hooks.rs` | DONE | Rappel maj current-epic.md apres chaque task |
-| 5 | Injecter MEMORY_REMINDER dans inject-context | `zaos_hooks.rs` | DONE | Apres FORMAT_REMINDER |
-| 6 | Injecter MEMORY_REMINDER dans on-compact | `zaos_hooks.rs` | DONE | Apres NON_NEGOTIABLE_RULES + FORMAT_REMINDER |
+| 1 | Section "Parcours complet" dans CLAUDE.md | `reference/CLAUDE.md` | DONE | 6 etapes + exemple pushback |
+| 2 | Enrichir instructions idle | `zaos_hooks.rs` | DONE | Brainstorming structure, demande explicite pipeline |
+| 3 | Gate check dans block-code | `zaos_hooks.rs` | DONE | All tasks DONE + gate=false → exit 2 |
+| 4 | Gate reminder dans inject-context | `zaos_hooks.rs` | DONE | Warning seulement quand toutes tasks DONE |
+| 5 | Hook enforce-gate pour Bash | `zaos_hooks.rs`, `sync.rs`, `workflowKitStore.ts` | DONE | PreToolUse Bash + registration + frontend |

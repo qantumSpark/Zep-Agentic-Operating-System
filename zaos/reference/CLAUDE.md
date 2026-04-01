@@ -48,6 +48,36 @@ Quand l'utilisateur demande une feature ou un nouveau projet, NE PAS lancer dire
 
 Ne lancer le pipeline qu'une fois les reponses obtenues. Sur un projet vierge, ces questions sont obligatoires. Sur un projet existant, adapter selon le contexte.
 
+## Parcours complet : du brainstorming au code
+
+Voici le parcours attendu sur un projet ou une feature, du debut a la fin :
+
+1. **Cadrage** — L'utilisateur decrit ce qu'il veut. Tu poses les questions ci-dessus (stack, scope, contraintes, public, existant). Tu ne supposes rien, tu demandes.
+
+2. **Brainstorming milestones** — Une fois le cadrage clair :
+   - Propose une liste de milestones numerotes (objectifs utilisateur, pas techniques)
+   - Challenge le scope : "Est-ce que X est vraiment necessaire pour le MVP ?"
+   - Identifie les incertitudes : "Je ne suis pas sur de Y, on devrait valider avant de coder"
+   - L'utilisateur valide, ajuste, ou conteste — itere jusqu'a accord
+
+3. **Demande explicite de pipeline** — Quand les milestones sont valides, demande :
+   > "Les milestones sont definis. On passe en mode pipeline pour le premier milestone ?"
+   Ne JAMAIS passer en pipeline automatiquement. Attendre la confirmation de l'utilisateur.
+
+4. **Start Epic** — L'utilisateur clique "Start Epic" dans ZAOS ou dit "go". Le pipeline demarre en phase comprehension.
+
+5. **Pipeline structure** — Chaque phase a un gate. Tu NE PASSES PAS a la phase suivante sans validation de l'utilisateur :
+   - comprehension → gate → specification → gate → architecture → gate → implementation → gate → review → gate → test → gate → closure
+   - A chaque gate, tu resumes ce qui a ete fait et tu demandes "Tu valides pour passer a [phase suivante] ?"
+   - Si l'utilisateur ne valide pas, tu restes dans la phase courante
+
+6. **Entre les epics** — Apres closure d'une epic, resume l'etat et propose la prochaine epic du milestone. Ne JAMAIS enchainer sans validation.
+
+### Exemple de pushback
+
+> Utilisateur : "Je veux un systeme de chat avec video, audio, partage d'ecran et traduction temps reel"
+> Orchestrateur : "C'est ambitieux. Pour le MVP, je propose de commencer par le chat texte + audio. La video et le partage d'ecran peuvent etre un milestone 2. La traduction temps reel necessite une API externe — tu as un budget pour ca ? On devrait valider la faisabilite avant de planifier."
+
 ## Pipeline de developpement
 
 Phases : idle → comprehension → specification → architecture → implementation → review → test → closure
@@ -132,10 +162,11 @@ Le dashboard ZAOS parse ces fichiers avec des patterns exacts. Respecter ce form
 
 ## Systeme de hooks (automatique)
 
-Trois hooks agissent en arriere-plan — tu n'as pas a les gerer manuellement :
+Quatre hooks agissent en arriere-plan — tu n'as pas a les gerer manuellement :
 
-- **inject-context** : rappel de role et phase a chaque prompt
-- **block-code** : bloque l'ecriture de code sans plan valide (mode pipeline)
+- **inject-context** : rappel de role, phase et gate a chaque prompt
+- **block-code** : bloque l'ecriture de code sans plan valide ou sans gate valide (mode pipeline)
+- **enforce-gate** : bloque les commandes Bash quand toutes les tasks sont terminees mais le gate n'est pas valide
 - **on-compact** : reinjecte le contexte critique apres compaction
 
 ## Fin de session

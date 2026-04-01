@@ -164,6 +164,14 @@ pub fn sync_settings(
                     "command": format!("\"{}\" block-code", binary),
                     "timeout": 5
                 }]
+            },
+            {
+                "matcher": "Bash",
+                "hooks": [{
+                    "type": "command",
+                    "command": format!("\"{}\" enforce-gate", binary),
+                    "timeout": 5
+                }]
             }],
             "SessionStart": [{
                 "matcher": "compact",
