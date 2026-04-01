@@ -100,6 +100,12 @@ const ROLE_REMINDER: &str = "Tu es l'Orchestrateur ZAOS. \
 Tu ne codes JAMAIS directement. \
 Tu delegues TOUJOURS aux agents specialises.";
 
+const FORMAT_REMINDER: &str = "\
+FORMAT MEMOIRE (obligatoire pour le dashboard):\
+\n- current-epic.md: heading '# Epic active : <nom>', blockquotes '> Milestone :', '> Statut :', sections '## Objectif', '## Tasks' avec tableau 5 colonnes (# | Task | Fichier(s) | Statut | Notes)\
+\n- state.md: sections '## Milestones' (tableau 4 col), '## Epic active', '## Blocages'\
+\n- Statuts tasks: A FAIRE, EN COURS, TODO, DONE, VALIDATED, BLOQUE";
+
 // ---------------------------------------------------------------------------
 // B2: inject-context — called on every UserPromptSubmit
 // ---------------------------------------------------------------------------
@@ -131,6 +137,10 @@ fn cmd_inject_context() {
 
     // 3. Non-negotiable rules
     context.push_str(NON_NEGOTIABLE_RULES);
+    context.push_str("\n\n");
+
+    // 3b. Format reminder for memory files
+    context.push_str(FORMAT_REMINDER);
     context.push_str("\n\n");
 
     // 5. First 20 lines of current-epic.md

@@ -50,6 +50,60 @@ Phases : idle → comprehension → specification → architecture → implement
 | Question / explication | Repondre directement (pas de pipeline) |
 | Recherche pure | comprehension → Researcher → closure |
 
+## Format des fichiers memoire (STRICT)
+
+Le dashboard ZAOS parse ces fichiers avec des patterns exacts. Respecter ce format a la lettre sous peine que le dashboard affiche des donnees vides.
+
+### current-epic.md
+
+    # Epic active : <nom de l'epic>
+
+    > Milestone : <numero> — <nom du milestone>
+    > Statut : EN COURS
+
+    ## Objectif
+
+    <description en 1-3 lignes>
+
+    ## Tasks
+
+    | # | Task | Fichier(s) | Statut | Notes |
+    |---|------|-----------|--------|-------|
+    | 1 | Description de la tache | `fichier.rs` | A FAIRE | |
+    | 2 | Autre tache | `a.rs`, `b.rs` | EN COURS | details |
+
+**Regles critiques :**
+- Le heading H1 DOIT etre `# Epic active : <nom>` (avec espace avant et apres le `:`)
+- Les blockquotes DOIVENT commencer par `> Milestone : ` et `> Statut : ` (prefixes exacts)
+- Les headings H2 DOIVENT etre exactement `## Objectif` et `## Tasks` (match lowercase)
+- Le tableau DOIT avoir 5 colonnes : `#`, `Task`, `Fichier(s)`, `Statut`, `Notes`
+- Statuts valides : `A FAIRE`, `EN COURS`, `TODO`, `DONE`, `VALIDATED`, `BLOQUE`, `in_progress`
+
+### state.md
+
+    # Etat courant <Nom Projet>
+
+    ## Milestones
+
+    | # | Milestone | Statut | Epics |
+    |---|-----------|--------|-------|
+    | 1 | Nom du milestone | EN COURS | epic1, epic2 |
+    | 2 | Autre milestone | TERMINE | epic3 |
+
+    ## Epic active
+
+    <nom de l'epic> — EN COURS (X/Y taches)
+
+    ## Blocages
+
+    Aucun
+
+**Regles critiques :**
+- Le heading `## Milestones` est obligatoire (match lowercase exact)
+- Le tableau milestones DOIT avoir 4 colonnes : `#`, `Milestone`, `Statut`, `Epics`
+- Le heading DOIT etre `## Epic active` ou `## Epic actif` (starts_with match)
+- Le heading `## Blocages` DOIT commencer par `Blocage` (starts_with, insensible a la casse)
+
 ## Premiere action — A chaque session
 
 1. Lire `.memory/INDEX.md` (carte de la memoire)

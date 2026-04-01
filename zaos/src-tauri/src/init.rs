@@ -48,15 +48,20 @@ pub fn ensure_project_dirs(project_dir: &Path) {
         &memory_dir.join("state.md"),
         || {
             concat!(
-                "# State\n",
+                "# Etat courant\n",
                 "\n",
-                "## Current Focus\n",
+                "## Milestones\n",
                 "\n",
-                "_No active task._\n",
+                "| # | Milestone | Statut | Epics |\n",
+                "|---|-----------|--------|-------|\n",
                 "\n",
-                "## Recent Changes\n",
+                "## Epic active\n",
                 "\n",
-                "_None yet._\n",
+                "_Aucun epic en cours._\n",
+                "\n",
+                "## Blocages\n",
+                "\n",
+                "Aucun\n",
             )
             .to_string()
         },
@@ -65,19 +70,20 @@ pub fn ensure_project_dirs(project_dir: &Path) {
         &memory_dir.join("current-epic.md"),
         || {
             concat!(
-                "# Current Epic\n",
+                "# Epic active : _aucun_\n",
                 "\n",
-                "## Epic\n",
+                "> Statut : IDLE\n",
                 "\n",
-                "_No epic selected._\n",
+                "## Objectif\n",
                 "\n",
-                "## Task Plan\n",
+                "_Pas d'epic en cours._\n",
                 "\n",
-                "_No tasks defined._\n",
+                "## Tasks\n",
                 "\n",
-                "## Progress\n",
+                "| # | Task | Fichier(s) | Statut | Notes |\n",
+                "|---|------|-----------|--------|-------|\n",
                 "\n",
-                "_Not started._\n",
+                "_En attente du plan._\n",
             )
             .to_string()
         },
