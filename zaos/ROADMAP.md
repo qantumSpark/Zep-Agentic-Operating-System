@@ -53,10 +53,10 @@
 - [x] Afficher les tool_use blocks dans le chat (Read, Write, Bash, etc.)
 - [x] Brancher ThinkingIndicator dans ChatPanel
 - [x] Nourrir actionsStore depuis les tool_use events
-- [~] AgentsSection — liste hardcodee, pas de tracking reel
-- [~] ScreenshotGallery — array toujours vide
+- [x] AgentsSection — remplace par UnifiedAgentsSection (live delegations + mapping)
+- [x] ScreenshotGallery — reecrit avec grid live, zoom, capture, delete
 - [x] ActionsFeed — live avec icones, animation running, error detection, result preview
-- [~] PipelineSection — lit le store mais pipelineProgress vide sans events backend
+- [x] PipelineSection — pipelineProgress derive depuis workflow-change events
 - [x] Syntax highlighting reel (prism-react-renderer v2, vsDark theme, language aliases)
 - [x] Bouton copy-to-clipboard sur CodeBlock
 
@@ -254,10 +254,10 @@
 
 | Phase | Total | Done | Stub | TODO | % |
 |-------|-------|------|------|------|---|
-| 1.1 Backend Rust | 15 | 14 | 0 | 0 | 93% |
-| 1.2 Frontend React | 24 | 21 | 3 | 0 | 88% |
+| 1.1 Backend Rust | 15 | 15 | 0 | 0 | 100% |
+| 1.2 Frontend React | 24 | 24 | 0 | 0 | 100% |
 | 1.3 Integration | 8 | 8 | 0 | 0 | 100% |
-| **Phase 1 Total** | **47** | **43** | **3** | **0** | **91%** |
+| **Phase 1 Total** | **47** | **47** | **0** | **0** | **100%** |
 | Phase 2 | 13 | 13 | 0 | 0 | 100% |
 | Phase 3 | 13 | 13 | 0 | 0 | 100% |
 | Phase 4 | 7 | 7 | 0 | 0 | 100% |
@@ -266,4 +266,4 @@
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
 | Phase 9 | 28 | 28 | 0 | 0 | 100% |
-| **Total** | **160** | **156** | **3** | **0** | **97%** |
+| **Total** | **160** | **160** | **0** | **0** | **100%** |
