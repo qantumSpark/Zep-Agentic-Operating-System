@@ -19,7 +19,7 @@
 
 ## Epic active
 
-Epic 9.1.2 + 9.1.3 TERMINE (5/5 tasks). Prochains : 9.2.1 (agents unifies) + 9.3.1 (dashboard temps reel).
+Epic 9.2.1 + 9.3.1 TERMINE (7/7 tasks). Prochains : 9.4.1 (permissions UX) + 9.5.1 (coordination agents).
 
 ## Bugs connus
 
@@ -42,5 +42,5 @@ Aucun
 Phase 9 — Field-Tested Corrections (17 findings, voir `.memory/test-findings.md`)
 Sprint 1 : 9.1.1 + 9.1.4 (hooks) TERMINE
 Sprint 2 : 9.1.2 + 9.1.3 (pipeline + gate) TERMINE
-Sprint 3 : 9.2.1 (agents unifies) || 9.3.1 (parser)
-Sprint 4 : 9.4.1 (permissions) || 9.5.1 (coordination)
+Sprint 3 : 9.2.1 (agents unifies) + 9.3.1 (dashboard) TERMINE
+Sprint 4 : 9.4.1 (permissions UX) || 9.5.1 (coordination agents)

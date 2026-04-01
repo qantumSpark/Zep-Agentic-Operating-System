@@ -98,7 +98,7 @@ export function SessionMetrics() {
                   key={agent}
                   className="border-t border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
                 >
-                  <td className="py-1 pr-2 text-zinc-200 truncate max-w-[160px]">
+                  <td className="py-1 pr-2 text-zinc-200 truncate max-w-[160px] capitalize">
                     {agent}
                   </td>
                   <td className="py-1 text-zinc-400 text-right tabular-nums">

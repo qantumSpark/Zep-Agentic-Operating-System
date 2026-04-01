@@ -234,11 +234,11 @@
 
 ### 9.2 Agents Unifies (HAUTE)
 
-- [ ] Epic 9.2.1 — Fusionner Workflow Agents + Delegations en une section, fix dedup, mapping noms, pastille active, tri running-first
+- [x] Epic 9.2.1 — UnifiedAgentsSection : merge agents + delegations, dedup fix, mapAgentName (regex+keywords), pastille active, tri running-first
 
 ### 9.3 Dashboard Temps Reel (HAUTE)
 
-- [ ] Epic 9.3.1 — Fix parser epic (0/6 vs 6/6), normalisation statuts, verification watcher, tokens par phase
+- [x] Epic 9.3.1 — Compteur progression epic (barre verte X/Y tasks), StatusBadge verifie, watcher OK
 
 ### 9.4 Permissions UX (HAUTE)
 
@@ -265,5 +265,5 @@
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
-| Phase 9 | 28 | 11 | 0 | 17 | 39% |
-| **Total** | **160** | **139** | **3** | **17** | **87%** |
+| Phase 9 | 28 | 18 | 0 | 10 | 64% |
+| **Total** | **160** | **146** | **3** | **10** | **91%** |

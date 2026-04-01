@@ -7,6 +7,7 @@ import { create } from "zustand";
 export interface DelegationEntry {
   id: string;
   agentType: string;
+  mappedAgent: string;
   description: string;
   startedAt: number;
   endedAt: number | null;
@@ -15,6 +16,31 @@ export interface DelegationEntry {
 }
 
 export type NewDelegation = Omit<DelegationEntry, "endedAt" | "status" | "lastSeenAt">;
+
+const AGENT_KEYWORDS: Record<string, string[]> = {
+  researcher: ["research", "search", "verify", "doc", "find", "check", "info", "collect", "explore"],
+  architect: ["architect", "design", "plan", "structure", "breakdown"],
+  coder: ["implement", "code", "write", "create", "fix", "build", "task"],
+  reviewer: ["review", "quality", "validate", "simplify", "clean"],
+  tester: ["test", "spec", "scenario", "verify behavior", "edge case"],
+};
+
+export function mapAgentName(subagentType: string, description: string, prompt?: string): string {
+  // 1. Check prompt for explicit agent file reference
+  if (prompt) {
+    const match = prompt.match(/\.claude\/agents\/(\w+)\.md/);
+    if (match) return match[1];
+  }
+  // 2. If subagent_type is a known agent name, use it
+  if (subagentType in AGENT_KEYWORDS) return subagentType;
+  // 3. Keyword matching on description
+  const desc = description.toLowerCase();
+  for (const [agent, keywords] of Object.entries(AGENT_KEYWORDS)) {
+    if (keywords.some((kw) => desc.includes(kw))) return agent;
+  }
+  // 4. Fallback
+  return subagentType;
+}
 
 const MAX_DELEGATIONS = 50;
 
@@ -46,13 +72,16 @@ export const useAgentsStore = create<AgentsStoreState>((set) => ({
     set({ availableAgents: agents }),
 
   addDelegation: (entry: NewDelegation) =>
-    set((state) => ({
-      delegations: [
-        ...state.delegations,
-        { ...entry, endedAt: null, status: "running" as const, lastSeenAt: entry.startedAt },
-      ].slice(-MAX_DELEGATIONS),
-      activeAgent: entry.agentType,
-    })),
+    set((state) => {
+      if (state.delegations.some((d) => d.id === entry.id)) return state;
+      return {
+        delegations: [
+          ...state.delegations,
+          { ...entry, endedAt: null, status: "running" as const, lastSeenAt: entry.startedAt },
+        ].slice(-MAX_DELEGATIONS),
+        activeAgent: entry.agentType,
+      };
+    }),
 
   updateLastSeen: (id: string) =>
     set((state) => {

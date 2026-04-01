@@ -1,18 +1,20 @@
-# Epic active : Phase 9.1.2+9.1.3 — Brainstorming Pipeline + Gate Enforcement
+# Epic active : Phase 9.2.1+9.3.1 — Agents Unifies + Dashboard Temps Reel
 
 > Milestone : 9 — Field-Tested Corrections
 > Statut : TERMINE
 
 ## Objectif
 
-Guider la transition brainstorming → pipeline avec un parcours complet dans CLAUDE.md, et rendre les gates mecaniques via hooks (block-code, enforce-gate, inject-context).
+Fusionner Workflow Agents + Delegations en une section unifiee avec mapping de noms et pastille active. Ajouter compteur de progression epic au dashboard.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Section "Parcours complet" dans CLAUDE.md | `reference/CLAUDE.md` | DONE | 6 etapes + exemple pushback |
-| 2 | Enrichir instructions idle | `zaos_hooks.rs` | DONE | Brainstorming structure, demande explicite pipeline |
-| 3 | Gate check dans block-code | `zaos_hooks.rs` | DONE | All tasks DONE + gate=false → exit 2 |
-| 4 | Gate reminder dans inject-context | `zaos_hooks.rs` | DONE | Warning seulement quand toutes tasks DONE |
-| 5 | Hook enforce-gate pour Bash | `zaos_hooks.rs`, `sync.rs`, `workflowKitStore.ts` | DONE | PreToolUse Bash + registration + frontend |
+| 1 | Fix dedup addDelegation | `agentsStore.ts` | DONE | Check ID avant push |
+| 2 | Capturer prompt + mapping agent | `agentsStore.ts`, `useStreaming.ts` | DONE | Regex .claude/agents/ + keywords fallback |
+| 3 | UnifiedAgentsSection | `UnifiedAgentsSection.tsx` | DONE | Merge agents + delegations, pastille verte, tri running-first |
+| 4 | Remplacer dans DashboardPanel | `DashboardPanel.tsx` | DONE | 2 sections → 1, supprime fichiers orphelins |
+| 5 | Mapping dans SessionMetrics | `SessionMetrics.tsx` | DONE | Agent deja mappe via mappedAgent, capitalize |
+| 6 | Compteur progression epic | `MemorySection.tsx` | DONE | Barre verte + X/Y tasks + pourcentage |
+| 7 | Badges statut verifies | `StatusBadge.tsx` | DONE | Deja correct (DONE=vert, EN COURS=bleu, BLOQUE=rouge) |

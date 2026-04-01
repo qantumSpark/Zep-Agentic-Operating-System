@@ -60,6 +60,29 @@ export function MemorySection() {
             </p>
           )}
 
+          {currentEpic.tasks.length > 0 && (() => {
+            const done = currentEpic.tasks.filter((t) => {
+              const s = t.status.toUpperCase().trim();
+              return s === "DONE" || s === "VALIDATED" || s === "TERMINE" || s === "TERMINÉ";
+            }).length;
+            const total = currentEpic.tasks.length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            return (
+              <div className="mt-2 mb-1">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-zinc-400">{done}/{total} tasks</span>
+                  <span className="text-zinc-500">{pct}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500 rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
           {currentEpic.tasks.length > 0 && (
             <div className="mt-2 rounded border border-zinc-700 overflow-hidden">
               <table className="w-full text-xs">

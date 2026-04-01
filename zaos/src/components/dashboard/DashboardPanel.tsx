@@ -3,8 +3,7 @@ import { WorkflowSection } from "./WorkflowSection";
 import { PipelineSection } from "./PipelineSection";
 import { MemorySection } from "./MemorySection";
 import { ActionsFeed } from "./ActionsFeed";
-import { AgentsSection } from "./AgentsSection";
-import { AgentsManager } from "./AgentsManager";
+import { UnifiedAgentsSection } from "./UnifiedAgentsSection";
 import { RulesManager } from "./RulesManager";
 import { ScreenshotGallery } from "./ScreenshotGallery";
 import { SessionHistory } from "./SessionHistory";
@@ -35,12 +34,8 @@ export function DashboardPanel() {
         <ActionsFeed />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Workflow Agents" defaultOpen={false}>
-        <AgentsManager />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Delegations" defaultOpen={false}>
-        <AgentsSection />
+      <CollapsibleSection title="Agents" defaultOpen={false}>
+        <UnifiedAgentsSection />
       </CollapsibleSection>
 
       <CollapsibleSection title="Hooks" defaultOpen={false}>

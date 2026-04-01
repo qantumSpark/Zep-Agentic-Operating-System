@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CliEvent, StreamDeltaEvent, AssistantEvent, UserEvent, ControlRequest, SystemEvent, Message } from "../types/events";
 import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
-import { useAgentsStore } from "../stores/agentsStore";
+import { useAgentsStore, mapAgentName } from "../stores/agentsStore";
 import { usePermissionStore } from "../stores/permissionStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { formatToolSummary } from "../utils/toolFormatters";
@@ -129,10 +129,14 @@ export function useStreaming() {
               if (block.name === "Agent") {
                 const agentInput = block.input as Record<string, unknown>;
                 const agentsStore = useAgentsStore.getState();
+                const subagentType = String(agentInput.subagent_type ?? "general-purpose");
+                const description = String(agentInput.description ?? "");
+                const prompt = agentInput.prompt ? String(agentInput.prompt) : undefined;
                 agentsStore.addDelegation({
                   id: block.id,
-                  agentType: String(agentInput.subagent_type ?? "general-purpose"),
-                  description: String(agentInput.description ?? ""),
+                  agentType: subagentType,
+                  mappedAgent: mapAgentName(subagentType, description, prompt),
+                  description,
                   startedAt: Date.now(),
                 });
               }
@@ -183,7 +187,7 @@ export function useStreaming() {
                     isError ? "error" : "completed"
                   );
                   useSessionStore.getState().recordAgentTiming(
-                    matchingDelegation.agentType,
+                    matchingDelegation.mappedAgent,
                     duration
                   );
                 }
