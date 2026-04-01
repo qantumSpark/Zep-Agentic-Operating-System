@@ -8,7 +8,7 @@ import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore"
 import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
-import { useWorkflowKitStore, type AgentDef } from "../stores/workflowKitStore";
+import { useWorkflowKitStore, applyKitStatus, type AgentDef, type KitStatusResponse } from "../stores/workflowKitStore";
 import { useProjectStore } from "../stores/projectStore";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
@@ -249,30 +249,8 @@ export function useTauriEvents() {
               .then((mem) => useMemoryStore.getState().setMemoryState(mem)),
             invoke<{ screenshots: Screenshot[] }>("get_screenshots")
               .then((res) => useScreenshotStore.getState().setScreenshots(res.screenshots)),
-            invoke<{
-              deployed: boolean;
-              agent_count: number;
-              rule_count: number;
-              hooks_active: boolean;
-              last_deployed: string | null;
-              config: {
-                blocked_extensions: string[];
-                auto_sync: boolean;
-                hooks_enabled: boolean;
-                disabled_rules: string[];
-              };
-            }>("get_workflow_kit_status")
-              .then((status) => {
-                const kitStore = useWorkflowKitStore.getState();
-                kitStore.setDeployed(status.deployed);
-                kitStore.setConfig(status.config);
-                if (status.last_deployed) {
-                  kitStore.setLastDeployedAt(status.last_deployed);
-                }
-                kitStore.setHooks(
-                  kitStore.hooks.map((h) => ({ ...h, active: status.hooks_active }))
-                );
-              }),
+            invoke<KitStatusResponse>("get_workflow_kit_status")
+              .then(applyKitStatus),
             invoke<{ name: string; description: string }[]>("list_agents")
               .then((agents) => {
                 const mapped: AgentDef[] = agents.map((a) => ({

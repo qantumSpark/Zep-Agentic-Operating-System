@@ -13,8 +13,8 @@ import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
 import { useScreenshotStore } from "./stores/screenshotStore";
 import { useThemeStore } from "./stores/themeStore";
 import { useProjectStore } from "./stores/projectStore";
-import { useWorkflowKitStore } from "./stores/workflowKitStore";
-import type { AgentDef } from "./stores/workflowKitStore";
+import { useWorkflowKitStore, applyKitStatus } from "./stores/workflowKitStore";
+import type { AgentDef, KitStatusResponse } from "./stores/workflowKitStore";
 import type { Screenshot } from "./types/screenshots";
 
 /**
@@ -49,19 +49,7 @@ export function App() {
         invoke<MemoryStateResponse>("get_memory_state"),
         invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
         invoke<{ path: string; name: string }>("get_project_info"),
-        invoke<{
-          deployed: boolean;
-          agent_count: number;
-          rule_count: number;
-          hooks_active: boolean;
-          last_deployed: string | null;
-          config: {
-            blocked_extensions: string[];
-            auto_sync: boolean;
-            hooks_enabled: boolean;
-            disabled_rules: string[];
-          };
-        }>("get_workflow_kit_status"),
+        invoke<KitStatusResponse>("get_workflow_kit_status"),
         invoke<{ name: string; description: string }[]>("list_agents"),
       ]);
       if (authResult.status === "fulfilled") {
@@ -86,15 +74,7 @@ export function App() {
         console.error("get_project_info failed:", projectResult.reason);
       }
       if (kitResult.status === "fulfilled") {
-        const kitStore = useWorkflowKitStore.getState();
-        kitStore.setDeployed(kitResult.value.deployed);
-        kitStore.setConfig(kitResult.value.config);
-        if (kitResult.value.last_deployed) {
-          kitStore.setLastDeployedAt(kitResult.value.last_deployed);
-        }
-        kitStore.setHooks(
-          kitStore.hooks.map((h) => ({ ...h, active: kitResult.value.hooks_active }))
-        );
+        applyKitStatus(kitResult.value);
       } else {
         console.error("get_workflow_kit_status failed:", kitResult.reason);
       }

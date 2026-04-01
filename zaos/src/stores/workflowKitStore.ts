@@ -60,6 +60,26 @@ const DEFAULT_CONFIG: WorkflowKitConfig = {
   disabled_rules: [],
 };
 
+export interface KitStatusResponse {
+  deployed: boolean;
+  agent_count: number;
+  rule_count: number;
+  hooks_active: boolean;
+  last_deployed: string | null;
+  config: WorkflowKitConfig;
+}
+
+/** Apply a get_workflow_kit_status response in a single atomic update */
+export function applyKitStatus(status: KitStatusResponse): void {
+  const current = useWorkflowKitStore.getState();
+  useWorkflowKitStore.setState({
+    deployed: status.deployed,
+    config: status.config,
+    lastDeployedAt: status.last_deployed ?? current.lastDeployedAt,
+    hooks: current.hooks.map((h) => ({ ...h, active: status.hooks_active })),
+  });
+}
+
 export const useWorkflowKitStore = create<WorkflowKitState>((set) => ({
   deployed: false,
   agents: [],
