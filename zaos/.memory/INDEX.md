@@ -10,6 +10,7 @@
 - [state.md](state.md) — Phase 8 terminee, Phase 9 planifiee (17 findings)
 - [current-epic.md](current-epic.md) — Aucune epic active
 - [test-findings.md](test-findings.md) — 17 findings du premier test run reel (2026-04-01)
+- [test-findings-run2.md](test-findings-run2.md) — 8 findings du test run #2 (2026-04-01, post Phase 9)
 
 ## Decisions
 
