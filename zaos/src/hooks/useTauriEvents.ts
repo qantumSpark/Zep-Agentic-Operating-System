@@ -269,6 +269,9 @@ export function useTauriEvents() {
                 if (status.last_deployed) {
                   kitStore.setLastDeployedAt(status.last_deployed);
                 }
+                kitStore.setHooks(
+                  kitStore.hooks.map((h) => ({ ...h, active: status.hooks_active }))
+                );
               }),
             invoke<{ name: string; description: string }[]>("list_agents")
               .then((agents) => {

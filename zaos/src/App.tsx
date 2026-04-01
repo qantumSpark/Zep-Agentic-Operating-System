@@ -92,6 +92,9 @@ export function App() {
         if (kitResult.value.last_deployed) {
           kitStore.setLastDeployedAt(kitResult.value.last_deployed);
         }
+        kitStore.setHooks(
+          kitStore.hooks.map((h) => ({ ...h, active: kitResult.value.hooks_active }))
+        );
       } else {
         console.error("get_workflow_kit_status failed:", kitResult.reason);
       }

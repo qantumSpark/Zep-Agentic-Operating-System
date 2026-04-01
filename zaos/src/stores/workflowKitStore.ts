@@ -51,7 +51,6 @@ const DEFAULT_HOOKS: HookDef[] = [
   { name: "inject-context", event: "UserPromptSubmit", active: false, description: "Injecte le role Orchestrateur et les regles a chaque prompt" },
   { name: "block-code", event: "PreToolUse (Write|Edit)", active: false, description: "Bloque l'ecriture de code sans plan valide" },
   { name: "on-compact", event: "SessionStart (compact)", active: false, description: "Reinjecte le contexte apres compaction" },
-  { name: "welcome", event: "SessionStart", active: false, description: "Diagnostic des composants au demarrage" },
 ];
 
 const DEFAULT_CONFIG: WorkflowKitConfig = {
