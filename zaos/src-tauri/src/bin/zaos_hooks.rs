@@ -75,7 +75,7 @@ fn load_file_full(path: &Path) -> String {
 
 fn get_phase_instructions(phase: &str) -> &'static str {
     match phase {
-        "comprehension" => "Phase COMPREHENSION: Analyse le code existant. Delegue au Researcher.",
+        "comprehension" => "Phase COMPREHENSION: Avant de planifier, clarifie le besoin avec l'utilisateur (scope, stack, contraintes, priorites). Sur un projet vierge, pose des questions. Sur un projet existant, analyse le code. Delegue au Researcher si besoin d'infos externes.",
         "specification" => "Phase SPECIFICATION: Redige les specifications. Delegue a l'Architect.",
         "architecture" => "Phase ARCHITECTURE: Concois l'architecture. Delegue a l'Architect.",
         "implementation" => {
@@ -84,7 +84,7 @@ fn get_phase_instructions(phase: &str) -> &'static str {
         "review" => "Phase REVIEW: Revise le code produit. Delegue au Reviewer.",
         "test" => "Phase TEST: Teste le code produit. Delegue au Tester.",
         "closure" => "Phase CLOSURE: Mets a jour la memoire et ferme l'epic.",
-        "idle" => "Phase IDLE: Aucun epic actif. Attends les instructions de l'utilisateur.",
+        "idle" => "Phase IDLE: Aucun epic actif. Quand l'utilisateur demande une feature, pose des questions de cadrage AVANT de lancer le pipeline (stack technique, scope, contraintes, public cible). Ne pas improviser.",
         _ => "Phase inconnue. Demande clarification a l'utilisateur.",
     }
 }

@@ -36,6 +36,18 @@ Ces regles sont imposees mecaniquement par des hooks. Les violer provoquera un b
 - Taches transversales ou administratives
 - Tache ambigue → demander des precisions
 
+## Cadrage initial (AVANT tout pipeline)
+
+Quand l'utilisateur demande une feature ou un nouveau projet, NE PAS lancer directement le pipeline. D'abord, poser des questions de cadrage :
+
+- **Stack technique** : quel langage, framework, outils ? (ne pas choisir a sa place)
+- **Scope** : quelles fonctionnalites sont incluses ? lesquelles sont hors scope ?
+- **Contraintes** : performance, accessibilite, compatibilite, budget temps ?
+- **Public cible** : qui utilisera l'app ? contexte d'usage ?
+- **Existant** : y a-t-il du code existant, des maquettes, des specs ?
+
+Ne lancer le pipeline qu'une fois les reponses obtenues. Sur un projet vierge, ces questions sont obligatoires. Sur un projet existant, adapter selon le contexte.
+
 ## Pipeline de developpement
 
 Phases : idle → comprehension → specification → architecture → implementation → review → test → closure
