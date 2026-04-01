@@ -1,6 +1,10 @@
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
+fn default_permission_mode() -> String {
+    "strict".to_string()
+}
+
 /// WorkflowState mirrors the schema in .workflow/state.json
 /// Extended with ZAOS-specific fields: history and session info
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,6 +23,9 @@ pub struct WorkflowState {
 
     #[serde(default)]
     pub session: Option<SessionMetadata>,
+
+    #[serde(default = "default_permission_mode")]
+    pub permission_mode: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -71,6 +78,7 @@ impl Default for WorkflowState {
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
             session: None,
+            permission_mode: default_permission_mode(),
         }
     }
 }
@@ -86,6 +94,7 @@ impl WorkflowState {
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
             session: None,
+            permission_mode: default_permission_mode(),
         }
     }
 

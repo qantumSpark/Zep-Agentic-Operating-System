@@ -125,6 +125,14 @@ impl WorkflowEngine {
         Ok(())
     }
 
+    /// Set permission mode (strict or accept-edits)
+    pub async fn set_permission_mode(&mut self, mode: String) -> Result<()> {
+        self.current_state.permission_mode = mode;
+        self.persist_and_notify().await?;
+        tracing::info!("Permission mode changed to: {}", self.current_state.permission_mode);
+        Ok(())
+    }
+
     /// Set epic
     pub async fn set_epic(&mut self, name: String) -> Result<()> {
         self.current_state.epic = name;

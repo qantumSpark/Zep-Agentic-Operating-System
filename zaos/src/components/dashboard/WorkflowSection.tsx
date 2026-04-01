@@ -11,6 +11,8 @@ export function WorkflowSection() {
   const task = useWorkflowStore((state) => state.task);
   const mode = useWorkflowStore((state) => state.mode);
   const setMode = useWorkflowStore((state) => state.setMode);
+  const permissionMode = useWorkflowStore((state) => state.permissionMode);
+  const setPermissionMode = useWorkflowStore((state) => state.setPermissionMode);
 
   const [epicName, setEpicName] = useState("");
   const [epicDesc, setEpicDesc] = useState("");
@@ -51,6 +53,16 @@ export function WorkflowSection() {
       await invoke("set_mode", { mode: newMode });
     } catch (error) {
       console.error("Failed to set workflow mode:", error);
+    }
+  };
+
+  const togglePermissionMode = async () => {
+    const newMode = permissionMode === "accept-edits" ? "strict" : "accept-edits";
+    setPermissionMode(newMode);
+    try {
+      await invoke("set_permission_mode", { mode: newMode });
+    } catch (error) {
+      console.error("Failed to set permission mode:", error);
     }
   };
 
@@ -126,6 +138,24 @@ export function WorkflowSection() {
             Pipeline
           </button>
         </div>
+      </div>
+
+      {/* Permissions */}
+      <div>
+        <label className="text-zinc-400 text-xs uppercase tracking-wide">Permissions</label>
+        <div className="mt-1 flex gap-2">
+          <button
+            onClick={togglePermissionMode}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              permissionMode === "accept-edits"
+                ? "bg-green-600 text-white"
+                : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+            }`}
+          >
+            {permissionMode === "accept-edits" ? "Accept Edits" : "Strict"}
+          </button>
+        </div>
+        <p className="text-zinc-500 text-xs mt-1">Auto-approve Write, Edit, WebSearch</p>
       </div>
 
       {/* Task */}

@@ -158,6 +158,7 @@ FAIS:\n\
 - Deleguer au Coder\n\
 - Mettre a jour current-epic.md apres CHAQUE task (marquer DONE)\n\
 - Suivre l'ordre du plan\n\
+- DO serialiser les npm install : un seul agent a la fois pour eviter les conflits ERESOLVE\n\
 NE FAIS PAS:\n\
 - Sauter des tasks\n\
 - Ajouter des features hors plan\n\

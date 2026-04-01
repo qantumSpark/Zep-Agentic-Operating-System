@@ -15,11 +15,11 @@
 | 6 | Workflow Kit Integration | TERMINE | 17 taches |
 | 7 | Project Portability & Workflow Init | TERMINE | 15 taches |
 | 8 | Workflow Integration Bugs | TERMINE | 8 taches |
-| 9 | Field-Tested Corrections | A FAIRE | ~28 taches, 5 milestones, 8 epics |
+| 9 | Field-Tested Corrections | TERMINE | 28 taches, 5 milestones, 8 epics |
 
 ## Epic active
 
-Epic 9.2.1 + 9.3.1 TERMINE (7/7 tasks). Prochains : 9.4.1 (permissions UX) + 9.5.1 (coordination agents).
+Aucune — Phase 9 complete. Toutes les epics terminees (9.1.1-9.5.1).
 
 ## Bugs connus
 
@@ -29,9 +29,11 @@ Epic 9.2.1 + 9.3.1 TERMINE (7/7 tasks). Prochains : 9.4.1 (permissions UX) + 9.5
 ## Technical debt
 
 - Phase stringly-typed en Rust
+- permission_mode stringly-typed (devrait etre enum comme WorkflowMode)
 - `as any` casts dans useTauriEvents.ts
 - Event names stringly-typed
 - `welcome` hook command = dead code
+- pipelineProgress objet recree a chaque workflow-change (pas de diff)
 
 ## Blocages
 
@@ -39,8 +41,5 @@ Aucun
 
 ## Prochaines priorites
 
-Phase 9 — Field-Tested Corrections (17 findings, voir `.memory/test-findings.md`)
-Sprint 1 : 9.1.1 + 9.1.4 (hooks) TERMINE
-Sprint 2 : 9.1.2 + 9.1.3 (pipeline + gate) TERMINE
-Sprint 3 : 9.2.1 (agents unifies) + 9.3.1 (dashboard) TERMINE
-Sprint 4 : 9.4.1 (permissions UX) || 9.5.1 (coordination agents)
+Phase 9 COMPLETE. Projet a 97% (156/160 tasks, 3 stubs restants en Phase 1).
+Prochaines options : Phase 10 (nouvelles features), cleanup stubs Phase 1, ou polish general.

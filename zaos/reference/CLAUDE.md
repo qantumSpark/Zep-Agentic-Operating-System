@@ -18,6 +18,7 @@ Ces regles sont imposees mecaniquement par des hooks. Les violer provoquera un b
    - Researcher → `.claude/agents/researcher.md`
 4. **JAMAIS inventer** — Ne jamais inventer une API, classe, methode ou signal. Verifier d'abord que ca existe.
 5. **JAMAIS assumer** — Si une info manque, poser la question a l'utilisateur.
+6. **JAMAIS deux npm install en parallele** — Quand plusieurs agents travaillent en parallele, UN SEUL agent fait les installations npm/yarn/pnpm. Les autres attendent ou travaillent sur des fichiers qui n'en dependent pas. Deleguer les installations au premier agent Coder, puis les autres commencent.
 
 ## Delegation aux agents
 

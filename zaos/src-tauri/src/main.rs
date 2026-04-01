@@ -75,6 +75,7 @@ fn main() {
             commands::respond_permission,
             commands::validate_gate,
             commands::set_mode,
+            commands::set_permission_mode,
             commands::get_workflow_state,
             commands::get_memory_state,
             commands::check_cli_auth,
@@ -106,6 +107,17 @@ fn main() {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }
+
+            // Sync permission_mode from persisted workflow state
+            let pm_sync = state.permission_mode.clone();
+            let wf_sync = state.workflow_engine.clone();
+            tauri::async_runtime::spawn(async move {
+                let mut engine = wf_sync.lock().await;
+                if let Ok(wf_state) = engine.load_state().await {
+                    *pm_sync.write().await = wf_state.permission_mode.clone();
+                    tracing::info!("Permission mode synced: {}", wf_state.permission_mode);
+                }
+            });
 
             // Start MCP server
             let wf_engine = state.workflow_engine.clone();

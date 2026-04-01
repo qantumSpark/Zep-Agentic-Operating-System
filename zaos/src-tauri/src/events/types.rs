@@ -255,6 +255,20 @@ pub struct ControlRequest {
     pub extra: Value,
 }
 
+impl ControlRequest {
+    pub fn tool_name(&self) -> Option<&str> {
+        self.tool.as_deref().or_else(|| {
+            self.extra.get("request")?.get("tool_name")?.as_str()
+        })
+    }
+
+    pub fn tool_input(&self) -> Option<serde_json::Value> {
+        self.input.clone().or_else(|| {
+            self.extra.get("request")?.get("input").cloned()
+        })
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Usage {
     pub input_tokens: u64,

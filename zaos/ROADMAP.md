@@ -1,7 +1,7 @@
 # ZAOS — Roadmap & Suivi d'Implementation
 
 > Derniere mise a jour : 2026-04-01
-> Statut global : **Phase 9 A FAIRE** — Field-Tested Corrections (17 findings du premier test run)
+> Statut global : **Phase 9 TERMINE** — Field-Tested Corrections (17 findings du premier test run)
 
 ---
 
@@ -242,11 +242,11 @@
 
 ### 9.4 Permissions UX (HAUTE)
 
-- [ ] Epic 9.4.1 — Toggle "Accept Edits" (Write/Edit/WebSearch auto-approve), "Always allow" per tool, indicateur visuel
+- [x] Epic 9.4.1 — Toggle "Accept Edits" (Write/Edit/WebSearch auto-approve), auto-approval interceptor Rust, indicateur visuel, persist state.json
 
 ### 9.5 Coordination Agents (HAUTE)
 
-- [ ] Epic 9.5.1 — Serialiser npm installs : regle + instruction inject-context
+- [x] Epic 9.5.1 — Serialiser npm installs : regle #6 dans CLAUDE.md + instruction inject-context implementation phase
 
 ---
 
@@ -265,5 +265,5 @@
 | Phase 6 | 17 | 17 | 0 | 0 | 100% |
 | Phase 7 | 15 | 15 | 0 | 0 | 100% |
 | Phase 8 | 8 | 8 | 0 | 0 | 100% |
-| Phase 9 | 28 | 18 | 0 | 10 | 64% |
-| **Total** | **160** | **146** | **3** | **10** | **91%** |
+| Phase 9 | 28 | 28 | 0 | 0 | 100% |
+| **Total** | **160** | **156** | **3** | **0** | **97%** |

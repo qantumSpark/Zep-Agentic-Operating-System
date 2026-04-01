@@ -18,6 +18,7 @@ pub struct AppState {
     pub watcher_service: Arc<Mutex<FileWatcherService>>,
     pub screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
     pub project_dir: Arc<RwLock<PathBuf>>,
+    pub permission_mode: Arc<RwLock<String>>,
 }
 
 impl AppState {
@@ -39,6 +40,7 @@ impl AppState {
                 ),
             )),
             project_dir: Arc::new(RwLock::new(project_dir)),
+            permission_mode: Arc::new(RwLock::new("strict".to_string())),
         }
     }
 
@@ -81,6 +83,7 @@ pub struct WorkflowStateResponse {
     pub task: String,
     pub mode: String,
     pub gate_validated: bool,
+    pub permission_mode: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -123,6 +126,7 @@ pub async fn send_prompt(
 
             // Spawn event forwarder (runs for the lifetime of the session)
             let sm = session_manager.clone();
+            let pm = state.permission_mode.clone();
             let app_handle = app.clone();
             tokio::spawn(async move {
                 tracing::info!("Event forwarder started");
@@ -135,6 +139,48 @@ pub async fn send_prompt(
                         let mut mgr = sm.lock().await;
                         mgr.set_session_id(sys.session_id.clone());
                         tracing::info!("Session ID captured: {}", sys.session_id);
+                    }
+
+                    // Auto-approval for permission requests in accept-edits mode
+                    if let CliEvent::ControlRequest(ref req) = event {
+                        let is_accept_edits = {
+                            let mode = pm.read().await;
+                            mode.as_str() == "accept-edits"
+                        };
+
+                        if is_accept_edits {
+                            const AUTO_APPROVE: &[&str] =
+                                &["Write", "Edit", "MultiEdit", "WebSearch", "WebFetch"];
+                            if let Some(tool) = req.tool_name() {
+                                if AUTO_APPROVE.contains(&tool) {
+                                    let input = req.tool_input();
+                                    let mut mgr = sm.lock().await;
+                                    match mgr
+                                        .send_permission_response(
+                                            &req.request_id,
+                                            true,
+                                            input,
+                                        )
+                                        .await
+                                    {
+                                        Ok(()) => {
+                                            tracing::info!(
+                                                "Auto-approved {} (request {})",
+                                                tool,
+                                                req.request_id
+                                            );
+                                            continue;
+                                        }
+                                        Err(e) => {
+                                            tracing::error!(
+                                                "Auto-approval response failed: {}",
+                                                e
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // Emit to frontend
@@ -266,6 +312,31 @@ pub async fn set_mode(
     })
 }
 
+/// Set permission mode (strict or accept-edits)
+#[tauri::command]
+pub async fn set_permission_mode(
+    mode: String,
+    state: State<'_, AppState>,
+) -> Result<SetModeResponse, String> {
+    let valid_modes = ["strict", "accept-edits"];
+    if !valid_modes.contains(&mode.as_str()) {
+        return Err(format!("Invalid permission mode: {}. Valid: strict, accept-edits", mode));
+    }
+
+    // Update runtime cache
+    *state.permission_mode.write().await = mode.clone();
+
+    // Persist via engine (uses persist_and_notify for broadcast)
+    let mut engine = state.workflow_engine.lock().await;
+    engine.set_permission_mode(mode.clone()).await.map_err(|e| e.to_string())?;
+
+    tracing::info!("Permission mode set to: {}", mode);
+    Ok(SetModeResponse {
+        success: true,
+        mode,
+    })
+}
+
 /// Get current workflow state
 #[tauri::command]
 pub async fn get_workflow_state(
@@ -279,6 +350,7 @@ pub async fn get_workflow_state(
         task: wf_state.task.clone(),
         mode: format!("{:?}", wf_state.mode).to_lowercase(),
         gate_validated: wf_state.gate_validated,
+        permission_mode: wf_state.permission_mode.clone(),
     })
 }
 /// Check CLI authentication status
@@ -645,7 +717,10 @@ pub async fn switch_project(
         Box::new(FilesystemAdapter),
     );
 
-    // 8. Update project_dir (after all services are replaced)
+    // 8. Reset permission_mode cache
+    *state.permission_mode.write().await = "strict".to_string();
+
+    // 9. Update project_dir (after all services are replaced)
     *state.project_dir.write().await = new_dir.clone();
 
     // 9. Restart watchers
