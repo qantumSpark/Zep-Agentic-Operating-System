@@ -8,6 +8,11 @@ export function statusColor(status: string): string {
     return "bg-blue-700/60 text-blue-300";
   if (s.startsWith("BLOCK") || s.startsWith("BLOQU"))
     return "bg-red-700/60 text-red-300";
+  // Product contract statuses
+  if (s === "PASS") return "bg-green-700/60 text-green-300";
+  if (s === "FAIL") return "bg-red-700/60 text-red-300";
+  if (s === "N/A") return "bg-zinc-500/40 text-zinc-400";
+  if (s === "TODO") return "bg-amber-700/50 text-amber-300";
   // default: not started / A FAIRE / pending
   return "bg-zinc-600/60 text-zinc-300";
 }

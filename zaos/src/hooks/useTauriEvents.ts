@@ -10,7 +10,9 @@ import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
 import { useWorkflowKitStore, applyKitStatus, type AgentDef, type KitStatusResponse } from "../stores/workflowKitStore";
 import { useProjectStore } from "../stores/projectStore";
+import { useProductStore } from "../stores/productStore";
 import { useAgentsStore } from "../stores/agentsStore";
+import type { ProductContract } from "../types/productContract";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
 
@@ -258,6 +260,7 @@ export function useTauriEvents() {
           useSessionStore.getState().resetSession();
           useScreenshotStore.getState().reset();
           useWorkflowKitStore.getState().reset();
+          useProductStore.getState().reset();
 
           // Reload all project data in parallel
           Promise.all([
@@ -279,6 +282,8 @@ export function useTauriEvents() {
               }),
             invoke<BackendWorkflowPayload>("get_workflow_state")
               .then((wfState) => useWorkflowStore.getState().setFullState(wfState)),
+            invoke<ProductContract>("get_product_contract")
+              .then((contract) => useProductStore.getState().setProductContract(contract)),
           ]).catch((e) => console.error("Failed to reload project data:", e));
         }
       );

@@ -1,6 +1,6 @@
 # Etat courant ZAOS
 
-> Derniere mise a jour : 2026-04-03
+> Derniere mise a jour : 2026-04-04
 > ECRASE a chaque mise a jour. Max 50 lignes.
 
 ## Milestones
@@ -19,11 +19,11 @@
 | 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
 | 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
 | 12 | Test Run Baseline Fixes | TERMINE | 3 epics + micro-fix 1D |
-| 13 | Product Contract Layer | EN COURS | Epic 1: DONE, Epic 2: DONE, Epic 3: Frontend |
+| 13 | Product Contract Layer | TERMINE | 3 epics (Formats, Backend, Frontend) |
 
 ## Epic active
 
-_Entre epics — Epic 2 terminee, Epic 3 a venir_
+_Aucun epic en cours._
 
 ## Blocages
 
@@ -31,4 +31,4 @@ Aucun
 
 ## Prochaines priorites
 
-Sprint 2A : Epic 1 (Formats & Init) → Epic 2 (Backend Memory) → Epic 3 (Frontend Stores & UI)
+Sprint 2A termine. Prochain : test run validation ou Sprint 2B.

@@ -2,6 +2,7 @@ import { CollapsibleSection } from "../common/CollapsibleSection";
 import { WorkflowSection } from "./WorkflowSection";
 import { PipelineSection } from "./PipelineSection";
 import { MemorySection } from "./MemorySection";
+import { ProductSection } from "./ProductSection";
 import { ActionsFeed } from "./ActionsFeed";
 import { UnifiedAgentsSection } from "./UnifiedAgentsSection";
 import { RulesManager } from "./RulesManager";
@@ -28,6 +29,10 @@ export function DashboardPanel() {
 
       <CollapsibleSection title="Memory" defaultOpen={true}>
         <MemorySection />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Product" defaultOpen={true}>
+        <ProductSection />
       </CollapsibleSection>
 
       <CollapsibleSection title="Actions (live)" defaultOpen={true}>

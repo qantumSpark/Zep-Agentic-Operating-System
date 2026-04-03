@@ -15,6 +15,8 @@ import { useThemeStore } from "./stores/themeStore";
 import { useProjectStore } from "./stores/projectStore";
 import { useWorkflowKitStore, applyKitStatus } from "./stores/workflowKitStore";
 import type { AgentDef, KitStatusResponse } from "./stores/workflowKitStore";
+import { useProductStore } from "./stores/productStore";
+import type { ProductContract } from "./types/productContract";
 import type { Screenshot } from "./types/screenshots";
 
 /**
@@ -44,13 +46,14 @@ export function App() {
         await requestPermission();
       }
 
-      const [authResult, memResult, screenshotResult, projectResult, kitResult, agentsResult] = await Promise.allSettled([
+      const [authResult, memResult, screenshotResult, projectResult, kitResult, agentsResult, productResult] = await Promise.allSettled([
         invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
         invoke<MemoryStateResponse>("get_memory_state"),
         invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
         invoke<{ path: string; name: string }>("get_project_info"),
         invoke<KitStatusResponse>("get_workflow_kit_status"),
         invoke<{ name: string; description: string }[]>("list_agents"),
+        invoke<ProductContract>("get_product_contract"),
       ]);
       if (authResult.status === "fulfilled") {
         useSessionStore.getState().setCliAuth(authResult.value.authenticated, authResult.value.version, authResult.value.message);
@@ -88,6 +91,11 @@ export function App() {
         useWorkflowKitStore.getState().setAgents(agentDefs);
       } else {
         console.error("list_agents failed:", agentsResult.reason);
+      }
+      if (productResult.status === "fulfilled") {
+        useProductStore.getState().setProductContract(productResult.value);
+      } else {
+        console.error("get_product_contract failed:", productResult.reason);
       }
     })();
   }, []);

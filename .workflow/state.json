@@ -1,11 +1,11 @@
 {
   "phase": "closure",
-  "epic": "Backend Memory",
+  "epic": "Frontend Stores & UI",
   "task": "",
   "mode": "pipeline",
   "gate_validated": false,
   "gate_ready": false,
-  "last_updated": "2026-04-03T00:00:00Z",
+  "last_updated": "2026-04-04T00:00:00Z",
   "history": [],
   "session": null,
   "permission_mode": "accept-edits"
