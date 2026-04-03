@@ -52,6 +52,19 @@ fn map_stream_delta(sd: &StreamDeltaEvent) -> Vec<ZaosEvent> {
                 action: "block_start".to_string(),
                 block_type: Some(content_block.block_type.clone()),
             });
+
+            // Early ToolCallStarted: emit as soon as we know it's a tool_use block
+            if content_block.block_type == "tool_use" {
+                if let Some(ref id) = content_block.id {
+                    events.push(ZaosEvent::ToolCallStarted {
+                        id: id.clone(),
+                        name: content_block.name.clone().unwrap_or_default(),
+                        input: content_block.input.clone().unwrap_or(serde_json::Value::Object(Default::default())),
+                        parent_tool_use_id: sd.parent_tool_use_id.clone(),
+                        message_id: String::new(),
+                    });
+                }
+            }
         }
         ApiStreamEvent::ContentBlockDelta { delta, .. } => match delta {
             DeltaContent::TextDelta { text } => {
@@ -289,5 +302,59 @@ mod tests {
         };
         let events = map_cli_event(&CliEvent::System(sys));
         assert!(matches!(events[0], ZaosEvent::Unknown {}));
+    }
+
+    #[test]
+    fn test_early_tool_call_started_on_content_block_start() {
+        let sd = StreamDeltaEvent {
+            event: ApiStreamEvent::ContentBlockStart {
+                index: 0,
+                content_block: ContentBlockInfo {
+                    block_type: "tool_use".to_string(),
+                    text: None,
+                    id: Some("tool_123".to_string()),
+                    name: Some("Read".to_string()),
+                    input: Some(serde_json::json!({})),
+                },
+            },
+            parent_tool_use_id: None,
+            session_id: "test-session".to_string(),
+            uuid: "test-uuid".to_string(),
+        };
+
+        let events = map_cli_event(&CliEvent::StreamDelta(sd));
+
+        // Should have StreamControl + ToolCallStarted
+        let tool_started = events.iter().find(|e| matches!(e, ZaosEvent::ToolCallStarted { .. }));
+        assert!(tool_started.is_some(), "Should emit early ToolCallStarted for tool_use ContentBlockStart");
+
+        if let Some(ZaosEvent::ToolCallStarted { id, name, .. }) = tool_started {
+            assert_eq!(id, "tool_123");
+            assert_eq!(name, "Read");
+        }
+    }
+
+    #[test]
+    fn test_no_tool_call_started_on_text_block_start() {
+        let sd = StreamDeltaEvent {
+            event: ApiStreamEvent::ContentBlockStart {
+                index: 0,
+                content_block: ContentBlockInfo {
+                    block_type: "text".to_string(),
+                    text: Some("Hello".to_string()),
+                    id: None,
+                    name: None,
+                    input: None,
+                },
+            },
+            parent_tool_use_id: None,
+            session_id: "test-session".to_string(),
+            uuid: "test-uuid".to_string(),
+        };
+
+        let events = map_cli_event(&CliEvent::StreamDelta(sd));
+
+        let tool_started = events.iter().find(|e| matches!(e, ZaosEvent::ToolCallStarted { .. }));
+        assert!(tool_started.is_none(), "Should NOT emit ToolCallStarted for text ContentBlockStart");
     }
 }
