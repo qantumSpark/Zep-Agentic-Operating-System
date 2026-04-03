@@ -25,21 +25,51 @@ const AGENT_KEYWORDS: Record<string, string[]> = {
   tester: ["test", "spec", "scenario", "verify behavior", "edge case"],
 };
 
+/**
+ * Map a subagent type and description to a known agent name.
+ *
+ * Priority:
+ *   1. Explicit `.claude/agents/<name>.md` reference in prompt
+ *   2. Direct match: subagentType is a known agent name
+ *   3. Scoring: count keyword matches per agent, highest score wins
+ *      - +1 per keyword found in description
+ *      - +2 bonus if subagentType contains the agent name
+ *
+ * Expected mappings:
+ *   ("general-purpose", "research and verify docs") → "researcher"
+ *   ("general-purpose", "implement fix for parser bug") → "coder"
+ *   ("general-purpose", "review and validate quality of code") → "reviewer" (2 hits vs 1 for coder)
+ *   ("general-purpose", "plan architecture breakdown") → "architect" (3 hits)
+ *   ("coder", "implement stuff") → "coder" (direct match on step 2)
+ */
 export function mapAgentName(subagentType: string, description: string, prompt?: string): string {
   // 1. Check prompt for explicit agent file reference
   if (prompt) {
     const match = prompt.match(/\.claude\/agents\/(\w+)\.md/);
     if (match) return match[1];
   }
-  // 2. If subagent_type is a known agent name, use it
+  // 2. If subagent_type is a known agent name, use it directly
   if (subagentType in AGENT_KEYWORDS) return subagentType;
-  // 3. Keyword matching on description
+  // 3. Scoring-based keyword matching on description
   const desc = description.toLowerCase();
+  let bestAgent = "";
+  let bestScore = 0;
+
   for (const [agent, keywords] of Object.entries(AGENT_KEYWORDS)) {
-    if (keywords.some((kw) => desc.includes(kw))) return agent;
+    let score = 0;
+    for (const kw of keywords) {
+      if (desc.includes(kw)) score += 1;
+    }
+    // Bonus: if subagentType contains the agent name (e.g. "general-purpose" doesn't, but "coder-agent" would)
+    if (subagentType.toLowerCase().includes(agent)) score += 2;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestAgent = agent;
+    }
   }
-  // 4. Fallback
-  return subagentType;
+
+  return bestAgent || subagentType;
 }
 
 const MAX_DELEGATIONS = 50;
