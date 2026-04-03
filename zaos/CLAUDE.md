@@ -22,20 +22,42 @@ Ces regles sont imposees mecaniquement par des hooks. Les violer provoquera un b
 
 ## Delegation aux agents
 
-| Situation | Agent |
-|---|---|
-| Nouvelle feature, choix d'archi, restructuration | → Architect |
-| Implementation d'un plan valide | → Coder |
-| Code termine, besoin de validation qualite | → Reviewer |
-| Ecriture ou verification de tests | → Tester |
-| Besoin d'infos, verification doc, collecte de references | → Researcher |
+| Situation | Agent | Comment deleguer |
+|---|---|---|
+| Nouvelle feature, choix d'archi, restructuration | Architect | Agent avec prompt incluant `.claude/agents/architect.md` |
+| Implementation d'un plan valide | Coder | Agent avec prompt incluant `.claude/agents/coder.md` |
+| Code termine, besoin de validation qualite | Reviewer | Agent avec prompt incluant `.claude/agents/reviewer.md` |
+| Ecriture ou verification de tests | Tester | Agent avec prompt incluant `.claude/agents/tester.md` |
+| Besoin d'infos, verification doc, collecte de references | Researcher | Agent avec prompt incluant `.claude/agents/researcher.md` |
+
+### Comment deleguer correctement
+
+Quand tu lances un Agent pour deleguer, tu DOIS :
+1. Commencer le prompt par : "Tu es le [Role] du projet. Lis `.claude/agents/[role].md` pour tes instructions."
+2. Decrire la tache precise avec les fichiers concernes
+3. Ne JAMAIS utiliser `general-purpose` comme subagent_type quand un agent specifique existe
+
+Exemple correct :
+> Agent(description="Implement parser fix", prompt="Tu es le Codeur du projet. Lis `.claude/agents/coder.md` pour tes instructions. Implemente la tache 3.1 : corriger parse_md_table_row dans reader.rs...")
+
+Exemple INCORRECT :
+> Agent(description="Implement parser fix", prompt="Fix the parser bug in reader.rs")
+> → Pas de reference a l'agent, le LLM utilisera general-purpose par defaut
 
 ## Quand agir directement (sans deleguer)
 
 - Questions simples, explications, debug rapide
-- Mise a jour des fichiers memoire
+- Mise a jour des fichiers memoire (.memory/, .workflow/)
 - Taches transversales ou administratives
 - Tache ambigue → demander des precisions
+
+### Quand l'Architecte peut etre skip
+
+Pour les raccourcis pipeline (bugfix, refactor), la phase architecture peut etre simplifiee :
+- **Bugfix simple** (1-3 fichiers, cause identifiee) : l'orchestrateur peut faire le plan directement
+- **Refactor trivial** (renommage, reorganisation sans changement de logique) : idem
+
+Dans tous les autres cas, deleguer a l'Architecte. En cas de doute, deleguer.
 
 ## Cadrage initial (AVANT tout pipeline)
 
@@ -92,6 +114,16 @@ Phases : idle → comprehension → specification → architecture → implement
 | Refactoring | comprehension → architecture → implementation → review → closure |
 | Question / explication | Repondre directement (pas de pipeline) |
 | Recherche pure | comprehension → Researcher → closure |
+
+### Apres une review
+
+Quand le Reviewer retourne des corrections (BLOQUANT ou SUGGESTION) :
+1. TOUJOURS deleguer les corrections au Coder — JAMAIS les appliquer toi-meme
+2. Meme si les corrections semblent triviales (1 ligne, typo, renommage)
+3. Le Coder recoit le rapport du Reviewer et applique les corrections
+4. Apres correction, relancer le Reviewer si des BLOQUANTS existaient
+
+Cette regle est non-negociable : l'orchestrateur ne code JAMAIS, meme pour des "petites" corrections.
 
 ## Format des fichiers memoire (STRICT)
 
