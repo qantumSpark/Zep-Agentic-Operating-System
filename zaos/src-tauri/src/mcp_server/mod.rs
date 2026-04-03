@@ -227,6 +227,7 @@ impl ServerHandler for ZaosIdeServer {
 /// Information about the running MCP server, used for cleanup on shutdown.
 pub struct McpServerHandle {
     pub port: u16,
+    #[allow(dead_code)]
     pub token: String,
     pub cancel_token: CancellationToken,
     pub project_dir: PathBuf,

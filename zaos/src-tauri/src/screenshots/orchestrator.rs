@@ -18,6 +18,7 @@ use super::types::{
 pub struct ScreenshotOrchestrator {
     screenshots_dir: PathBuf,
     screenshot_index: ScreenshotIndex,
+    #[allow(dead_code)]
     iteration_index: IterationIndex,
     adapter: Box<dyn CaptureAdapter>,
 }
@@ -158,6 +159,7 @@ impl ScreenshotOrchestrator {
     }
 
     /// Return all iterations from the iteration index.
+    #[allow(dead_code)]
     pub async fn get_iterations(&self) -> Result<Vec<Iteration>> {
         self.iteration_index.load().await
     }
@@ -166,6 +168,7 @@ impl ScreenshotOrchestrator {
     ///
     /// Creates an [`Iteration`] with status [`IterationStatus::Capturing`],
     /// persists it, and returns it.
+    #[allow(dead_code)]
     pub async fn start_iteration(
         &self,
         target_description: Option<String>,
@@ -185,6 +188,7 @@ impl ScreenshotOrchestrator {
     }
 
     /// Update the status of an existing iteration.
+    #[allow(dead_code)]
     pub async fn update_iteration_status(
         &self,
         id: &str,
@@ -201,6 +205,7 @@ impl ScreenshotOrchestrator {
     }
 
     /// Attach a screenshot to an existing iteration.
+    #[allow(dead_code)]
     pub async fn add_screenshot_to_iteration(
         &self,
         iteration_id: &str,

@@ -57,9 +57,11 @@ pub enum WorkflowError {
     InvalidPhase(String),
 
     #[error("State file not found")]
+    #[allow(dead_code)]
     StateNotFound,
 
     #[error("Watch error: {0}")]
+    #[allow(dead_code)]
     WatchError(String),
 }
 
@@ -113,6 +115,7 @@ impl WorkflowEngine {
     }
 
     /// Get current phase
+    #[allow(dead_code)]
     pub fn get_phase(&self) -> &str {
         &self.current_state.phase
     }
@@ -209,6 +212,7 @@ impl WorkflowEngine {
     }
 
     /// Set epic
+    #[allow(dead_code)]
     pub async fn set_epic(&mut self, name: String) -> Result<()> {
         self.current_state.epic = name;
         self.persist_and_notify().await?;
@@ -234,6 +238,7 @@ impl WorkflowEngine {
     }
 
     /// Set task
+    #[allow(dead_code)]
     pub async fn set_task(&mut self, description: String) -> Result<()> {
         self.current_state.task = description;
         self.persist_and_notify().await?;
@@ -241,6 +246,7 @@ impl WorkflowEngine {
     }
 
     /// Get pipeline for a task type
+    #[allow(dead_code)]
     pub fn get_pipeline_for_task_type(&self, task_type: &str) -> Vec<&'static str> {
         match task_type {
             "bugfix" => vec!["comprehension", "implementation", "review", "closure"],
@@ -268,6 +274,7 @@ impl WorkflowEngine {
     }
 
     /// Watch state file for changes (returns broadcast receiver)
+    #[allow(dead_code)]
     pub fn watch_state_file(&self) -> broadcast::Receiver<WorkflowState> {
         self.tx.subscribe()
     }
@@ -278,6 +285,7 @@ impl WorkflowEngine {
     }
 
     /// Get mutable current state
+    #[allow(dead_code)]
     pub fn get_state_mut(&mut self) -> &mut WorkflowState {
         &mut self.current_state
     }
@@ -440,6 +448,24 @@ mod tests {
 
         let result = engine.try_mark_gate_ready_after_turn(false).await.expect("try_mark");
         assert!(!result, "should skip when gate already validated");
+        assert!(!engine.get_state().gate_ready);
+    }
+
+    #[tokio::test]
+    async fn test_gate_ready_skip_free_mode() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"implementation","epic":"test","task":"","mode":"free","gate_validated":false,"gate_ready":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        let result = engine.try_mark_gate_ready_after_turn(false).await.expect("try_mark");
+        assert!(!result, "should skip when mode is free (not pipeline)");
         assert!(!engine.get_state().gate_ready);
     }
 }

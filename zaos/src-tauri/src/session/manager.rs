@@ -12,12 +12,15 @@ pub enum SessionError {
     Io(#[from] std::io::Error),
 
     #[error("CLI not found in PATH")]
+    #[allow(dead_code)]
     CliNotFound,
 
     #[error("Session not spawned")]
+    #[allow(dead_code)]
     NotSpawned,
 
     #[error("Parse error: {0}")]
+    #[allow(dead_code)]
     ParseError(String),
 
     #[error("Runtime error: {0}")]
@@ -26,6 +29,7 @@ pub enum SessionError {
 pub type Result<T> = std::result::Result<T, SessionError>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct SessionInfo {
     pub session_id: String,
     pub project_dir: PathBuf,
@@ -75,6 +79,7 @@ impl SessionManager {
     }
 
     /// Get current session ID.
+    #[allow(dead_code)]
     pub fn get_session_id(&self) -> Option<&str> {
         self.runtime.get_session_id()
     }

@@ -11,6 +11,7 @@ use super::types::{CaptureContext, CaptureRequest};
 /// Each adapter knows how to request a screenshot capture through
 /// a specific mechanism (filesystem watch, CLI MCP call, etc.).
 #[async_trait]
+#[allow(dead_code)]
 pub trait CaptureAdapter: Send + Sync {
     /// Human-readable name of this adapter
     fn name(&self) -> &str;
@@ -46,10 +47,12 @@ impl CaptureAdapter for FilesystemAdapter {
 
 /// Adapter that sends a formatted prompt to the Claude CLI session
 /// to trigger an MCP screenshot capture (chrome-devtools, GoPeak, etc.).
+#[allow(dead_code)]
 pub struct CliMcpAdapter {
     session_manager: Arc<Mutex<SessionManager>>,
 }
 
+#[allow(dead_code)]
 impl CliMcpAdapter {
     pub fn new(session_manager: Arc<Mutex<SessionManager>>) -> Self {
         Self { session_manager }

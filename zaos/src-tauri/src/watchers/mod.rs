@@ -1,3 +1,3 @@
 pub mod service;
 
-pub use service::{FileWatcherService, WatchCategory};
+pub use service::FileWatcherService;

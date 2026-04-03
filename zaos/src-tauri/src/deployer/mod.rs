@@ -9,6 +9,7 @@ use sync::SyncReport;
 /// Find the zaos-hooks binary path.
 /// In dev mode: look in target/debug/
 /// In production: look in .zaos/bin/ or next to the main binary.
+#[allow(dead_code)]
 pub fn find_hooks_binary(project_dir: &Path) -> Option<PathBuf> {
     // Check .zaos/bin/ first (deployed)
     let deployed = project_dir.join(".zaos").join("bin").join(hooks_binary_name());

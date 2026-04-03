@@ -1,4 +1,4 @@
 pub mod logger;
 pub mod manager;
 
-pub use manager::{CliSession, SessionError, SessionInfo, SessionManager};
+pub use manager::{CliSession, SessionManager};

@@ -45,6 +45,7 @@ pub struct Viewport {
 /// An iteration in the capture-evaluate-fix loop
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub struct Iteration {
     pub id: String,
     pub started_at: String,
@@ -57,6 +58,7 @@ pub struct Iteration {
 /// Status of an iteration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(dead_code)]
 pub enum IterationStatus {
     Capturing,
     Evaluating,
@@ -69,6 +71,7 @@ pub enum IterationStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
+#[allow(dead_code)]
 pub enum ProjectType {
     Web { base_url: Option<String> },
     Godot,

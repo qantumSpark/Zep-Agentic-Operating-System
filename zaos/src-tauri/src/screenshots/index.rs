@@ -81,6 +81,7 @@ impl ScreenshotIndex {
     }
 
     /// Return all screenshots belonging to a given iteration.
+    #[allow(dead_code)]
     pub async fn get_by_iteration(&self, iteration_id: &str) -> Result<Vec<Screenshot>> {
         let screenshots = self.load().await?;
         Ok(screenshots
@@ -91,10 +92,12 @@ impl ScreenshotIndex {
 }
 
 /// JSON index manager for iterations, persisted to `.screenshots/iterations.json`.
+#[allow(dead_code)]
 pub struct IterationIndex {
     index_path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl IterationIndex {
     /// Create a new index manager pointing at `screenshots_dir/iterations.json`.
     pub fn new(screenshots_dir: PathBuf) -> Self {

@@ -53,7 +53,10 @@ fn map_stream_delta(sd: &StreamDeltaEvent) -> Vec<ZaosEvent> {
                 block_type: Some(content_block.block_type.clone()),
             });
 
-            // Early ToolCallStarted: emit as soon as we know it's a tool_use block
+            // Early ToolCallStarted: emit as soon as we know it's a tool_use block.
+            // The same tool will also emit ToolCallStarted later via map_assistant()
+            // when the full AssistantEvent arrives. The frontend deduplicates by
+            // tool_use_id (seenBlockIds in useStreaming.ts), so the duplicate is safe.
             if content_block.block_type == "tool_use" {
                 if let Some(ref id) = content_block.id {
                     events.push(ZaosEvent::ToolCallStarted {

@@ -86,6 +86,7 @@ impl Default for WorkflowState {
     }
 }
 
+#[allow(dead_code)]
 impl WorkflowState {
     pub fn new(phase: String, epic: String, task: String) -> Self {
         WorkflowState {

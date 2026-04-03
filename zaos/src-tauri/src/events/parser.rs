@@ -14,6 +14,7 @@ pub enum ParserError {
     JsonParse(#[from] serde_json::Error),
 
     #[error("Channel send error")]
+    #[allow(dead_code)]
     ChannelSend,
 }
 

@@ -87,6 +87,7 @@ pub trait AgentRuntime: Send + Sync {
     fn set_session_id(&mut self, id: String);
 
     /// Get the current session ID, if any.
+    #[allow(dead_code)]
     fn get_session_id(&self) -> Option<&str>;
 
     /// List past sessions from this runtime's storage.

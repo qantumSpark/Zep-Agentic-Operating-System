@@ -53,6 +53,7 @@ impl MemoryIndex {
     }
 
     /// Find an entry by filename across all sections.
+    #[allow(dead_code)]
     pub fn find_by_filename(&self, filename: &str) -> Option<&MemoryIndexEntry> {
         self.all_entries().find(|e| e.filename == filename)
     }
