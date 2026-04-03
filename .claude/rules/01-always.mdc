@@ -1,0 +1,33 @@
+---
+description: Règles universelles — toujours actives à chaque interaction
+globs:
+alwaysApply: true
+---
+
+# Règles universelles
+
+## Début de session
+- TOUJOURS lire `.memory/INDEX.md` et `.memory/state.md` avant toute action
+- Si `.memory/current-epic.md` existe et contient une epic active, le lire aussi
+- Ne jamais agir sur le projet sans avoir d'abord compris le contexte
+
+## Avant de créer un fichier
+- Vérifier dans `.memory/architecture.md` que le fichier n'existe pas déjà
+- Vérifier que l'emplacement est cohérent avec la structure du projet
+- Si un doute existe sur l'emplacement → demander à l'utilisateur
+
+## Avant de coder
+- Lire `.memory/conventions.md` pour les standards du projet
+- Lire l'overlay techno actif (`.overlays/godot/` ou `.overlays/flutter/`)
+- S'assurer qu'un plan de tasks existe dans `.memory/current-epic.md`
+
+## Pendant le travail
+- Ne jamais assumer une information manquante — poser la question
+- Travailler par petits incréments vérifiables
+- Signaler immédiatement tout écart par rapport au plan
+
+## Fin de session
+- Proposer une mise à jour de `.memory/state.md`
+- Proposer une mise à jour de `.memory/current-epic.md` si applicable
+- Écrire un session log dans `.memory/sessions/`
+- L'utilisateur valide avant toute écriture en mémoire

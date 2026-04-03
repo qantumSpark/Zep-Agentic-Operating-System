@@ -1,6 +1,6 @@
 # Etat courant ZAOS
 
-> Derniere mise a jour : 2026-04-01
+> Derniere mise a jour : 2026-04-03
 > ECRASE a chaque mise a jour. Max 50 lignes.
 
 ## Milestones
@@ -18,31 +18,20 @@
 | 9 | Field-Tested Corrections | TERMINE | 28 taches, 5 milestones, 8 epics |
 | 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
 | 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
+| 12 | Test Run Baseline Fixes | EN COURS | 3 epics, 18 sous-taches |
 
 ## Epic active
 
-Aucune — Phase 11 TERMINE (193/193 taches total)
-
-## Bugs connus
-
-- `list_sessions` retourne toujours vide (priorite basse)
-- tsconfig.node.json reference issue (pre-existant, non bloquant)
-
-## Technical debt
-
-- Phase stringly-typed en Rust
-- permission_mode stringly-typed (devrait etre enum comme WorkflowMode)
-- Event names stringly-typed
-- `welcome` hook command = dead code
-- pipelineProgress objet recree a chaque workflow-change (pas de diff)
-- `Message` et `Action` types encore dans events.ts (devraient etre dans un fichier UI separe)
-- Erreurs TS pre-existantes dans claudeMapper.ts (mode standalone sans tsconfig)
+Dashboard Fixes (React/TS + Rust) — EN COURS (0/18 taches)
 
 ## Blocages
 
 Aucun
 
-## Prochaines priorites
+## Plan Epic 2 (5 commits)
 
-Phase 11 COMPLETE. 193/193 tasks. V1.5 stabilise : securite, runtime abstrait, events normalises.
-Prochaines options : test run #3 de validation, nouvelles features, ou polish general.
+1. Stabilize workflow state propagation (4 sous-taches)
+2. Harden gate_ready transitions (5 sous-taches)
+3. Fix parse_md_table_row (3 sous-taches)
+4. Emit early ToolCallStarted safely (3 sous-taches)
+5. Improve mapAgentName with scoring (3 sous-taches)

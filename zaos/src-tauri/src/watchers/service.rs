@@ -198,9 +198,11 @@ impl FileWatcherService {
                                             match serde_json::from_str::<WorkflowState>(&content) {
                                                 Ok(state) => {
                                                     tracing::info!(
-                                                        "Workflow state changed: phase={}, epic={}",
+                                                        "Workflow state changed: phase={}, epic={}, gate_ready={}, gate_validated={}",
                                                         state.phase,
-                                                        state.epic
+                                                        state.epic,
+                                                        state.gate_ready,
+                                                        state.gate_validated
                                                     );
                                                     if let Err(e) =
                                                         app_handle.emit("workflow-change", &state)

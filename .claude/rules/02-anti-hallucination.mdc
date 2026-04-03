@@ -1,0 +1,33 @@
+---
+description: Garde-fous anti-hallucination — vérifications obligatoires avant de coder
+globs:
+alwaysApply: true
+---
+
+# Règles anti-hallucination
+
+## APIs et méthodes
+- Ne JAMAIS inventer une API, classe, méthode, signal ou propriété
+- Si tu n'es pas certain qu'une API existe → le dire explicitement : "Je ne suis pas sûr que cette méthode existe, vérifie dans la doc"
+- Avant d'utiliser une API peu courante → demander au Researcher de vérifier dans la documentation officielle
+
+## Imports et références
+- Vérifier que chaque import référence un fichier qui existe réellement dans le projet
+- Vérifier que chaque chemin de fichier, nom de scène, nom de node est correct
+- Ne jamais référencer un fichier, une classe ou une ressource sans avoir vérifié son existence
+
+## Patterns et architecture
+- Citer la source quand tu utilises un pattern : "selon les conventions du projet dans conventions.md" ou "d'après la documentation officielle"
+- Ne pas introduire de nouveau pattern sans passer par l'Architecte
+- Respecter les décisions documentées dans `.memory/decisions/`
+
+## Code incomplet
+- INTERDICTION de générer du code "placeholder" silencieux (qui compile mais ne fait rien)
+- Tout code incomplet DOIT avoir un commentaire `# TODO:` explicite avec description de ce qui manque
+- Si une implémentation complète n'est pas possible → le signaler et expliquer pourquoi
+
+## Niveau de confiance
+- Quand tu es sûr d'une information → procéder normalement
+- Quand tu as un doute → l'exprimer clairement et proposer de vérifier
+- Quand tu ne sais pas → le dire et déléguer au Researcher ou demander à l'utilisateur
+- Ne JAMAIS présenter une supposition comme un fait

@@ -289,6 +289,45 @@ impl WorkflowEngine {
         tracing::info!("Gate ready set to: {}", ready);
         Ok(())
     }
+
+    /// Attempt to mark gate as ready after a successful CLI turn.
+    /// Returns Ok(true) if gate_ready was set, Ok(false) if skipped (with reason logged).
+    pub async fn try_mark_gate_ready_after_turn(&mut self, is_error: bool) -> Result<bool> {
+        if is_error {
+            tracing::info!("gate_ready skip: CLI result was an error");
+            return Ok(false);
+        }
+
+        let state = &self.current_state;
+
+        if state.phase == "idle" {
+            tracing::info!("gate_ready skip: phase is idle");
+            return Ok(false);
+        }
+
+        if state.mode != WorkflowMode::Pipeline {
+            tracing::info!("gate_ready skip: mode is {:?}, not pipeline", state.mode);
+            return Ok(false);
+        }
+
+        if state.gate_validated {
+            tracing::info!("gate_ready skip: gate already validated");
+            return Ok(false);
+        }
+
+        if state.gate_ready {
+            tracing::info!("gate_ready skip: already ready");
+            return Ok(false);
+        }
+
+        self.set_gate_ready(true).await?;
+        tracing::info!(
+            "gate_ready set to true: phase={}, epic={}",
+            self.current_state.phase,
+            self.current_state.epic
+        );
+        Ok(true)
+    }
 }
 
 #[cfg(test)]
@@ -330,5 +369,77 @@ mod tests {
         engine.set_gate_ready(true).await.expect("set gate_ready");
         let result = engine.validate_gate().await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_gate_ready_success_pipeline_active() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"implementation","epic":"test","task":"","mode":"pipeline","gate_validated":false,"gate_ready":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        let result = engine.try_mark_gate_ready_after_turn(false).await.expect("try_mark");
+        assert!(result, "should set gate_ready on success + pipeline + active phase");
+        assert!(engine.get_state().gate_ready);
+    }
+
+    #[tokio::test]
+    async fn test_gate_ready_skip_idle_phase() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"idle","epic":"","task":"","mode":"pipeline","gate_validated":false,"gate_ready":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        let result = engine.try_mark_gate_ready_after_turn(false).await.expect("try_mark");
+        assert!(!result, "should skip when phase is idle");
+        assert!(!engine.get_state().gate_ready);
+    }
+
+    #[tokio::test]
+    async fn test_gate_ready_skip_error_result() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"implementation","epic":"test","task":"","mode":"pipeline","gate_validated":false,"gate_ready":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        let result = engine.try_mark_gate_ready_after_turn(true).await.expect("try_mark");
+        assert!(!result, "should skip when result is error");
+        assert!(!engine.get_state().gate_ready);
+    }
+
+    #[tokio::test]
+    async fn test_gate_ready_skip_already_validated() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let workflow_dir = dir.path().join(".workflow");
+        std::fs::create_dir_all(&workflow_dir).expect("create workflow dir");
+        std::fs::write(
+            workflow_dir.join("state.json"),
+            r#"{"phase":"implementation","epic":"test","task":"","mode":"pipeline","gate_validated":true,"gate_ready":false,"last_updated":"2026-01-01T00:00:00Z","history":[],"session":null}"#,
+        ).expect("write state");
+
+        let mut engine = WorkflowEngine::new(dir.path().to_path_buf());
+        engine.load_state().await.expect("load");
+
+        let result = engine.try_mark_gate_ready_after_turn(false).await.expect("try_mark");
+        assert!(!result, "should skip when gate already validated");
+        assert!(!engine.get_state().gate_ready);
     }
 }

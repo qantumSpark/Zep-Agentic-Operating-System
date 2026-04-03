@@ -1,0 +1,39 @@
+---
+description: Règles d'hygiène de la mémoire — anti-bloat et maintenance du contexte
+globs:
+  - ".memory/**"
+alwaysApply: false
+---
+
+# Règles d'hygiène de la mémoire
+
+## Limites de taille (strictes)
+- `INDEX.md` : max 30 lignes
+- `state.md` : max 50 lignes — ÉCRASER à chaque mise à jour, jamais accumuler
+- `current-epic.md` : max 40 lignes — ÉCRASER à chaque changement d'epic
+- Session logs : max 20 lignes — résumé structuré, pas transcript
+
+## Gestion des sessions
+- Garder les 10 sessions les plus récentes dans `.memory/sessions/`
+- Au-delà de 10 → condenser les plus anciennes dans `sessions/archive.md`
+- L'archive est un résumé d'une ligne par session archivée
+
+## Gestion des ADRs
+- Les ADRs marqués `[SUPERSEDED]` restent lisibles pendant 30 jours
+- Après 30 jours → déplacer dans `decisions/archive/`
+- Ne jamais supprimer un ADR — archiver seulement
+
+## Gestion des recherches
+- Ne sauvegarder dans `.memory/research/` que les recherches à valeur long terme
+- Les recherches ponctuelles ne sont pas sauvegardées
+- Revoir les recherches anciennes périodiquement — archiver si obsolètes
+
+## Règle anti-duplication
+- JAMAIS dupliquer une information déjà présente dans un autre fichier mémoire
+- Toujours RÉFÉRENCER plutôt que copier (ex: "voir ADR-003" au lieu de re-décrire la décision)
+- Si une info doit être dans deux endroits → elle est dans un seul endroit et l'autre pointe vers lui
+
+## Mise à jour
+- Toute mise à jour de la mémoire est PROPOSÉE à l'utilisateur avant écriture
+- Ne jamais écrire en mémoire sans validation
+- L'Orchestrateur est responsable de la cohérence globale de la mémoire

@@ -143,7 +143,15 @@ export function useTauriEvents() {
         "workflow-change",
         (event) => {
           const workflowStore = useWorkflowStore.getState();
+          // Diagnostic: log phase transitions
+          const prevPhase = workflowStore.phase;
           workflowStore.setFullState(event.payload);
+          if (prevPhase !== event.payload.phase) {
+            console.info(
+              `[Workflow] Phase transition: ${prevPhase ?? "null"} → ${event.payload.phase}`,
+              { gate_ready: event.payload.gate_ready, gate_validated: event.payload.gate_validated }
+            );
+          }
 
           // Notify when gate becomes ready for validation
           const state = event.payload;
@@ -269,10 +277,20 @@ export function useTauriEvents() {
                 }));
                 useWorkflowKitStore.getState().setAgents(mapped);
               }),
+            invoke<BackendWorkflowPayload>("get_workflow_state")
+              .then((wfState) => useWorkflowStore.getState().setFullState(wfState)),
           ]).catch((e) => console.error("Failed to reload project data:", e));
         }
       );
       unlisteners.push(projectChangedListener);
+
+      // Hydrate workflow state on mount — ensures UI is in sync even if no file change occurs
+      try {
+        const wfState = await invoke<BackendWorkflowPayload>("get_workflow_state");
+        useWorkflowStore.getState().setFullState(wfState);
+      } catch (e) {
+        console.warn("Failed to hydrate workflow state on mount:", e);
+      }
     };
 
     setupListeners();

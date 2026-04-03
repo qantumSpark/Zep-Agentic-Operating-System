@@ -133,6 +133,7 @@ pub async fn send_prompt(
         let mut engine = state.workflow_engine.lock().await;
         let wf_state = engine.get_state();
         if wf_state.gate_ready {
+            tracing::info!("Resetting gate_ready to false: new prompt received");
             if let Err(e) = engine.set_gate_ready(false).await {
                 tracing::warn!("Failed to reset gate_ready: {}", e);
             }
@@ -179,7 +180,9 @@ pub async fn send_prompt(
                             const AUTO_APPROVE: &[&str] =
                                 &["Write", "Edit", "MultiEdit", "WebSearch", "WebFetch"];
                             if let Some(tool) = req.tool_name() {
-                                if AUTO_APPROVE.contains(&tool) {
+                                // MCP tools (mcp__<server>__<tool>) are user-installed via .mcp.json,
+                                // therefore trusted in accept-edits mode alongside Write/Edit/etc.
+                                if AUTO_APPROVE.contains(&tool) || tool.starts_with("mcp__") {
                                     let input = req.tool_input();
                                     let mut mgr = sm.lock().await;
                                     match mgr
@@ -217,19 +220,11 @@ pub async fn send_prompt(
                         }
                     }
 
-                    // Detect successful turn end → set gate_ready = true
+                    // Detect successful turn end → attempt to mark gate as ready
                     if let CliEvent::Result(ref result) = event {
-                        if !result.is_error {
-                            let mut engine = we.lock().await;
-                            let wf = engine.get_state();
-                            if wf.mode == crate::workflow::WorkflowMode::Pipeline
-                                && wf.phase != "idle"
-                                && !wf.gate_validated
-                            {
-                                if let Err(e) = engine.set_gate_ready(true).await {
-                                    tracing::warn!("Failed to set gate_ready: {}", e);
-                                }
-                            }
+                        let mut engine = we.lock().await;
+                        if let Err(e) = engine.try_mark_gate_ready_after_turn(result.is_error).await {
+                            tracing::warn!("Failed in gate_ready evaluation: {}", e);
                         }
                     }
                 }
@@ -760,7 +755,11 @@ pub async fn switch_project(
     if let Some(home) = dirs::home_dir() {
         let canonical = new_dir.canonicalize()
             .map_err(|e| format!("Invalid path: {}", e))?;
-        if !canonical.starts_with(&home) {
+        let canonical_home = home.canonicalize().unwrap_or_else(|e| {
+            tracing::warn!("Could not canonicalize home directory: {}", e);
+            home
+        });
+        if !canonical.starts_with(&canonical_home) {
             return Err("Projects must be under user home directory".to_string());
         }
     }
