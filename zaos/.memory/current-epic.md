@@ -20,12 +20,12 @@ Corriger les findings #2, #3, #5, #6, #8 du test run baseline : propagation work
 | 2.3 | Exposer commande Tauri set_gate_ready | `commands.rs`, `main.rs` | DONE | fallback + debug |
 | 2.4 | Tracing structure gate_ready | `engine.rs`, `commands.rs` | DONE | log raison skip |
 | 2.5 | Tests unitaires gate_ready | `engine.rs` | DONE | 4 tests, 63 total pass |
-| 3.1 | Corriger parse_md_table_row | `reader.rs` | A FAIRE | retirer filter empty |
-| 3.2 | Preserver colonnes vides legitimes | `reader.rs` | A FAIRE | cellules bord |
-| 3.3 | Tests regression parser | `reader.rs` | A FAIRE | 6 cas |
-| 4.1 | Emettre ToolCallStarted des ContentBlockStart | `mapper.rs` | A FAIRE | emission precoce |
-| 4.2 | Dedupliquer avec emission actuelle | `mapper.rs` | A FAIRE | seen_block_ids |
-| 4.3 | Test idempotence | `mapper.rs` | A FAIRE | un seul started |
-| 5.1 | Scoring mapAgentName | `agentsStore.ts` | A FAIRE | remplacer first-match |
-| 5.2 | Tie-break stable | `agentsStore.ts` | A FAIRE | priorite subagentType |
-| 5.3 | Tests mapping | `agentsStore.ts` | A FAIRE | 4 cas minimum |
+| 3.1 | Corriger parse_md_table_row | `reader.rs` | DONE | retirer filter empty |
+| 3.2 | Preserver colonnes vides legitimes | `reader.rs` | DONE | cellules bord |
+| 3.3 | Tests regression parser | `reader.rs` | DONE | 6 cas |
+| 4.1 | Emettre ToolCallStarted des ContentBlockStart | `mapper.rs` | DONE | emission precoce |
+| 4.2 | Dedupliquer avec emission actuelle | `mapper.rs` | DONE | frontend seenBlockIds |
+| 4.3 | Test idempotence | `mapper.rs` | DONE | 2 tests |
+| 5.1 | Scoring mapAgentName | `agentsStore.ts` | DONE | remplacer first-match |
+| 5.2 | Tie-break stable | `agentsStore.ts` | DONE | bonus subagentType +2 |
+| 5.3 | Tests mapping | `agentsStore.ts` | DONE | JSDoc 5 cas documentes |

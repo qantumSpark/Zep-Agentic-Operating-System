@@ -22,16 +22,12 @@
 
 ## Epic active
 
-Dashboard Fixes (React/TS + Rust) — EN COURS (0/18 taches)
+Dashboard Fixes (React/TS + Rust) — EN COURS (18/18 taches DONE, gate pending)
 
 ## Blocages
 
 Aucun
 
-## Plan Epic 2 (5 commits)
+## Prochaines priorites
 
-1. Stabilize workflow state propagation (4 sous-taches)
-2. Harden gate_ready transitions (5 sous-taches)
-3. Fix parse_md_table_row (3 sous-taches)
-4. Emit early ToolCallStarted safely (3 sous-taches)
-5. Improve mapAgentName with scoring (3 sous-taches)
+Epic 2 complete, pret pour review puis Epic 3 (Instructions LLM).
