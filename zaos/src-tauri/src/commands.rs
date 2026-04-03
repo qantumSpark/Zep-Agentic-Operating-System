@@ -394,6 +394,30 @@ pub async fn get_workflow_state(
         permission_mode: wf_state.permission_mode.clone(),
     })
 }
+/// Manually set gate_ready flag (for debug/recovery)
+#[tauri::command]
+pub async fn set_gate_ready(
+    ready: bool,
+    state: State<'_, AppState>,
+) -> Result<WorkflowStateResponse, String> {
+    tracing::info!("set_gate_ready called: ready={}", ready);
+    let mut engine = state.workflow_engine.lock().await;
+    engine
+        .set_gate_ready(ready)
+        .await
+        .map_err(|e| format!("Failed to set gate_ready: {}", e))?;
+    let wf_state = engine.get_state();
+    Ok(WorkflowStateResponse {
+        phase: wf_state.phase.clone(),
+        epic: wf_state.epic.clone(),
+        task: wf_state.task.clone(),
+        mode: format!("{:?}", wf_state.mode).to_lowercase(),
+        gate_validated: wf_state.gate_validated,
+        gate_ready: wf_state.gate_ready,
+        permission_mode: wf_state.permission_mode.clone(),
+    })
+}
+
 /// Check CLI authentication status
 #[tauri::command]
 pub async fn check_cli_auth(

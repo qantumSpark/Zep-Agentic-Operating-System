@@ -15,11 +15,11 @@ Corriger les findings #2, #3, #5, #6, #8 du test run baseline : propagation work
 | 1.2 | Reload workflow sur project-changed | `useTauriEvents.ts` | DONE | ajoute dans Promise.all |
 | 1.3 | Tracing leger cote watcher | `watchers/service.rs` | DONE | log phase/gate_ready/gate_validated avant emit |
 | 1.4 | Diagnostic mismatch temporaire | `useTauriEvents.ts` | DONE | log transitions de phase |
-| 2.1 | Extraire logique metier gate_ready | `engine.rs` | A FAIRE | methode handle_successful_turn_end() |
-| 2.2 | Deplacer condition depuis commands.rs | `commands.rs` | A FAIRE | appel methode engine |
-| 2.3 | Exposer commande Tauri set_gate_ready | `commands.rs`, `main.rs` | A FAIRE | fallback + debug |
-| 2.4 | Tracing structure gate_ready | `engine.rs`, `commands.rs` | A FAIRE | log raison skip |
-| 2.5 | Tests unitaires gate_ready | `engine.rs` | A FAIRE | 4 scenarios |
+| 2.1 | Extraire logique metier gate_ready | `engine.rs` | DONE | methode try_mark_gate_ready_after_turn() |
+| 2.2 | Deplacer condition depuis commands.rs | `commands.rs` | DONE | 14 lignes → 4 lignes |
+| 2.3 | Exposer commande Tauri set_gate_ready | `commands.rs`, `main.rs` | DONE | fallback + debug |
+| 2.4 | Tracing structure gate_ready | `engine.rs`, `commands.rs` | DONE | log raison skip |
+| 2.5 | Tests unitaires gate_ready | `engine.rs` | DONE | 4 tests, 63 total pass |
 | 3.1 | Corriger parse_md_table_row | `reader.rs` | A FAIRE | retirer filter empty |
 | 3.2 | Preserver colonnes vides legitimes | `reader.rs` | A FAIRE | cellules bord |
 | 3.3 | Tests regression parser | `reader.rs` | A FAIRE | 6 cas |

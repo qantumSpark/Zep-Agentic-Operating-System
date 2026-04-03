@@ -96,6 +96,7 @@ fn main() {
             commands::switch_project,
             commands::get_project_info,
             commands::start_epic,
+            commands::set_gate_ready,
         ])
         .setup(move |app| {
             let state = app.state::<AppState>();
