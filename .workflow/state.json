@@ -1,7 +1,7 @@
 {
-  "phase": "implementation",
-  "epic": "Dashboard Fixes (React/TS + Rust)",
-  "task": "Commit 1 — Stabilize workflow state propagation",
+  "phase": "closure",
+  "epic": "Formats & Initialisation",
+  "task": "",
   "mode": "pipeline",
   "gate_validated": false,
   "gate_ready": false,

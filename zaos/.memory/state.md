@@ -18,11 +18,12 @@
 | 9 | Field-Tested Corrections | TERMINE | 28 taches, 5 milestones, 8 epics |
 | 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
 | 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
-| 12 | Test Run Baseline Fixes | EN COURS | 3 epics, 18 sous-taches |
+| 12 | Test Run Baseline Fixes | TERMINE | 3 epics + micro-fix 1D |
+| 13 | Product Contract Layer | EN COURS | Epic 1: Formats & Init |
 
 ## Epic active
 
-Dashboard Fixes (React/TS + Rust) — EN COURS (18/18 taches DONE, gate pending)
+Formats & Initialisation — EN COURS (0/? taches)
 
 ## Blocages
 
@@ -30,4 +31,4 @@ Aucun
 
 ## Prochaines priorites
 
-Epic 2 complete, pret pour review puis Epic 3 (Instructions LLM).
+Sprint 2A : Epic 1 (Formats & Init) → Epic 2 (Backend Memory) → Epic 3 (Frontend Stores & UI)

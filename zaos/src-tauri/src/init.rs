@@ -40,6 +40,11 @@ pub fn ensure_project_dirs(project_dir: &Path) {
                 "\n",
                 "- [State](state.md) — Current session state\n",
                 "- [Current Epic](current-epic.md) — Active epic details\n",
+                "- [Product Brief](product-brief.md) — Vision, public, contraintes, definition de succes\n",
+                "- [Experience Goals](experience-goals.md) — Qualites UX cibles et anti-patterns\n",
+                "- [Acceptance Checks](acceptance-checks.md) — Criteres de validation produit\n",
+                "- [Release Readiness](release-readiness.md) — Etat de preparation a la livraison\n",
+                "- [Session Insights](session-insights.md) — Resume actionnable de la derniere session\n",
             )
             .to_string()
         },
@@ -84,6 +89,130 @@ pub fn ensure_project_dirs(project_dir: &Path) {
                 "|---|------|-----------|--------|-------|\n",
                 "\n",
                 "_En attente du plan._\n",
+            )
+            .to_string()
+        },
+    );
+    ensure_file(
+        &memory_dir.join("product-brief.md"),
+        || {
+            concat!(
+                "# Product Brief\n",
+                "\n",
+                "## Vision\n",
+                "\n",
+                "_Ce qu'on construit en une phrase._\n",
+                "\n",
+                "## Pour qui\n",
+                "\n",
+                "_Public cible, contexte d'usage._\n",
+                "\n",
+                "## Pourquoi\n",
+                "\n",
+                "_Probleme resolu, valeur apportee._\n",
+                "\n",
+                "## Contraintes\n",
+                "\n",
+                "- _contrainte 1_\n",
+                "\n",
+                "## Hors-scope\n",
+                "\n",
+                "- _element explicitement exclu_\n",
+                "\n",
+                "## Definition de succes\n",
+                "\n",
+                "_Comment on sait que le produit a reussi._\n",
+            )
+            .to_string()
+        },
+    );
+    ensure_file(
+        &memory_dir.join("experience-goals.md"),
+        || {
+            concat!(
+                "# Experience Goals\n",
+                "\n",
+                "## Qualites cibles\n",
+                "\n",
+                "| # | Qualite | Critere | Priorite |\n",
+                "|---|---------|---------|----------|\n",
+                "\n",
+                "## Standards UX\n",
+                "\n",
+                "- _standard 1_\n",
+                "\n",
+                "## Anti-patterns\n",
+                "\n",
+                "- _ce qu'on veut eviter_\n",
+            )
+            .to_string()
+        },
+    );
+    ensure_file(
+        &memory_dir.join("acceptance-checks.md"),
+        || {
+            concat!(
+                "# Acceptance Checks\n",
+                "\n",
+                "## Criteres\n",
+                "\n",
+                "| # | Check | Statut | Notes |\n",
+                "|---|-------|--------|-------|\n",
+                "\n",
+                "## Validations manuelles\n",
+                "\n",
+                "- _validation 1_\n",
+            )
+            .to_string()
+        },
+    );
+    ensure_file(
+        &memory_dir.join("release-readiness.md"),
+        || {
+            concat!(
+                "# Release Readiness\n",
+                "\n",
+                "## Etat general\n",
+                "\n",
+                "_Resume en 1-2 lignes._\n",
+                "\n",
+                "## Checklist\n",
+                "\n",
+                "| # | Item | Statut | Bloquant | Notes |\n",
+                "|---|------|--------|----------|-------|\n",
+                "\n",
+                "## Risques ouverts\n",
+                "\n",
+                "- _risque 1_\n",
+            )
+            .to_string()
+        },
+    );
+    ensure_file(
+        &memory_dir.join("session-insights.md"),
+        || {
+            concat!(
+                "# Session Insights\n",
+                "\n",
+                "> Date: YYYY-MM-DD\n",
+                "> Epic: _aucun_\n",
+                "> Phase: _inconnue_\n",
+                "\n",
+                "## Decisions prises\n",
+                "\n",
+                "- _decision 1_\n",
+                "\n",
+                "## Ce qu'on a appris\n",
+                "\n",
+                "- _apprentissage 1_\n",
+                "\n",
+                "## Risques et points ouverts\n",
+                "\n",
+                "- _risque 1_\n",
+                "\n",
+                "## Prochaines validations\n",
+                "\n",
+                "- _validation 1_\n",
             )
             .to_string()
         },
