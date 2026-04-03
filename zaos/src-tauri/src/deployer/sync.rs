@@ -158,7 +158,7 @@ pub fn sync_settings(
                 }]
             }],
             "PreToolUse": [{
-                "matcher": "Write|Edit",
+                "matcher": "Write|Edit|MultiEdit",
                 "hooks": [{
                     "type": "command",
                     "command": format!("\"{}\" block-code", binary),
