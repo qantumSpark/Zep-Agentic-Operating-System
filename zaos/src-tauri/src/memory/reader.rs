@@ -319,7 +319,15 @@ fn parse_md_table_row(line: &str, min_cells: usize) -> Option<(u32, Vec<String>)
         return None;
     }
 
-    let cells: Vec<&str> = line.split('|').map(|c| c.trim()).filter(|c| !c.is_empty()).collect();
+    let raw: Vec<&str> = line.split('|').map(|c| c.trim()).collect();
+    // Remove leading and trailing empty strings from split('|') on "|...|" format
+    let cells: Vec<&str> = if raw.len() >= 2 && raw[0].is_empty() && raw[raw.len() - 1].is_empty() {
+        raw[1..raw.len() - 1].to_vec()
+    } else if raw.len() >= 1 && raw[0].is_empty() {
+        raw[1..].to_vec()
+    } else {
+        raw
+    };
 
     if cells.len() < min_cells {
         return None;
@@ -923,6 +931,60 @@ Rendre le dashboard ZAOS vivant.
     #[test]
     fn test_parse_epic_task_row_separator() {
         assert!(parse_epic_task_row("|---|------|-----------|--------|-------|").is_none());
+    }
+
+    // --- parse_md_table_row empty cells tests ---
+
+    #[test]
+    fn test_parse_md_table_row_empty_notes() {
+        // Notes column is empty — should still parse as 5 cells
+        let result = parse_md_table_row("| 1 | Task name | `file.rs` | DONE | |", 5);
+        assert!(result.is_some(), "row with empty Notes should parse");
+        let (num, cells) = result.unwrap();
+        assert_eq!(num, 1);
+        assert_eq!(cells.len(), 4); // Task, Fichier, Statut, Notes
+        assert_eq!(cells[0], "Task name");
+        assert_eq!(cells[1], "`file.rs`");
+        assert_eq!(cells[2], "DONE");
+        assert_eq!(cells[3], ""); // empty Notes preserved
+    }
+
+    #[test]
+    fn test_parse_md_table_row_empty_middle_column() {
+        // Middle column empty — should preserve it
+        let result = parse_md_table_row("| 2 | Task | | EN COURS | notes |", 5);
+        assert!(result.is_some(), "row with empty middle column should parse");
+        let (num, cells) = result.unwrap();
+        assert_eq!(num, 2);
+        assert_eq!(cells[0], "Task");
+        assert_eq!(cells[1], ""); // empty Fichier(s) preserved
+        assert_eq!(cells[2], "EN COURS");
+        assert_eq!(cells[3], "notes");
+    }
+
+    #[test]
+    fn test_parse_md_table_row_normal_row() {
+        let result = parse_md_table_row("| 3 | Do thing | `file.rs` | DONE | all good |", 5);
+        assert!(result.is_some());
+        let (num, cells) = result.unwrap();
+        assert_eq!(num, 3);
+        assert_eq!(cells[0], "Do thing");
+        assert_eq!(cells[3], "all good");
+    }
+
+    #[test]
+    fn test_parse_md_table_row_separator_line() {
+        assert!(parse_md_table_row("|---|------|-----------|--------|-------|", 5).is_none());
+    }
+
+    #[test]
+    fn test_parse_md_table_row_header_line() {
+        assert!(parse_md_table_row("| # | Task | Fichier(s) | Statut | Notes |", 5).is_none());
+    }
+
+    #[test]
+    fn test_parse_md_table_row_too_few_cells() {
+        assert!(parse_md_table_row("| 1 | only two |", 5).is_none());
     }
 
     #[tokio::test]
