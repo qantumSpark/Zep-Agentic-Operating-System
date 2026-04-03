@@ -474,6 +474,17 @@ pub async fn get_memory_state(
     reader.read_all().await
 }
 
+/// Get product contract (all 5 product artifacts aggregated)
+#[tauri::command]
+pub async fn get_product_contract(
+    state: State<'_, AppState>,
+) -> Result<crate::memory::ProductContract, String> {
+    tracing::info!("get_product_contract called");
+    let project_dir = state.project_dir().await;
+    let reader = MemoryReader::new(project_dir);
+    Ok(reader.read_product_contract().await)
+}
+
 // =============================================================================
 // Screenshot Response Types
 // =============================================================================

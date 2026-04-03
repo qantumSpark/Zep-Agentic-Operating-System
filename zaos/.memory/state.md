@@ -19,11 +19,11 @@
 | 10 | Test Run #2 Fixes | TERMINE | 15 taches, 4 epics |
 | 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
 | 12 | Test Run Baseline Fixes | TERMINE | 3 epics + micro-fix 1D |
-| 13 | Product Contract Layer | EN COURS | Epic 1: Formats & Init |
+| 13 | Product Contract Layer | EN COURS | Epic 1: DONE, Epic 2: DONE, Epic 3: Frontend |
 
 ## Epic active
 
-Formats & Initialisation — EN COURS (0/? taches)
+_Entre epics — Epic 2 terminee, Epic 3 a venir_
 
 ## Blocages
 

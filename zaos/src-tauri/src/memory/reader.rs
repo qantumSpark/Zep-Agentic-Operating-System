@@ -3,6 +3,12 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::fs;
 
+use super::models::{
+    AcceptanceCheck, AcceptanceChecks, ExperienceGoal, ExperienceGoals,
+    ProductBrief, ProductContract, ReleaseChecklistItem, ReleaseReadiness,
+    SessionInsights,
+};
+
 #[derive(Error, Debug)]
 pub enum MemoryError {
     #[error("IO error: {0}")]
@@ -234,6 +240,91 @@ impl MemoryReader {
             state,
             current_epic,
         })
+    }
+
+    /// Read and parse `.memory/product-brief.md`.
+    pub async fn read_product_brief(&self) -> Result<Option<ProductBrief>> {
+        let path = self.memory_dir.join("product-brief.md");
+        match fs::read_to_string(&path).await {
+            Ok(content) => Ok(Some(parse_product_brief_md(&content))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(MemoryError::Io(e)),
+        }
+    }
+
+    /// Read and parse `.memory/experience-goals.md`.
+    pub async fn read_experience_goals(&self) -> Result<Option<ExperienceGoals>> {
+        let path = self.memory_dir.join("experience-goals.md");
+        match fs::read_to_string(&path).await {
+            Ok(content) => Ok(Some(parse_experience_goals_md(&content))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(MemoryError::Io(e)),
+        }
+    }
+
+    /// Read and parse `.memory/acceptance-checks.md`.
+    pub async fn read_acceptance_checks(&self) -> Result<Option<AcceptanceChecks>> {
+        let path = self.memory_dir.join("acceptance-checks.md");
+        match fs::read_to_string(&path).await {
+            Ok(content) => Ok(Some(parse_acceptance_checks_md(&content))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(MemoryError::Io(e)),
+        }
+    }
+
+    /// Read and parse `.memory/release-readiness.md`.
+    pub async fn read_release_readiness(&self) -> Result<Option<ReleaseReadiness>> {
+        let path = self.memory_dir.join("release-readiness.md");
+        match fs::read_to_string(&path).await {
+            Ok(content) => Ok(Some(parse_release_readiness_md(&content))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(MemoryError::Io(e)),
+        }
+    }
+
+    /// Read and parse `.memory/session-insights.md`.
+    pub async fn read_session_insights(&self) -> Result<Option<SessionInsights>> {
+        let path = self.memory_dir.join("session-insights.md");
+        match fs::read_to_string(&path).await {
+            Ok(content) => Ok(Some(parse_session_insights_md(&content))),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(MemoryError::Io(e)),
+        }
+    }
+
+    /// Read all product contract artifacts concurrently.
+    /// Missing files produce `None`, errors are logged and mapped to `None`.
+    pub async fn read_product_contract(&self) -> ProductContract {
+        let (brief, goals, checks, readiness, insights) = tokio::join!(
+            self.read_product_brief(),
+            self.read_experience_goals(),
+            self.read_acceptance_checks(),
+            self.read_release_readiness(),
+            self.read_session_insights(),
+        );
+
+        ProductContract {
+            brief: brief.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read product-brief: {}", e);
+                None
+            }),
+            experience_goals: goals.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read experience-goals: {}", e);
+                None
+            }),
+            acceptance_checks: checks.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read acceptance-checks: {}", e);
+                None
+            }),
+            release_readiness: readiness.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read release-readiness: {}", e);
+                None
+            }),
+            session_insights: insights.unwrap_or_else(|e| {
+                tracing::warn!("Failed to read session-insights: {}", e);
+                None
+            }),
+        }
     }
 }
 
@@ -581,9 +672,330 @@ fn parse_index_md(content: &str) -> MemoryIndex {
     MemoryIndex { sections }
 }
 
+// ── Helpers for product contract parsers ──
+
+/// Append non-empty text to a string, adding a newline separator if needed.
+fn append_text(target: &mut String, text: &str) {
+    if !target.is_empty() {
+        target.push('\n');
+    }
+    target.push_str(text);
+}
+
+/// Parse a markdown list item, skipping placeholder lines like `_italic placeholder_`.
+fn parse_list_item(line: &str) -> Option<String> {
+    let text = line.strip_prefix("- ")?.trim();
+    if text.is_empty() {
+        return None;
+    }
+    // Skip italic placeholders: _some text_
+    if text.starts_with('_') && text.ends_with('_') && text.len() > 2 {
+        return None;
+    }
+    Some(text.to_string())
+}
+
+// ── Product contract parsers ──
+
+/// Parse `product-brief.md` into a `ProductBrief`.
+/// Sections: Vision, Pour qui, Pourquoi, Contraintes, Hors-scope, Definition de succes.
+fn parse_product_brief_md(content: &str) -> ProductBrief {
+    let mut vision = String::new();
+    let mut audience = String::new();
+    let mut rationale = String::new();
+    let mut constraints: Vec<String> = Vec::new();
+    let mut out_of_scope: Vec<String> = Vec::new();
+    let mut success_definition = String::new();
+
+    enum Section { None, Vision, Audience, Rationale, Constraints, OutOfScope, SuccessDef }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = match heading.as_str() {
+                "vision" => Section::Vision,
+                "pour qui" => Section::Audience,
+                "pourquoi" => Section::Rationale,
+                "contraintes" => Section::Constraints,
+                "hors-scope" => Section::OutOfScope,
+                "definition de succes" => Section::SuccessDef,
+                _ => Section::None,
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("# ") {
+            continue;
+        }
+
+        match section {
+            Section::Vision => append_text(&mut vision, trimmed),
+            Section::Audience => append_text(&mut audience, trimmed),
+            Section::Rationale => append_text(&mut rationale, trimmed),
+            Section::Constraints => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    constraints.push(item);
+                }
+            }
+            Section::OutOfScope => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    out_of_scope.push(item);
+                }
+            }
+            Section::SuccessDef => append_text(&mut success_definition, trimmed),
+            Section::None => {}
+        }
+    }
+
+    ProductBrief { vision, audience, rationale, constraints, out_of_scope, success_definition }
+}
+
+/// Parse `experience-goals.md` into `ExperienceGoals`.
+/// Sections: Qualites cibles (table), Standards UX (list), Anti-patterns (list).
+fn parse_experience_goals_md(content: &str) -> ExperienceGoals {
+    let mut goals: Vec<ExperienceGoal> = Vec::new();
+    let mut ux_standards: Vec<String> = Vec::new();
+    let mut anti_patterns: Vec<String> = Vec::new();
+
+    enum Section { None, Goals, Standards, AntiPatterns }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = if heading == "qualites cibles" {
+                Section::Goals
+            } else if heading == "standards ux" {
+                Section::Standards
+            } else if heading.starts_with("anti-pattern") {
+                Section::AntiPatterns
+            } else {
+                Section::None
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("# ") { continue; }
+
+        match section {
+            Section::Goals => {
+                // Table: | # | Qualite | Critere | Priorite |
+                if let Some((number, cells)) = parse_md_table_row(trimmed, 4) {
+                    goals.push(ExperienceGoal {
+                        number,
+                        quality: cells[0].clone(),
+                        criterion: cells[1].clone(),
+                        priority: cells[2].clone(),
+                    });
+                }
+            }
+            Section::Standards => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    ux_standards.push(item);
+                }
+            }
+            Section::AntiPatterns => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    anti_patterns.push(item);
+                }
+            }
+            Section::None => {}
+        }
+    }
+
+    ExperienceGoals { goals, ux_standards, anti_patterns }
+}
+
+/// Parse `acceptance-checks.md` into `AcceptanceChecks`.
+/// Sections: Criteres (table), Validations manuelles (list).
+fn parse_acceptance_checks_md(content: &str) -> AcceptanceChecks {
+    let mut checks: Vec<AcceptanceCheck> = Vec::new();
+    let mut manual_validations: Vec<String> = Vec::new();
+
+    enum Section { None, Checks, Manual }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = if heading.starts_with("critere") || heading == "criteres" {
+                Section::Checks
+            } else if heading.starts_with("validations manuelles") {
+                Section::Manual
+            } else {
+                Section::None
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("# ") { continue; }
+
+        match section {
+            Section::Checks => {
+                // Table: | # | Check | Statut | Notes |
+                if let Some((number, cells)) = parse_md_table_row(trimmed, 4) {
+                    checks.push(AcceptanceCheck {
+                        number,
+                        check: cells[0].clone(),
+                        status: cells[1].clone(),
+                        notes: cells[2].clone(),
+                    });
+                }
+            }
+            Section::Manual => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    manual_validations.push(item);
+                }
+            }
+            Section::None => {}
+        }
+    }
+
+    AcceptanceChecks { checks, manual_validations }
+}
+
+/// Parse `release-readiness.md` into `ReleaseReadiness`.
+/// Sections: Etat general (text), Checklist (table), Risques ouverts (list).
+fn parse_release_readiness_md(content: &str) -> ReleaseReadiness {
+    let mut overall_state_summary = String::new();
+    let mut checklist: Vec<ReleaseChecklistItem> = Vec::new();
+    let mut open_risks: Vec<String> = Vec::new();
+
+    enum Section { None, Overall, Checklist, Risks }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = if heading.starts_with("etat general") || heading.starts_with("état général") {
+                Section::Overall
+            } else if heading == "checklist" {
+                Section::Checklist
+            } else if heading.starts_with("risques ouvert") {
+                Section::Risks
+            } else {
+                Section::None
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("# ") { continue; }
+
+        match section {
+            Section::Overall => {
+                if !trimmed.starts_with('_') || !trimmed.ends_with('_') {
+                    append_text(&mut overall_state_summary, trimmed);
+                }
+            }
+            Section::Checklist => {
+                // Table: | # | Item | Statut | Bloquant | Notes |
+                if let Some((number, cells)) = parse_md_table_row(trimmed, 5) {
+                    checklist.push(ReleaseChecklistItem {
+                        number,
+                        item: cells[0].clone(),
+                        status: cells[1].clone(),
+                        blocking: cells[2].clone(),
+                        notes: cells[3].clone(),
+                    });
+                }
+            }
+            Section::Risks => {
+                if let Some(item) = parse_list_item(trimmed) {
+                    open_risks.push(item);
+                }
+            }
+            Section::None => {}
+        }
+    }
+
+    ReleaseReadiness { overall_state_summary, checklist, open_risks }
+}
+
+/// Parse `session-insights.md` into `SessionInsights`.
+/// Metadata blockquotes (Date:, Epic:, Phase:), then 4 list sections.
+fn parse_session_insights_md(content: &str) -> SessionInsights {
+    let mut date = String::from("unknown");
+    let mut epic = String::from("unknown");
+    let mut phase = String::from("unknown");
+    let mut decisions: Vec<String> = Vec::new();
+    let mut learnings: Vec<String> = Vec::new();
+    let mut risks: Vec<String> = Vec::new();
+    let mut next_validations: Vec<String> = Vec::new();
+
+    enum Section { None, Decisions, Learnings, Risks, NextValidations }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        // Blockquote metadata: "> Date: value" (no space before colon)
+        if trimmed.starts_with("> ") {
+            let meta = &trimmed[2..];
+            if let Some(val) = meta.strip_prefix("Date:") {
+                let v = val.trim();
+                if !v.is_empty() && v != "YYYY-MM-DD" { date = v.to_string(); }
+            } else if let Some(val) = meta.strip_prefix("Epic:") {
+                let v = val.trim();
+                if !v.is_empty() && !v.starts_with('_') { epic = v.to_string(); }
+            } else if let Some(val) = meta.strip_prefix("Phase:") {
+                let v = val.trim();
+                if !v.is_empty() && !v.starts_with('_') { phase = v.to_string(); }
+            }
+            continue;
+        }
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = if heading == "decisions prises" {
+                Section::Decisions
+            } else if heading.starts_with("ce qu") {
+                Section::Learnings
+            } else if heading.starts_with("risques") {
+                Section::Risks
+            } else if heading.starts_with("prochaines") {
+                Section::NextValidations
+            } else {
+                Section::None
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() || trimmed.starts_with("# ") { continue; }
+
+        match section {
+            Section::Decisions => {
+                if let Some(item) = parse_list_item(trimmed) { decisions.push(item); }
+            }
+            Section::Learnings => {
+                if let Some(item) = parse_list_item(trimmed) { learnings.push(item); }
+            }
+            Section::Risks => {
+                if let Some(item) = parse_list_item(trimmed) { risks.push(item); }
+            }
+            Section::NextValidations => {
+                if let Some(item) = parse_list_item(trimmed) { next_validations.push(item); }
+            }
+            Section::None => {}
+        }
+    }
+
+    SessionInsights { date, epic, phase, decisions, learnings, risks, next_validations }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[allow(unused_imports)]
+    use super::super::models::*;
 
     #[test]
     fn test_memory_reader_creation() {
@@ -993,5 +1405,272 @@ Rendre le dashboard ZAOS vivant.
         let reader = MemoryReader::new(PathBuf::from("/nonexistent/path"));
         let result = reader.read_state().await;
         assert!(result.is_err());
+    }
+
+    // --- parse_list_item tests ---
+
+    #[test]
+    fn test_parse_list_item_valid() {
+        assert_eq!(parse_list_item("- real item"), Some("real item".to_string()));
+    }
+
+    #[test]
+    fn test_parse_list_item_placeholder_skipped() {
+        assert_eq!(parse_list_item("- _placeholder text_"), None);
+    }
+
+    #[test]
+    fn test_parse_list_item_not_a_list() {
+        assert_eq!(parse_list_item("just text"), None);
+    }
+
+    #[test]
+    fn test_parse_list_item_empty() {
+        assert_eq!(parse_list_item("- "), None);
+    }
+
+    // --- append_text tests ---
+
+    #[test]
+    fn test_append_text_to_empty() {
+        let mut s = String::new();
+        append_text(&mut s, "hello");
+        assert_eq!(s, "hello");
+    }
+
+    #[test]
+    fn test_append_text_multiline() {
+        let mut s = String::from("line1");
+        append_text(&mut s, "line2");
+        assert_eq!(s, "line1\nline2");
+    }
+
+    // --- parse_product_brief_md tests ---
+
+    #[test]
+    fn test_parse_product_brief_md_full() {
+        let content = "\
+# Product Brief
+
+## Vision
+
+A productivity dashboard for developers.
+
+## Pour qui
+
+Senior engineers working remotely.
+
+## Pourquoi
+
+Reduce context switching between tools.
+
+## Contraintes
+
+- Must work offline
+- Under 50MB binary
+
+## Hors-scope
+
+- Mobile app
+- Cloud sync
+
+## Definition de succes
+
+Users save 30 minutes per day.
+";
+        let brief = parse_product_brief_md(content);
+        assert_eq!(brief.vision, "A productivity dashboard for developers.");
+        assert_eq!(brief.audience, "Senior engineers working remotely.");
+        assert_eq!(brief.rationale, "Reduce context switching between tools.");
+        assert_eq!(brief.constraints, vec!["Must work offline", "Under 50MB binary"]);
+        assert_eq!(brief.out_of_scope, vec!["Mobile app", "Cloud sync"]);
+        assert_eq!(brief.success_definition, "Users save 30 minutes per day.");
+    }
+
+    #[test]
+    fn test_parse_product_brief_md_empty() {
+        let brief = parse_product_brief_md("");
+        assert_eq!(brief.vision, "");
+        assert_eq!(brief.constraints.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_product_brief_md_template_placeholders_ignored() {
+        let content = "\
+# Product Brief
+
+## Contraintes
+
+- _contrainte 1_
+
+## Hors-scope
+
+- _element explicitement exclu_
+";
+        let brief = parse_product_brief_md(content);
+        assert!(brief.constraints.is_empty());
+        assert!(brief.out_of_scope.is_empty());
+    }
+
+    // --- parse_experience_goals_md tests ---
+
+    #[test]
+    fn test_parse_experience_goals_md_full() {
+        let content = "\
+# Experience Goals
+
+## Qualites cibles
+
+| # | Qualite | Critere | Priorite |
+|---|---------|---------|----------|
+| 1 | Fast | < 200ms response | P0 |
+| 2 | Intuitive | No manual needed | P1 |
+
+## Standards UX
+
+- Keyboard-first navigation
+- Dark mode default
+
+## Anti-patterns
+
+- Modal dialogs for simple actions
+";
+        let goals = parse_experience_goals_md(content);
+        assert_eq!(goals.goals.len(), 2);
+        assert_eq!(goals.goals[0].quality, "Fast");
+        assert_eq!(goals.goals[0].priority, "P0");
+        assert_eq!(goals.goals[1].number, 2);
+        assert_eq!(goals.ux_standards, vec!["Keyboard-first navigation", "Dark mode default"]);
+        assert_eq!(goals.anti_patterns, vec!["Modal dialogs for simple actions"]);
+    }
+
+    // --- parse_acceptance_checks_md tests ---
+
+    #[test]
+    fn test_parse_acceptance_checks_md_full() {
+        let content = "\
+# Acceptance Checks
+
+## Criteres
+
+| # | Check | Statut | Notes |
+|---|-------|--------|-------|
+| 1 | Chat works | PASS | tested manually |
+| 2 | Dashboard loads | TODO | |
+
+## Validations manuelles
+
+- Cross-browser test on Firefox
+";
+        let checks = parse_acceptance_checks_md(content);
+        assert_eq!(checks.checks.len(), 2);
+        assert_eq!(checks.checks[0].status, "PASS");
+        assert_eq!(checks.checks[1].status, "TODO");
+        assert_eq!(checks.checks[1].notes, "");
+        assert_eq!(checks.manual_validations, vec!["Cross-browser test on Firefox"]);
+    }
+
+    // --- parse_release_readiness_md tests ---
+
+    #[test]
+    fn test_parse_release_readiness_md_full() {
+        let content = "\
+# Release Readiness
+
+## Etat general
+
+Ready for beta testing.
+
+## Checklist
+
+| # | Item | Statut | Bloquant | Notes |
+|---|------|--------|----------|-------|
+| 1 | All tests pass | DONE | YES | 72/72 |
+| 2 | Docs updated | TODO | NO | |
+
+## Risques ouverts
+
+- Performance on large projects untested
+";
+        let rr = parse_release_readiness_md(content);
+        assert_eq!(rr.overall_state_summary, "Ready for beta testing.");
+        assert_eq!(rr.checklist.len(), 2);
+        assert_eq!(rr.checklist[0].blocking, "YES");
+        assert_eq!(rr.checklist[1].status, "TODO");
+        assert_eq!(rr.open_risks, vec!["Performance on large projects untested"]);
+    }
+
+    // --- parse_session_insights_md tests ---
+
+    #[test]
+    fn test_parse_session_insights_md_full() {
+        let content = "\
+# Session Insights
+
+> Date: 2026-04-03
+> Epic: Backend Memory
+> Phase: implementation
+
+## Decisions prises
+
+- Use models.rs for shared types
+- Separate command from get_memory_state
+
+## Ce qu'on a appris
+
+- tokio::join! scales well for parallel reads
+
+## Risques et points ouverts
+
+- No tests for new parsers yet
+
+## Prochaines validations
+
+- Run full test suite after Epic 3
+";
+        let si = parse_session_insights_md(content);
+        assert_eq!(si.date, "2026-04-03");
+        assert_eq!(si.epic, "Backend Memory");
+        assert_eq!(si.phase, "implementation");
+        assert_eq!(si.decisions.len(), 2);
+        assert_eq!(si.learnings, vec!["tokio::join! scales well for parallel reads"]);
+        assert_eq!(si.risks, vec!["No tests for new parsers yet"]);
+        assert_eq!(si.next_validations, vec!["Run full test suite after Epic 3"]);
+    }
+
+    #[test]
+    fn test_parse_session_insights_md_missing_metadata() {
+        let content = "\
+# Session Insights
+
+## Decisions prises
+
+- One decision
+";
+        let si = parse_session_insights_md(content);
+        assert_eq!(si.date, "unknown");
+        assert_eq!(si.epic, "unknown");
+        assert_eq!(si.phase, "unknown");
+        assert_eq!(si.decisions, vec!["One decision"]);
+    }
+
+    #[test]
+    fn test_parse_session_insights_md_template_defaults() {
+        let content = "\
+# Session Insights
+
+> Date: YYYY-MM-DD
+> Epic: _aucun_
+> Phase: _inconnue_
+
+## Decisions prises
+
+- _decision 1_
+";
+        let si = parse_session_insights_md(content);
+        assert_eq!(si.date, "unknown");
+        assert_eq!(si.epic, "unknown");
+        assert_eq!(si.phase, "unknown");
+        assert!(si.decisions.is_empty());
     }
 }
