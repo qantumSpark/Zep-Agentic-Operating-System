@@ -6,7 +6,7 @@
 ## Milestones
 
 | # | Milestone | Statut | Epics |
-|---|---|---|---|
+|---|-----------|--------|-------|
 | 1 | Chat fonctionnel avec Claude Code CLI | TERMINE | 47 taches |
 | 2 | Dashboard temps reel | TERMINE | 13 taches |
 | 3 | Screenshots & visuels | TERMINE | 13 taches |
@@ -21,6 +21,7 @@
 | 12 | Test Run Baseline Fixes | TERMINE | 3 epics + micro-fix 1D |
 | 13 | Product Contract Layer | TERMINE | 3 epics (Formats, Backend, Frontend) |
 | 14 | Projection Workflow Produit | TERMINE | 1 epic (12 taches + micro-fix) |
+| 15 | Policy Engine contextuel | TERMINE | 1 epic (11 taches + 6 corrections review) |
 
 ## Epic active
 
@@ -32,4 +33,4 @@ Aucun
 
 ## Prochaines priorites
 
-Sprint 2B termine. Prochain : revue post-bloc 2 ou Sprint 3A.
+Bloc 3A termine. Prochain : Sprint 3B (Hooks enrichis + UX permissions).

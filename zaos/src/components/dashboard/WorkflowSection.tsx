@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { invoke } from "@tauri-apps/api/core";
-import { ProductPhase, PRODUCT_PHASE_ORDER, PRODUCT_PHASE_LABELS } from "../../types/workflow";
+import { ProductPhase, PRODUCT_PHASE_ORDER, PRODUCT_PHASE_LABELS, PolicyProfile, POLICY_PROFILE_LABELS, POLICY_PROFILE_DESCRIPTIONS } from "../../types/workflow";
 
 /**
  * Shows epic, phase, mode, task, and gate button
@@ -15,6 +15,8 @@ export function WorkflowSection() {
   const gateReady = useWorkflowStore((state) => state.gateReady);
   const permissionMode = useWorkflowStore((state) => state.permissionMode);
   const setPermissionMode = useWorkflowStore((state) => state.setPermissionMode);
+  const policyProfile = useWorkflowStore((state) => state.policyProfile);
+  const setPolicyProfile = useWorkflowStore((state) => state.setPolicyProfile);
   const productPhase = useWorkflowStore((state) => state.productPhase);
   const nextProductPhase = useWorkflowStore((state) => state.nextProductPhase);
   const nextTechPhase = useWorkflowStore((state) => state.nextTechPhase);
@@ -73,6 +75,17 @@ export function WorkflowSection() {
       await invoke("set_permission_mode", { mode: newMode });
     } catch (error) {
       console.error("Failed to set permission mode:", error);
+    }
+  };
+
+  const selectPolicyProfile = async (profile: PolicyProfile) => {
+    const previousProfile = policyProfile;
+    setPolicyProfile(profile);
+    try {
+      await invoke("set_policy_profile", { profile: profile });
+    } catch (error) {
+      console.error("Failed to set policy profile:", error);
+      setPolicyProfile(previousProfile);
     }
   };
 
@@ -192,6 +205,28 @@ export function WorkflowSection() {
             Pipeline
           </button>
         </div>
+      </div>
+
+      {/* Policy Profile */}
+      <div>
+        <label className="text-zinc-400 text-xs uppercase tracking-wide">Policy</label>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {Object.values(PolicyProfile).map((p) => (
+            <button
+              key={p}
+              onClick={() => selectPolicyProfile(p)}
+              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                policyProfile === p
+                  ? "bg-blue-600 text-white"
+                  : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+              }`}
+              title={POLICY_PROFILE_DESCRIPTIONS[p]}
+            >
+              {POLICY_PROFILE_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        <p className="text-zinc-500 text-xs mt-1">{POLICY_PROFILE_DESCRIPTIONS[policyProfile]}</p>
       </div>
 
       {/* Permissions */}

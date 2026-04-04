@@ -102,6 +102,12 @@ pub struct ListSessionsResponse {
     pub sessions: Vec<CliSession>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct SetPolicyProfileResponse {
+    pub success: bool,
+    pub profile: String,
+}
+
 // =============================================================================
 // Tauri Commands
 // =============================================================================
@@ -826,6 +832,75 @@ pub async fn switch_project(
 // =============================================================================
 // Workflow Init Commands
 // =============================================================================
+
+/// Set the active policy profile (observe, guided-build, autopilot-safe, release-guarded)
+#[tauri::command]
+pub async fn set_policy_profile(
+    profile: String,
+    state: State<'_, AppState>,
+) -> Result<SetPolicyProfileResponse, String> {
+    use crate::policy::PolicyProfile;
+    PolicyProfile::from_str(&profile)
+        .ok_or_else(|| format!("Invalid policy profile: {}. Valid: observe, guided-build, autopilot-safe, release-guarded", profile))?;
+
+    let mut engine = state.workflow_engine.lock().await;
+    engine.set_policy_profile(profile.clone()).await.map_err(|e| e.to_string())?;
+
+    tracing::info!("Policy profile set to: {}", profile);
+    Ok(SetPolicyProfileResponse {
+        success: true,
+        profile,
+    })
+}
+
+/// Preview/debug: evaluate a policy decision for a given action without enforcing it
+#[tauri::command]
+pub async fn get_policy_evaluation(
+    action_type: String,
+    file_paths: Vec<String>,
+    tool_name: Option<String>,
+    is_destructive: Option<bool>,
+    state: State<'_, AppState>,
+) -> Result<crate::policy::PolicyDecision, String> {
+    use crate::policy::{ActionType, ActionContext, PolicyProfile, evaluate};
+    use crate::workflow::product_phase::derive_product_phase;
+
+    let engine = state.workflow_engine.lock().await;
+    let wf_state = engine.get_state();
+
+    // Parse action_type
+    let action = match action_type.as_str() {
+        "file_write" => ActionType::FileWrite,
+        "file_delete" => ActionType::FileDelete,
+        "bash_command" => ActionType::BashCommand,
+        "web_fetch" => ActionType::WebFetch,
+        "tool_call" => ActionType::ToolCall,
+        _ => return Err(format!("Invalid action_type: {}. Valid: file_write, file_delete, bash_command, web_fetch, tool_call", action_type)),
+    };
+
+    // Parse policy profile from state
+    let profile = match PolicyProfile::from_str(&wf_state.policy_profile) {
+        Some(p) => p,
+        None => {
+            tracing::warn!("Invalid policy_profile in state.json: '{}', falling back to guided-build", wf_state.policy_profile);
+            PolicyProfile::default()
+        }
+    };
+
+    // Derive product phase from current state
+    let product_phase = derive_product_phase(wf_state);
+
+    let ctx = ActionContext {
+        action_type: action,
+        file_paths,
+        tool_name,
+        product_phase,
+        is_destructive: is_destructive.unwrap_or(false),
+        is_reversible: true,
+    };
+
+    Ok(evaluate(&profile, &ctx))
+}
 
 /// Start a new epic: set name, transition to comprehension phase, write current-epic.md
 #[tauri::command]

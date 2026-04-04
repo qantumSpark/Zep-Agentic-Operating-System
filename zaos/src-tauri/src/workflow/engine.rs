@@ -218,6 +218,14 @@ impl WorkflowEngine {
         Ok(())
     }
 
+    /// Set policy profile
+    pub async fn set_policy_profile(&mut self, profile: String) -> Result<()> {
+        self.current_state.policy_profile = profile;
+        self.persist_and_notify().await?;
+        tracing::info!("Policy profile changed to: {}", self.current_state.policy_profile);
+        Ok(())
+    }
+
     /// Set epic
     #[allow(dead_code)]
     pub async fn set_epic(&mut self, name: String) -> Result<()> {

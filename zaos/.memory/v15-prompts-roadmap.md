@@ -19,8 +19,8 @@
 | 5 | Revue post-bloc 1 | DONE |
 | 6 | Sprint 2A — Product Contract Layer | DONE |
 | 7 | Sprint 2B — Projection workflow produit | DONE |
-| 8 | Revue post-bloc 2 | A FAIRE |
-| 9 | Sprint 3A — Policy Engine contextuel | A FAIRE |
+| 8 | Revue post-bloc 2 | DONE |
+| 9 | Sprint 3A — Policy Engine contextuel | DONE |
 | 10 | Sprint 3B — Hooks enrichis + UX permissions | A FAIRE |
 | 11 | Revue post-bloc 3 | A FAIRE |
 | 12 | Sprint 4A — Dashboard Decision-First | A FAIRE |

@@ -12,6 +12,7 @@ mod events;
 mod init;
 mod memory;
 mod mcp_server;
+mod policy;
 mod runtime;
 mod screenshots;
 mod session;
@@ -98,6 +99,8 @@ fn main() {
             commands::get_project_info,
             commands::start_epic,
             commands::set_gate_ready,
+            commands::set_policy_profile,
+            commands::get_policy_evaluation,
         ])
         .setup(move |app| {
             let state = app.state::<AppState>();

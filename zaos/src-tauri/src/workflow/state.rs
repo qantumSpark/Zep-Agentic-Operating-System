@@ -8,6 +8,10 @@ fn default_permission_mode() -> String {
     "strict".to_string()
 }
 
+fn default_policy_profile() -> String {
+    "guided-build".to_string()
+}
+
 /// WorkflowState mirrors the schema in .workflow/state.json
 /// Extended with ZAOS-specific fields: history and session info
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -31,6 +35,9 @@ pub struct WorkflowState {
 
     #[serde(default = "default_permission_mode")]
     pub permission_mode: String,
+
+    #[serde(default = "default_policy_profile")]
+    pub policy_profile: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -85,6 +92,7 @@ impl Default for WorkflowState {
             history: Vec::new(),
             session: None,
             permission_mode: default_permission_mode(),
+            policy_profile: default_policy_profile(),
         }
     }
 }
@@ -103,6 +111,7 @@ impl WorkflowState {
             history: Vec::new(),
             session: None,
             permission_mode: default_permission_mode(),
+            policy_profile: default_policy_profile(),
         }
     }
 
@@ -154,6 +163,7 @@ pub struct WorkflowStateDto {
     pub gate_validated: bool,
     pub gate_ready: bool,
     pub permission_mode: String,
+    pub policy_profile: String,
     pub last_updated: String,
     pub history: Vec<PhaseTransition>,
     pub session: Option<SessionMetadata>,
@@ -198,6 +208,7 @@ impl WorkflowStateDto {
             gate_validated: state.gate_validated,
             gate_ready: state.gate_ready,
             permission_mode: state.permission_mode.clone(),
+            policy_profile: state.policy_profile.clone(),
             last_updated: state.last_updated.clone(),
             history: state.history.clone(),
             session: state.session.clone(),
@@ -343,5 +354,6 @@ mod tests {
         assert!(dto.gate_validated);
         assert!(dto.gate_ready);
         assert_eq!(dto.permission_mode, "accept-edits");
+        assert_eq!(dto.policy_profile, "guided-build");
     }
 }

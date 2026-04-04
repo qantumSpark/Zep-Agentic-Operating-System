@@ -1,11 +1,11 @@
 # Epic active : _aucun_
 
-> Milestone : 14 — Projection Workflow Produit
+> Milestone : 15 — Policy Engine contextuel
 > Statut : IDLE
 
 ## Objectif
 
-_Sprint 2B termine. 1 epic complete._
+_Sprint 3A termine. 1 epic complete (11 tasks + 6 corrections review)._
 
 ## Tasks
 

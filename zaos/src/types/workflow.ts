@@ -90,6 +90,33 @@ export const PRODUCT_PHASE_ORDER: ProductPhase[] = [
   ProductPhase.Learn,
 ];
 
+/**
+ * Policy profiles for the ZAOS Policy Engine.
+ * Values match the kebab-case serialization from the Rust backend.
+ */
+export enum PolicyProfile {
+  Observe = "observe",
+  GuidedBuild = "guided-build",
+  AutopilotSafe = "autopilot-safe",
+  ReleaseGuarded = "release-guarded",
+}
+
+/** Human-readable labels for policy profiles */
+export const POLICY_PROFILE_LABELS: Record<PolicyProfile, string> = {
+  [PolicyProfile.Observe]: "Observe",
+  [PolicyProfile.GuidedBuild]: "Guided Build",
+  [PolicyProfile.AutopilotSafe]: "Autopilot Safe",
+  [PolicyProfile.ReleaseGuarded]: "Release Guarded",
+};
+
+/** Short descriptions for policy profiles */
+export const POLICY_PROFILE_DESCRIPTIONS: Record<PolicyProfile, string> = {
+  [PolicyProfile.Observe]: "Lecture seule, aucune action auto-approuvée",
+  [PolicyProfile.GuidedBuild]: "Écritures avec approbation, docs auto-approuvés",
+  [PolicyProfile.AutopilotSafe]: "Auto-approve sauf actions destructives",
+  [PolicyProfile.ReleaseGuarded]: "Bloque tout sauf docs et tests",
+};
+
 /** Human-readable labels for product phases */
 export const PRODUCT_PHASE_LABELS: Record<ProductPhase, string> = {
   [ProductPhase.None]: "—",

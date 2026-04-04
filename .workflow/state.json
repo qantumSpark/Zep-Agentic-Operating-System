@@ -1,6 +1,6 @@
 {
   "phase": "closure",
-  "epic": "Workflow Product Projection",
+  "epic": "Policy Engine contextuel",
   "task": "",
   "mode": "pipeline",
   "gate_validated": false,
@@ -8,5 +8,6 @@
   "last_updated": "2026-04-04T00:00:00Z",
   "history": [],
   "session": null,
-  "permission_mode": "accept-edits"
+  "permission_mode": "accept-edits",
+  "policy_profile": "guided-build"
 }

@@ -8,6 +8,12 @@ use std::process;
 // Types (standalone — no dependency on the main zaos crate / Tauri)
 // ---------------------------------------------------------------------------
 
+fn default_policy_profile() -> String {
+    "guided-build".to_string()
+}
+
+/// Standalone copy of WorkflowState — keep in sync with workflow/state.rs
+/// This binary cannot depend on the main zaos crate.
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
 struct WorkflowState {
@@ -18,6 +24,8 @@ struct WorkflowState {
     gate_validated: bool,
     #[serde(default)]
     gate_ready: bool,
+    #[serde(default = "default_policy_profile")]
+    policy_profile: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -289,8 +297,8 @@ fn cmd_inject_context() {
     // 2. Current state
     if let Some(ref st) = state {
         context.push_str(&format!(
-            "ETAT WORKFLOW: phase={}, epic={}, task={}, mode={}, gate_validated={}\n\n",
-            st.phase, st.epic, st.task, st.mode, st.gate_validated
+            "ETAT WORKFLOW:\n  Phase          : {}\n  Epic           : {}\n  Task           : {}\n  Mode           : {}\n  Gate validated : {}\n  Policy         : {}\n\n",
+            st.phase, st.epic, st.task, st.mode, st.gate_validated, st.policy_profile
         ));
 
         // 4. Phase-specific instructions
@@ -527,6 +535,7 @@ fn cmd_on_compact() {
         println!("  Task           : {}", st.task);
         println!("  Mode           : {}", st.mode);
         println!("  Gate validated : {}", st.gate_validated);
+        println!("  Policy         : {}", st.policy_profile);
         println!();
 
         // Phase-specific instruction
