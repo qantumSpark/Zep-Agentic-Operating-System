@@ -1,74 +1,40 @@
 import { CollapsibleSection } from "../common/CollapsibleSection";
-import { WorkflowSection } from "./WorkflowSection";
-import { PipelineSection } from "./PipelineSection";
-import { MemorySection } from "./MemorySection";
-import { ProductSection } from "./ProductSection";
-import { ActionsFeed } from "./ActionsFeed";
-import { UnifiedAgentsSection } from "./UnifiedAgentsSection";
-import { RulesManager } from "./RulesManager";
-import { ScreenshotGallery } from "./ScreenshotGallery";
-import { SessionHistory } from "./SessionHistory";
-import { SessionMetrics } from "./SessionMetrics";
-import { DiffViewer } from "./DiffViewer";
-import { IterationTracker } from "./IterationTracker";
-import { HooksManager } from "./HooksManager";
+import { MissionGroup } from "./MissionGroup";
+import { DecisionsGroup } from "./DecisionsGroup";
+import { EvidenceGroup } from "./EvidenceGroup";
+import { ProgressGroup } from "./ProgressGroup";
+import { AdvancedGroup } from "./AdvancedGroup";
 
 /**
- * Dashboard container: vertically stacked collapsible sections
+ * Dashboard Decision-First: 5 groups answering product piloting questions.
+ *
+ * Mission    — "What are we building?"
+ * Decisions  — "What needs my input?"
+ * Evidence   — "What proves it's ready (or not)?"
+ * Progress   — "Where are we?"
+ * Advanced   — Technical deep-dive (collapsed by default)
  */
 export function DashboardPanel() {
   return (
     <div className="flex flex-col h-full bg-zinc-900 overflow-y-auto">
-      <CollapsibleSection title="Workflow" defaultOpen={true}>
-        <WorkflowSection />
+      <CollapsibleSection title="Mission" defaultOpen={true}>
+        <MissionGroup />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Pipeline" defaultOpen={true}>
-        <PipelineSection />
+      <CollapsibleSection title="Decisions" defaultOpen={true}>
+        <DecisionsGroup />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Memory" defaultOpen={true}>
-        <MemorySection />
+      <CollapsibleSection title="Evidence" defaultOpen={true}>
+        <EvidenceGroup />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Product" defaultOpen={true}>
-        <ProductSection />
+      <CollapsibleSection title="Progress" defaultOpen={true}>
+        <ProgressGroup />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Actions (live)" defaultOpen={true}>
-        <ActionsFeed />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Agents" defaultOpen={false}>
-        <UnifiedAgentsSection />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Hooks" defaultOpen={false}>
-        <HooksManager />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Rules" defaultOpen={false}>
-        <RulesManager />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Iteration Loop" defaultOpen={false}>
-        <IterationTracker />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Diffs" defaultOpen={false}>
-        <DiffViewer />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Screenshots" defaultOpen={false}>
-        <ScreenshotGallery />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Sessions" defaultOpen={false}>
-        <SessionHistory />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Metriques" defaultOpen={false}>
-        <SessionMetrics />
+      <CollapsibleSection title="Advanced" defaultOpen={false}>
+        <AdvancedGroup />
       </CollapsibleSection>
     </div>
   );

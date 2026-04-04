@@ -1,6 +1,6 @@
 {
   "phase": "closure",
-  "epic": "Hooks enrichis + UX permissions",
+  "epic": "Dashboard Decision-First",
   "task": "",
   "mode": "pipeline",
   "gate_validated": false,

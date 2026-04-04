@@ -22,8 +22,8 @@
 | 8 | Revue post-bloc 2 | DONE |
 | 9 | Sprint 3A — Policy Engine contextuel | DONE |
 | 10 | Sprint 3B — Hooks enrichis + UX permissions | DONE |
-| 11 | Revue post-bloc 3 | A FAIRE |
-| 12 | Sprint 4A — Dashboard Decision-First | A FAIRE |
+| 11 | Revue post-bloc 3 | DONE |
+| 12 | Sprint 4A — Dashboard Decision-First | DONE |
 | 13 | Sprint 4B — Personas ZAOS + session insights | A FAIRE |
 | 14 | Revue post-bloc 4 | A FAIRE |
 | 15 | Post-V1.5 — Preparation Codex | A FAIRE |

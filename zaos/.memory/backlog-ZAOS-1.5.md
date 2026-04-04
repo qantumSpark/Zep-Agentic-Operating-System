@@ -1,6 +1,6 @@
-# Backlog — Findings non bloquants Blocs 2-3
+# Backlog — Findings non bloquants Blocs 2-4
 
-> Sources : revue post-bloc 2 (2026-04-04), review Sprint 3B (2026-04-04)
+> Sources : revue post-bloc 2 (2026-04-04), review Sprint 3B (2026-04-04), review Sprint 4A (2026-04-04)
 > Statut : tous non bloquants, a traiter quand pertinent
 
 | ID | Severite | Categorie | Fichier(s) | Description | Sprint suggere |
@@ -15,3 +15,8 @@
 | S3-3B | MINEUR | robustesse | `src-tauri/src/policy.rs` | `is_destructive_command` ne detecte pas `sudo rm`, `git push --force`, `git push -f`. Ameliorer heuristique + split par `&&`/`;`/`\|`. | Sprint ulterieur |
 | S5-3B | MINEUR | coherence | `src/stores/permissionStore.ts`, `src/types/zaosEvents.ts` | `PolicyLogEntry.verdict` inclut "ask" mais ce chemin n'est jamais emprunte via policy_decision. Restreindre a "allow"/"deny" ou documenter. | Nettoyage opportuniste |
 | S6-3B | MINEUR | UX | `src/components/chat/PermissionRequestBlock.tsx` | matchedRules affiches en labels techniques bruts (profile:guided-build, verdict:ask). Mapping vers labels humains a prevoir. | Sprint 4A (Dashboard) |
+| S3-4A | MINEUR | perf | `PhaseIndicator.tsx` | Double indexOf inutile dans le map (idx en 2e arg de map, currentIdx recalcule 7 fois). | Nettoyage opportuniste |
+| S4-4A | MINEUR | lisibilite | `ProgressGroup.tsx` | IIFE de 40 lignes dans le JSX pour tasks/progress. Extraire en sous-composant. | Nettoyage opportuniste |
+| S5-4A | MINEUR | DRY | `ProgressGroup.tsx`, `ActionsFeed.tsx` | StatusIndicator dupliquee entre les deux fichiers. Extraire dans common/. | Nettoyage opportuniste |
+| S6-4A | MINEUR | coherence | `MissionGroup.tsx` | Layout Brief inline (span) vs ProductSection (p + mt-0.5). Divergence intentionnelle mais non documentee. | Pas urgent |
+| S7-4A | MINEUR | perf | `EvidenceGroup.tsx` | hasValidation pas memoize alors que recentScreenshots l'est. Incoherence de pattern. | Pas urgent |

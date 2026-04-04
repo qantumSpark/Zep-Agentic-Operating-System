@@ -23,6 +23,7 @@
 | 14 | Projection Workflow Produit | TERMINE | 1 epic (12 taches + micro-fix) |
 | 15 | Policy Engine contextuel | TERMINE | 1 epic (11 taches + 6 corrections review) |
 | 16 | Hooks enrichis + UX permissions | TERMINE | 1 epic (8 taches + 4 corrections review) |
+| 17 | Dashboard Decision-First | TERMINE | 1 epic (11 taches + 4 corrections review) |
 
 ## Epic active
 
@@ -34,4 +35,4 @@ Aucun
 
 ## Prochaines priorites
 
-Bloc 3 termine (Sprint 3A + 3B). Prochain : Revue post-bloc 3.
+Sprint 4A termine. Prochain : Sprint 4B (Personas ZAOS + session insights).
