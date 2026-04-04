@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
 
+use super::product_phase::{derive_product_phase, ProductPhase};
+use super::engine::peek_next_phase;
+
 fn default_permission_mode() -> String {
     "strict".to_string()
 }
@@ -140,6 +143,67 @@ impl WorkflowState {
     }
 }
 
+/// DTO sent to the frontend — enriches WorkflowState with derived product phase.
+/// Never persisted, always computed on-the-fly.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkflowStateDto {
+    pub phase: String,
+    pub epic: String,
+    pub task: String,
+    pub mode: WorkflowMode,
+    pub gate_validated: bool,
+    pub gate_ready: bool,
+    pub permission_mode: String,
+    pub last_updated: String,
+    pub history: Vec<PhaseTransition>,
+    pub session: Option<SessionMetadata>,
+    pub product_phase: ProductPhase,
+    pub next_product_phase: Option<ProductPhase>,
+}
+
+impl WorkflowStateDto {
+    /// Build a DTO from a WorkflowState, deriving product phase fields.
+    pub fn from_state(state: &WorkflowState) -> Self {
+        let product_phase = derive_product_phase(state);
+
+        // Derive next product phase from the next technical phase
+        let next_product_phase = peek_next_phase(&state.phase).map(|next_tech| {
+            // Build a minimal temporary state to derive the product phase
+            // for the next technical phase. We need epic and empty history
+            // because the "next" state hasn't transitioned yet.
+            let mut next_state = WorkflowState::default();
+            next_state.phase = next_tech.to_string();
+            next_state.epic = state.epic.clone();
+            // When transitioning from closure to idle, simulate the closure→idle
+            // history entry so derive_product_phase correctly returns Learn.
+            if state.phase == "closure" && next_tech == "idle" {
+                next_state.history.push(PhaseTransition {
+                    from_phase: "closure".to_string(),
+                    to_phase: "idle".to_string(),
+                    timestamp: String::new(),
+                    reason: None,
+                });
+            }
+            derive_product_phase(&next_state)
+        });
+
+        WorkflowStateDto {
+            phase: state.phase.clone(),
+            epic: state.epic.clone(),
+            task: state.task.clone(),
+            mode: state.mode,
+            gate_validated: state.gate_validated,
+            gate_ready: state.gate_ready,
+            permission_mode: state.permission_mode.clone(),
+            last_updated: state.last_updated.clone(),
+            history: state.history.clone(),
+            session: state.session.clone(),
+            product_phase,
+            next_product_phase,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -165,5 +229,115 @@ mod tests {
             Some("started task".to_string()),
         );
         assert_eq!(state.history.len(), 1);
+    }
+
+    // --- DTO integration tests ---
+
+    #[test]
+    fn test_dto_implementation_phase() {
+        let mut state = WorkflowState::default();
+        state.phase = "implementation".to_string();
+        state.epic = "MyEpic".to_string();
+
+        let dto = WorkflowStateDto::from_state(&state);
+
+        assert_eq!(dto.product_phase, ProductPhase::Build);
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Verify));
+    }
+
+    #[test]
+    fn test_dto_closure_phase() {
+        // With epic: next is idle with closure→idle history => Learn
+        let mut state = WorkflowState::default();
+        state.phase = "closure".to_string();
+        state.epic = "MyEpic".to_string();
+
+        let dto = WorkflowStateDto::from_state(&state);
+
+        assert_eq!(dto.product_phase, ProductPhase::Release);
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Learn));
+
+        // Without epic: next is idle with closure→idle history => Learn
+        let mut state_empty = WorkflowState::default();
+        state_empty.phase = "closure".to_string();
+
+        let dto_empty = WorkflowStateDto::from_state(&state_empty);
+
+        assert_eq!(dto_empty.product_phase, ProductPhase::Release);
+        assert_eq!(dto_empty.next_product_phase, Some(ProductPhase::Learn));
+    }
+
+    #[test]
+    fn test_dto_idle_post_closure_learn() {
+        let mut state = WorkflowState::default();
+        state.epic = "MyEpic".to_string();
+        state.history.push(PhaseTransition {
+            from_phase: "closure".to_string(),
+            to_phase: "idle".to_string(),
+            timestamp: "2026-01-01T00:00:00Z".to_string(),
+            reason: None,
+        });
+
+        let dto = WorkflowStateDto::from_state(&state);
+
+        assert_eq!(dto.product_phase, ProductPhase::Learn);
+        // next is comprehension with epic => Imagine
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Imagine));
+    }
+
+    #[test]
+    fn test_dto_review_phase() {
+        let mut state = WorkflowState::default();
+        state.phase = "review".to_string();
+        state.epic = "MyEpic".to_string();
+
+        let dto = WorkflowStateDto::from_state(&state);
+
+        assert_eq!(dto.product_phase, ProductPhase::Verify);
+        // next phase is "test" which also maps to Verify
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Verify));
+    }
+
+    #[test]
+    fn test_dto_closure_next_is_learn() {
+        let mut state = WorkflowState::default();
+        state.phase = "closure".to_string();
+        state.epic = "MyEpic".to_string();
+        let dto = WorkflowStateDto::from_state(&state);
+        assert_eq!(dto.product_phase, ProductPhase::Release);
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Learn));
+    }
+
+    #[test]
+    fn test_dto_closure_no_epic_next_is_learn() {
+        let mut state = WorkflowState::default();
+        state.phase = "closure".to_string();
+        state.epic = "".to_string();
+        let dto = WorkflowStateDto::from_state(&state);
+        assert_eq!(dto.product_phase, ProductPhase::Release);
+        // Even without epic, closure→idle should produce Learn
+        assert_eq!(dto.next_product_phase, Some(ProductPhase::Learn));
+    }
+
+    #[test]
+    fn test_dto_preserves_all_fields() {
+        let mut state = WorkflowState::default();
+        state.phase = "architecture".to_string();
+        state.epic = "SomeEpic".to_string();
+        state.task = "task-42".to_string();
+        state.mode = WorkflowMode::Free;
+        state.gate_validated = true;
+        state.gate_ready = true;
+        state.permission_mode = "accept-edits".to_string();
+
+        let dto = WorkflowStateDto::from_state(&state);
+
+        assert_eq!(dto.phase, "architecture");
+        assert_eq!(dto.epic, "SomeEpic");
+        assert_eq!(dto.task, "task-42");
+        assert_eq!(dto.mode, WorkflowMode::Free);
+        assert!(dto.gate_validated);
+        assert!(dto.gate_ready);
+        assert_eq!(dto.permission_mode, "accept-edits");
     }
 }

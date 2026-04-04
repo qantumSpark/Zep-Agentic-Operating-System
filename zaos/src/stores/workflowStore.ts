@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { WorkflowState, Epic, WorkflowMode, Phase, PhaseState } from "../types/workflow";
-import { PHASE_ORDER } from "../types/workflow";
+import { PHASE_ORDER, ProductPhase } from "../types/workflow";
 
 /**
  * Shape of the backend WorkflowState payload (snake_case from Rust serde).
@@ -20,6 +20,8 @@ export interface BackendWorkflowPayload {
     timestamp: string;
     reason?: string;
   }>;
+  product_phase?: string;
+  next_product_phase?: string | null;
   session?: {
     session_id: string;
     started_at: string;
@@ -69,6 +71,8 @@ interface WorkflowStoreState {
   gateValidated: boolean;
   gateReady: boolean;
   permissionMode: string;
+  productPhase: ProductPhase;
+  nextProductPhase: ProductPhase | null;
   pipelineProgress: Record<string, PhaseState>;
 
   // Actions
@@ -95,6 +99,8 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
   gateValidated: false,
   gateReady: false,
   permissionMode: "strict",
+  productPhase: ProductPhase.None,
+  nextProductPhase: null,
   pipelineProgress: {},
 
   updateState: (state: Partial<WorkflowState>) =>
@@ -124,6 +130,12 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       gateValidated: payload.gate_validated ?? false,
       gateReady: payload.gate_ready ?? false,
       permissionMode: payload.permission_mode || "strict",
+      productPhase: Object.values(ProductPhase).includes(payload.product_phase as ProductPhase)
+        ? (payload.product_phase as ProductPhase)
+        : ProductPhase.None,
+      nextProductPhase: payload.next_product_phase && Object.values(ProductPhase).includes(payload.next_product_phase as ProductPhase)
+        ? (payload.next_product_phase as ProductPhase)
+        : null,
       pipelineProgress,
     });
   },
@@ -172,6 +184,8 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       gateValidated: false,
       gateReady: false,
       permissionMode: "strict",
+      productPhase: ProductPhase.None,
+      nextProductPhase: null,
       pipelineProgress: {},
     }),
 }));

@@ -20,6 +20,7 @@
 | 11 | V1.5 Stabilisation (Audit) | TERMINE | 18 taches, 3 sprints |
 | 12 | Test Run Baseline Fixes | TERMINE | 3 epics + micro-fix 1D |
 | 13 | Product Contract Layer | TERMINE | 3 epics (Formats, Backend, Frontend) |
+| 14 | Projection Workflow Produit | TERMINE | 1 epic (12 taches + micro-fix) |
 
 ## Epic active
 
@@ -31,4 +32,4 @@ Aucun
 
 ## Prochaines priorites
 
-Sprint 2A termine. Prochain : test run validation ou Sprint 2B.
+Sprint 2B termine. Prochain : revue post-bloc 2 ou Sprint 3A.

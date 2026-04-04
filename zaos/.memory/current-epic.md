@@ -1,11 +1,11 @@
 # Epic active : _aucun_
 
-> Milestone : 13 — Product Contract Layer
+> Milestone : 14 — Projection Workflow Produit
 > Statut : IDLE
 
 ## Objectif
 
-_Sprint 2A termine. 3 epics completes._
+_Sprint 2B termine. 1 epic complete._
 
 ## Tasks
 

@@ -4,7 +4,7 @@ use crate::memory::{MemoryReader, MemoryStateResponse};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
-use crate::workflow::{WorkflowEngine, WorkflowMode};
+use crate::workflow::{WorkflowEngine, WorkflowMode, WorkflowStateDto};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -90,17 +90,6 @@ pub struct SetModeResponse {
     pub success: bool,
     pub mode: String,
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WorkflowStateResponse {
-    pub phase: String,
-    pub epic: String,
-    pub task: String,
-    pub mode: String,
-    pub gate_validated: bool,
-    pub gate_ready: bool,
-    pub permission_mode: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckAuthResponse {
     pub authenticated: bool,
@@ -381,25 +370,17 @@ pub async fn set_permission_mode(
 #[tauri::command]
 pub async fn get_workflow_state(
     state: State<'_, AppState>,
-) -> Result<WorkflowStateResponse, String> {
+) -> Result<WorkflowStateDto, String> {
     let workflow = state.workflow_engine.lock().await;
     let wf_state = workflow.get_state();
-    Ok(WorkflowStateResponse {
-        phase: wf_state.phase.clone(),
-        epic: wf_state.epic.clone(),
-        task: wf_state.task.clone(),
-        mode: format!("{:?}", wf_state.mode).to_lowercase(),
-        gate_validated: wf_state.gate_validated,
-        gate_ready: wf_state.gate_ready,
-        permission_mode: wf_state.permission_mode.clone(),
-    })
+    Ok(WorkflowStateDto::from_state(wf_state))
 }
 /// Manually set gate_ready flag (for debug/recovery)
 #[tauri::command]
 pub async fn set_gate_ready(
     ready: bool,
     state: State<'_, AppState>,
-) -> Result<WorkflowStateResponse, String> {
+) -> Result<WorkflowStateDto, String> {
     tracing::info!("set_gate_ready called: ready={}", ready);
     let mut engine = state.workflow_engine.lock().await;
     engine
@@ -407,15 +388,7 @@ pub async fn set_gate_ready(
         .await
         .map_err(|e| format!("Failed to set gate_ready: {}", e))?;
     let wf_state = engine.get_state();
-    Ok(WorkflowStateResponse {
-        phase: wf_state.phase.clone(),
-        epic: wf_state.epic.clone(),
-        task: wf_state.task.clone(),
-        mode: format!("{:?}", wf_state.mode).to_lowercase(),
-        gate_validated: wf_state.gate_validated,
-        gate_ready: wf_state.gate_ready,
-        permission_mode: wf_state.permission_mode.clone(),
-    })
+    Ok(WorkflowStateDto::from_state(wf_state))
 }
 
 /// Check CLI authentication status

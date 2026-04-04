@@ -2,6 +2,7 @@
 import { useMemoryStore } from "../../stores/memoryStore";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { ProductPhase, PRODUCT_PHASE_LABELS } from "../../types/workflow";
 import { StatusBadge } from "../common/StatusBadge";
 
 export function StartupDashboard() {
@@ -15,6 +16,7 @@ export function StartupDashboard() {
   const phase = useWorkflowStore((s) => s.phase);
   const mode = useWorkflowStore((s) => s.mode);
   const task = useWorkflowStore((s) => s.task);
+  const productPhase = useWorkflowStore((s) => s.productPhase);
 
   // Session
   const cliConnected = useSessionStore((s) => s.connections.cli);
@@ -103,14 +105,22 @@ export function StartupDashboard() {
         )}
 
         {/* ---- Workflow State ---- */}
-        {(phase || task) && (
+        {(phase || task || (productPhase && productPhase !== ProductPhase.None)) && (
           <div className="flex flex-wrap items-center justify-center gap-2">
+            {/* Product phase — primary badge */}
+            {productPhase && productPhase !== ProductPhase.None && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-600/20 border border-blue-500/30 text-sm font-medium text-blue-300">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                {PRODUCT_PHASE_LABELS[productPhase]}
+              </span>
+            )}
+            {/* Tech phase — secondary badge */}
             {phase && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-xs text-zinc-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700/40 text-xs text-zinc-500">
                 {phase}
               </span>
             )}
+            {/* Mode badge */}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-xs text-zinc-300">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -119,6 +129,7 @@ export function StartupDashboard() {
               />
               {mode}
             </span>
+            {/* Task badge */}
             {task && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-xs text-zinc-400 max-w-[260px] truncate">
                 {task}

@@ -67,6 +67,22 @@ pub enum WorkflowError {
 
 pub type Result<T> = std::result::Result<T, WorkflowError>;
 
+/// Returns the next phase in the pipeline without mutating state.
+/// Returns None for unrecognized phases or when closure loops back to idle.
+pub fn peek_next_phase(current: &str) -> Option<&'static str> {
+    match current {
+        "idle" => Some("comprehension"),
+        "comprehension" => Some("specification"),
+        "specification" => Some("architecture"),
+        "architecture" => Some("implementation"),
+        "implementation" => Some("review"),
+        "review" => Some("test"),
+        "test" => Some("closure"),
+        "closure" => Some("idle"),
+        _ => None,
+    }
+}
+
 /// WorkflowEngine manages the workflow state and transitions
 /// Reads/writes .workflow/state.json, watches for changes
 pub struct WorkflowEngine {

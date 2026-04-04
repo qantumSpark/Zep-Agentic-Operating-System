@@ -63,3 +63,41 @@ export const PHASE_ORDER: Phase[] = [
   Phase.Test,
   Phase.Closure,
 ];
+
+/**
+ * Product-facing workflow phases (derived from technical phases).
+ * Values match the snake_case serialization from the Rust backend.
+ */
+export enum ProductPhase {
+  None = "none",
+  Imagine = "imagine",
+  Shape = "shape",
+  Design = "design",
+  Build = "build",
+  Verify = "verify",
+  Release = "release",
+  Learn = "learn",
+}
+
+/** Display order for product phases (excludes None) */
+export const PRODUCT_PHASE_ORDER: ProductPhase[] = [
+  ProductPhase.Imagine,
+  ProductPhase.Shape,
+  ProductPhase.Design,
+  ProductPhase.Build,
+  ProductPhase.Verify,
+  ProductPhase.Release,
+  ProductPhase.Learn,
+];
+
+/** Human-readable labels for product phases */
+export const PRODUCT_PHASE_LABELS: Record<ProductPhase, string> = {
+  [ProductPhase.None]: "—",
+  [ProductPhase.Imagine]: "Imagine",
+  [ProductPhase.Shape]: "Shape",
+  [ProductPhase.Design]: "Design",
+  [ProductPhase.Build]: "Build",
+  [ProductPhase.Verify]: "Verify",
+  [ProductPhase.Release]: "Release",
+  [ProductPhase.Learn]: "Learn",
+};

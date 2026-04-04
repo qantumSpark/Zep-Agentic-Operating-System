@@ -1,6 +1,6 @@
 use crate::memory::MemoryReader;
 use crate::screenshots::ScreenshotOrchestrator;
-use crate::workflow::state::WorkflowState;
+use crate::workflow::state::{WorkflowState, WorkflowStateDto};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -204,8 +204,9 @@ impl FileWatcherService {
                                                         state.gate_ready,
                                                         state.gate_validated
                                                     );
+                                                    let dto = WorkflowStateDto::from_state(&state);
                                                     if let Err(e) =
-                                                        app_handle.emit("workflow-change", &state)
+                                                        app_handle.emit("workflow-change", &dto)
                                                     {
                                                         tracing::warn!(
                                                             "Failed to emit workflow-change: {}",
