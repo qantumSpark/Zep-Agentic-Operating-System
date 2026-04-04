@@ -177,6 +177,15 @@ export function useTauriEvents() {
       );
       unlisteners.push(memoryChangeListener);
 
+      // Product contract change events — update product store when .memory files change
+      const productContractChangeListener = await listen<ProductContract>(
+        "product-contract-change",
+        (event) => {
+          useProductStore.getState().setProductContract(event.payload);
+        }
+      );
+      unlisteners.push(productContractChangeListener);
+
       // CLI health events
       const cliHealthListener = await listen("cli-health", (event) => {
         const sessionStore = useSessionStore.getState();

@@ -22,6 +22,7 @@ export interface BackendWorkflowPayload {
   }>;
   product_phase?: string;
   next_product_phase?: string | null;
+  next_tech_phase?: string | null;
   session?: {
     session_id: string;
     started_at: string;
@@ -73,6 +74,7 @@ interface WorkflowStoreState {
   permissionMode: string;
   productPhase: ProductPhase;
   nextProductPhase: ProductPhase | null;
+  nextTechPhase: string | null;
   pipelineProgress: Record<string, PhaseState>;
 
   // Actions
@@ -95,12 +97,13 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
   phase: null,
   epic: null,
   task: "",
-  mode: "free",
+  mode: "pipeline",
   gateValidated: false,
   gateReady: false,
   permissionMode: "strict",
   productPhase: ProductPhase.None,
   nextProductPhase: null,
+  nextTechPhase: null,
   pipelineProgress: {},
 
   updateState: (state: Partial<WorkflowState>) =>
@@ -136,6 +139,7 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       nextProductPhase: payload.next_product_phase && Object.values(ProductPhase).includes(payload.next_product_phase as ProductPhase)
         ? (payload.next_product_phase as ProductPhase)
         : null,
+      nextTechPhase: payload.next_tech_phase || null,
       pipelineProgress,
     });
   },
@@ -180,12 +184,13 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       phase: null,
       epic: null,
       task: "",
-      mode: "free",
+      mode: "pipeline",
       gateValidated: false,
       gateReady: false,
       permissionMode: "strict",
       productPhase: ProductPhase.None,
       nextProductPhase: null,
+      nextTechPhase: null,
       pipelineProgress: {},
     }),
 }));

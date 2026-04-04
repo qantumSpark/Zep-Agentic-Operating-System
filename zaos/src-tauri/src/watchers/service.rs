@@ -251,6 +251,11 @@ impl FileWatcherService {
                                             );
                                         }
                                     }
+                                    // Also refresh the product contract
+                                    let contract = memory_reader.read_product_contract().await;
+                                    if let Err(e) = app_handle.emit("product-contract-change", &contract) {
+                                        tracing::warn!("Failed to emit product-contract-change: {}", e);
+                                    }
                                 }
                                 WatchCategory::Screenshot => {
                                     match tokio::fs::metadata(path).await {

@@ -68,7 +68,7 @@ pub enum WorkflowError {
 pub type Result<T> = std::result::Result<T, WorkflowError>;
 
 /// Returns the next phase in the pipeline without mutating state.
-/// Returns None for unrecognized phases or when closure loops back to idle.
+/// Returns None for unrecognized phases. Returns Some("idle") for closure.
 pub fn peek_next_phase(current: &str) -> Option<&'static str> {
     match current {
         "idle" => Some("comprehension"),
@@ -194,17 +194,8 @@ impl WorkflowEngine {
 
     /// Move to next phase in the pipeline
     pub async fn next_phase(&mut self) -> Result<String> {
-        let next = match self.current_state.phase.as_str() {
-            "idle" => "comprehension",
-            "comprehension" => "specification",
-            "specification" => "architecture",
-            "architecture" => "implementation",
-            "implementation" => "review",
-            "review" => "test",
-            "test" => "closure",
-            "closure" => "idle",
-            phase => return Err(WorkflowError::InvalidPhase(phase.to_string())),
-        };
+        let next = peek_next_phase(&self.current_state.phase)
+            .ok_or_else(|| WorkflowError::InvalidPhase(self.current_state.phase.clone()))?;
 
         self.current_state.gate_validated = false;
         self.set_phase(next.to_string()).await?;

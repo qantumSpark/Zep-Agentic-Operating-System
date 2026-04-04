@@ -159,12 +159,15 @@ pub struct WorkflowStateDto {
     pub session: Option<SessionMetadata>,
     pub product_phase: ProductPhase,
     pub next_product_phase: Option<ProductPhase>,
+    pub next_tech_phase: Option<String>,
 }
 
 impl WorkflowStateDto {
     /// Build a DTO from a WorkflowState, deriving product phase fields.
     pub fn from_state(state: &WorkflowState) -> Self {
         let product_phase = derive_product_phase(state);
+
+        let next_tech_phase = peek_next_phase(&state.phase).map(|s| s.to_string());
 
         // Derive next product phase from the next technical phase
         let next_product_phase = peek_next_phase(&state.phase).map(|next_tech| {
@@ -200,6 +203,7 @@ impl WorkflowStateDto {
             session: state.session.clone(),
             product_phase,
             next_product_phase,
+            next_tech_phase,
         }
     }
 }

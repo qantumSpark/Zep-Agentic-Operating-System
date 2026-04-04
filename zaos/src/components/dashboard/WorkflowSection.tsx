@@ -17,6 +17,7 @@ export function WorkflowSection() {
   const setPermissionMode = useWorkflowStore((state) => state.setPermissionMode);
   const productPhase = useWorkflowStore((state) => state.productPhase);
   const nextProductPhase = useWorkflowStore((state) => state.nextProductPhase);
+  const nextTechPhase = useWorkflowStore((state) => state.nextTechPhase);
 
   const [epicName, setEpicName] = useState("");
   const [epicDesc, setEpicDesc] = useState("");
@@ -245,11 +246,9 @@ export function WorkflowSection() {
               </>
             )}
           </button>
-          {gateReady && !isValidating && phase && (
+          {gateReady && !isValidating && phase && nextTechPhase && (
             <p className="text-zinc-500 text-xs text-center mt-0.5">
-              {phase} → {
-                ({comprehension: "specification", specification: "architecture", architecture: "implementation", implementation: "review", review: "test", test: "closure", closure: "idle"} as Record<string, string>)[phase] ?? "?"
-              }
+              {phase} → {nextTechPhase}
             </p>
           )}
           {gateMessage && (
