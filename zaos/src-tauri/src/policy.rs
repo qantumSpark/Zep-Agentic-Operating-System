@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fmt;
 
 use crate::workflow::product_phase::ProductPhase;
@@ -132,11 +133,62 @@ fn base_risk(action_type: &ActionType) -> RiskLevel {
 }
 
 /// Elevate verdict: Deny > Ask > Allow
-fn max_verdict(a: Verdict, b: Verdict) -> Verdict {
+pub fn max_verdict(a: Verdict, b: Verdict) -> Verdict {
     match (a, b) {
         (Verdict::Deny, _) | (_, Verdict::Deny) => Verdict::Deny,
         (Verdict::Ask, _) | (_, Verdict::Ask) => Verdict::Ask,
         _ => Verdict::Allow,
+    }
+}
+
+/// Derive an `ActionType` from the tool name sent by the AI runtime.
+pub fn derive_action_type(tool_name: &str) -> ActionType {
+    match tool_name {
+        "Write" | "Edit" | "MultiEdit" => ActionType::FileWrite,
+        "Bash" => ActionType::BashCommand,
+        "WebFetch" | "WebSearch" => ActionType::WebFetch,
+        _ => ActionType::ToolCall,
+    }
+}
+
+/// Heuristic: returns `true` when the JSON input contains a bash command
+/// that looks destructive (rm, git reset --hard, etc.).
+pub fn is_destructive_command(input: &Value) -> bool {
+    let command = match input.get("command").and_then(|v| v.as_str()) {
+        Some(c) => c.to_lowercase(),
+        None => return false,
+    };
+
+    let patterns = [
+        "rm ",
+        "rm -",
+        "rmdir",
+        "del ",
+        "drop ",
+        "truncate ",
+        "git reset --hard",
+        "git clean",
+    ];
+
+    patterns.iter().any(|p| command.contains(p))
+}
+
+/// Deterministic string representation of a Verdict (matches serde output).
+pub fn verdict_to_str(v: Verdict) -> &'static str {
+    match v {
+        Verdict::Allow => "allow",
+        Verdict::Ask => "ask",
+        Verdict::Deny => "deny",
+    }
+}
+
+/// Deterministic string representation of a RiskLevel (matches serde output).
+pub fn risk_level_to_str(r: RiskLevel) -> &'static str {
+    match r {
+        RiskLevel::Low => "low",
+        RiskLevel::Medium => "medium",
+        RiskLevel::High => "high",
+        RiskLevel::Critical => "critical",
     }
 }
 
@@ -659,5 +711,74 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ── derive_action_type ────────────────────────────────────────
+
+    #[test]
+    fn test_derive_action_type_write() {
+        assert_eq!(derive_action_type("Write"), ActionType::FileWrite);
+    }
+
+    #[test]
+    fn test_derive_action_type_edit() {
+        assert_eq!(derive_action_type("Edit"), ActionType::FileWrite);
+    }
+
+    #[test]
+    fn test_derive_action_type_multi_edit() {
+        assert_eq!(derive_action_type("MultiEdit"), ActionType::FileWrite);
+    }
+
+    #[test]
+    fn test_derive_action_type_bash() {
+        assert_eq!(derive_action_type("Bash"), ActionType::BashCommand);
+    }
+
+    #[test]
+    fn test_derive_action_type_web_fetch() {
+        assert_eq!(derive_action_type("WebFetch"), ActionType::WebFetch);
+    }
+
+    #[test]
+    fn test_derive_action_type_web_search() {
+        assert_eq!(derive_action_type("WebSearch"), ActionType::WebFetch);
+    }
+
+    #[test]
+    fn test_derive_action_type_unknown() {
+        assert_eq!(derive_action_type("SomeOtherTool"), ActionType::ToolCall);
+    }
+
+    // ── is_destructive_command ────────────────────────────────────
+
+    #[test]
+    fn test_is_destructive_rm() {
+        let input = serde_json::json!({"command": "rm -rf /tmp/foo"});
+        assert!(is_destructive_command(&input));
+    }
+
+    #[test]
+    fn test_is_destructive_git_reset() {
+        let input = serde_json::json!({"command": "git reset --hard HEAD"});
+        assert!(is_destructive_command(&input));
+    }
+
+    #[test]
+    fn test_is_destructive_safe_command() {
+        let input = serde_json::json!({"command": "cargo test"});
+        assert!(!is_destructive_command(&input));
+    }
+
+    #[test]
+    fn test_is_destructive_no_command() {
+        let input = serde_json::json!({});
+        assert!(!is_destructive_command(&input));
+    }
+
+    #[test]
+    fn test_is_destructive_git_clean() {
+        let input = serde_json::json!({"command": "git clean -fd"});
+        assert!(is_destructive_command(&input));
     }
 }

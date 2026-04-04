@@ -21,7 +21,7 @@
 | 7 | Sprint 2B — Projection workflow produit | DONE |
 | 8 | Revue post-bloc 2 | DONE |
 | 9 | Sprint 3A — Policy Engine contextuel | DONE |
-| 10 | Sprint 3B — Hooks enrichis + UX permissions | A FAIRE |
+| 10 | Sprint 3B — Hooks enrichis + UX permissions | DONE |
 | 11 | Revue post-bloc 3 | A FAIRE |
 | 12 | Sprint 4A — Dashboard Decision-First | A FAIRE |
 | 13 | Sprint 4B — Personas ZAOS + session insights | A FAIRE |

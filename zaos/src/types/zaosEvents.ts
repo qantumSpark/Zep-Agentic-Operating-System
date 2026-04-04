@@ -19,6 +19,7 @@ export type ZaosEvent =
   | ToolCallStartedEvent
   | ToolCallFinishedEvent
   | ApprovalRequestedEvent
+  | PolicyDecisionEvent
   | RunCompletedEvent
   | TokenUsageEvent
   | RateLimitedEvent
@@ -107,6 +108,25 @@ export interface ApprovalRequestedEvent {
   toolName?: string;
   toolInput?: Record<string, unknown>;
   description?: string;
+  /** Policy Engine fields — set by ZAOS, not by the runtime provider */
+  policyVerdict?: "allow" | "ask" | "deny";
+  policyRiskLevel?: "low" | "medium" | "high" | "critical";
+  policyReason?: string;
+  policyMatchedRules?: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Policy Engine decisions (auto-allow / auto-deny log)
+// ---------------------------------------------------------------------------
+
+/** Logged when ZAOS Policy Engine auto-allows or auto-denies an action (not shown as permission prompt) */
+export interface PolicyDecisionEvent {
+  type: "policy_decision";
+  toolName?: string;
+  verdict: "allow" | "deny";
+  riskLevel: "low" | "medium" | "high" | "critical";
+  reason: string;
+  matchedRules: string[];
 }
 
 // ---------------------------------------------------------------------------

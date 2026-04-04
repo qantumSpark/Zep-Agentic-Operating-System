@@ -1,6 +1,6 @@
 {
   "phase": "closure",
-  "epic": "Policy Engine contextuel",
+  "epic": "Hooks enrichis + UX permissions",
   "task": "",
   "mode": "pipeline",
   "gate_validated": false,

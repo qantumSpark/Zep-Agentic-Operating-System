@@ -164,46 +164,155 @@ pub async fn send_prompt(
                         tracing::info!("Session ID captured: {}", sys.session_id);
                     }
 
-                    // Auto-approval for permission requests in accept-edits mode
+                    // Policy Engine evaluation for permission requests
                     if let CliEvent::ControlRequest(ref req) = event {
-                        let is_accept_edits = {
-                            let mode = pm.read().await;
-                            mode.as_str() == "accept-edits"
-                        };
+                        use crate::policy::{derive_action_type, is_destructive_command, evaluate as policy_evaluate, ActionContext, PolicyProfile, Verdict, verdict_to_str, risk_level_to_str};
+                        use crate::workflow::product_phase::derive_product_phase;
+                        use crate::events::zaos_events::ZaosEvent;
 
-                        if is_accept_edits {
-                            const AUTO_APPROVE: &[&str] =
-                                &["Write", "Edit", "MultiEdit", "WebSearch", "WebFetch"];
-                            if let Some(tool) = req.tool_name() {
-                                // MCP tools (mcp__<server>__<tool>) are user-installed via .mcp.json,
-                                // therefore trusted in accept-edits mode alongside Write/Edit/etc.
-                                if AUTO_APPROVE.contains(&tool) || tool.starts_with("mcp__") {
-                                    let input = req.tool_input();
-                                    let mut mgr = sm.lock().await;
-                                    match mgr
-                                        .send_permission_response(
-                                            &req.request_id,
-                                            true,
-                                            input,
-                                        )
-                                        .await
-                                    {
-                                        Ok(()) => {
-                                            tracing::info!(
-                                                "Auto-approved {} (request {})",
-                                                tool,
-                                                req.request_id
-                                            );
-                                            continue;
-                                        }
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Auto-approval response failed: {}",
-                                                e
-                                            );
-                                        }
+                        let tool_name_str = req.tool_name().unwrap_or("unknown").to_string();
+                        let tool_input_val = req.tool_input().unwrap_or(serde_json::Value::Null);
+
+                        // 1. Build ActionContext
+                        let action_type = derive_action_type(&tool_name_str);
+
+                        // Extract file_paths from tool_input
+                        let file_paths = {
+                            let mut paths = Vec::new();
+                            // Write/Edit: single file_path
+                            if let Some(fp) = tool_input_val.get("file_path").and_then(|v| v.as_str()) {
+                                paths.push(fp.to_string());
+                            }
+                            // MultiEdit: edits array
+                            if let Some(edits) = tool_input_val.get("edits").and_then(|v| v.as_array()) {
+                                for edit in edits {
+                                    if let Some(fp) = edit.get("file_path").and_then(|v| v.as_str()) {
+                                        paths.push(fp.to_string());
                                     }
                                 }
+                            }
+                            paths
+                        };
+
+                        let is_destructive = is_destructive_command(&tool_input_val);
+
+                        // Get product_phase and policy profile from workflow state (single lock)
+                        let (product_phase, profile) = {
+                            let engine = we.lock().await;
+                            let wf_state = engine.get_state();
+                            let pp = derive_product_phase(wf_state);
+                            let prof = PolicyProfile::from_str(&wf_state.policy_profile).unwrap_or_default();
+                            (pp, prof)
+                        };
+
+                        let ctx = ActionContext {
+                            action_type,
+                            file_paths,
+                            tool_name: Some(tool_name_str.clone()),
+                            product_phase,
+                            is_destructive,
+                            is_reversible: !is_destructive,
+                        };
+
+                        let decision = policy_evaluate(&profile, &ctx);
+
+                        // 2. Derive permission_mode verdict
+                        let pm_verdict = {
+                            let mode = pm.read().await;
+                            match mode.as_str() {
+                                "accept-edits" => {
+                                    const AUTO_APPROVE_TOOLS: &[&str] = &["Write", "Edit", "MultiEdit", "WebSearch", "WebFetch"];
+                                    if AUTO_APPROVE_TOOLS.contains(&tool_name_str.as_str()) || tool_name_str.starts_with("mcp__") {
+                                        Verdict::Allow
+                                    } else {
+                                        Verdict::Ask
+                                    }
+                                }
+                                _ => Verdict::Ask, // "strict" or anything else -> Ask
+                            }
+                        };
+
+                        // 3. Final verdict = most restrictive (Deny > Ask > Allow)
+                        let final_verdict = crate::policy::max_verdict(decision.verdict, pm_verdict);
+
+                        tracing::info!(
+                            "Policy decision: tool={}, verdict={}, risk={}, reason={}, profile={}, pm_verdict={}, final={}",
+                            tool_name_str, verdict_to_str(decision.verdict), risk_level_to_str(decision.risk_level), decision.reason, profile, verdict_to_str(pm_verdict), verdict_to_str(final_verdict)
+                        );
+
+                        match final_verdict {
+                            Verdict::Allow => {
+                                // Emit PolicyDecision event for frontend log, then auto-approve
+                                let log_event = ZaosEvent::PolicyDecision {
+                                    tool_name: Some(tool_name_str.clone()),
+                                    verdict: verdict_to_str(decision.verdict).to_string(),
+                                    risk_level: risk_level_to_str(decision.risk_level).to_string(),
+                                    reason: decision.reason.clone(),
+                                    matched_rules: decision.matched_rules.clone(),
+                                };
+                                if let Err(e) = app_handle.emit("agent-event", &log_event) {
+                                    tracing::error!("Failed to emit policy_decision event: {}", e);
+                                }
+
+                                let input = req.tool_input();
+                                let mut mgr = sm.lock().await;
+                                match mgr.send_permission_response(&req.request_id, true, input).await {
+                                    Ok(()) => {
+                                        tracing::info!("Auto-approved {} (request {})", tool_name_str, req.request_id);
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Auto-approval response failed: {}", e);
+                                        continue;
+                                    }
+                                }
+                            }
+                            Verdict::Deny => {
+                                // Emit PolicyDecision event for frontend log, then auto-deny
+                                let log_event = ZaosEvent::PolicyDecision {
+                                    tool_name: Some(tool_name_str.clone()),
+                                    verdict: verdict_to_str(decision.verdict).to_string(),
+                                    risk_level: risk_level_to_str(decision.risk_level).to_string(),
+                                    reason: decision.reason.clone(),
+                                    matched_rules: decision.matched_rules.clone(),
+                                };
+                                if let Err(e) = app_handle.emit("agent-event", &log_event) {
+                                    tracing::error!("Failed to emit policy_decision event: {}", e);
+                                }
+
+                                let mut mgr = sm.lock().await;
+                                match mgr.send_permission_response(&req.request_id, false, None).await {
+                                    Ok(()) => {
+                                        tracing::info!("Auto-denied {} (request {})", tool_name_str, req.request_id);
+                                        continue;
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Auto-deny response failed: {}", e);
+                                        continue;
+                                    }
+                                }
+                            }
+                            Verdict::Ask => {
+                                // Emit enriched ApprovalRequested event with policy metadata
+                                let description = req.message.clone().or_else(|| {
+                                    req.extra.get("request")?.get("description")?.as_str().map(|s| s.to_string())
+                                });
+
+                                let enriched = ZaosEvent::ApprovalRequested {
+                                    request_id: req.request_id.clone(),
+                                    tool_name: req.tool_name().map(|s| s.to_string()),
+                                    tool_input: req.tool_input(),
+                                    description,
+                                    policy_verdict: Some(verdict_to_str(decision.verdict).to_string()),
+                                    policy_risk_level: Some(risk_level_to_str(decision.risk_level).to_string()),
+                                    policy_reason: Some(decision.reason.clone()),
+                                    policy_matched_rules: Some(decision.matched_rules.clone()),
+                                };
+
+                                if let Err(e) = app_handle.emit("agent-event", &enriched) {
+                                    tracing::error!("Failed to emit enriched ApprovalRequested: {}", e);
+                                }
+                                continue; // Skip default mapper for this event
                             }
                         }
                     }

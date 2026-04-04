@@ -89,6 +89,29 @@ pub enum ZaosEvent {
         tool_input: Option<Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
         description: Option<String>,
+        /// Policy Engine fields — set by ZAOS, not by the runtime provider
+        #[serde(rename = "policyVerdict", skip_serializing_if = "Option::is_none")]
+        policy_verdict: Option<String>,
+        #[serde(rename = "policyRiskLevel", skip_serializing_if = "Option::is_none")]
+        policy_risk_level: Option<String>,
+        #[serde(rename = "policyReason", skip_serializing_if = "Option::is_none")]
+        policy_reason: Option<String>,
+        #[serde(rename = "policyMatchedRules", skip_serializing_if = "Option::is_none")]
+        policy_matched_rules: Option<Vec<String>>,
+    },
+
+    /// Policy Engine decision log — emitted for auto-allow/auto-deny (not shown as permission prompt)
+    /// These fields come from ZAOS Policy Engine, not from the runtime provider.
+    #[serde(rename = "policy_decision")]
+    PolicyDecision {
+        #[serde(rename = "toolName", skip_serializing_if = "Option::is_none")]
+        tool_name: Option<String>,
+        verdict: String,
+        #[serde(rename = "riskLevel")]
+        risk_level: String,
+        reason: String,
+        #[serde(rename = "matchedRules")]
+        matched_rules: Vec<String>,
     },
 
     // -- Run lifecycle ------------------------------------------------------

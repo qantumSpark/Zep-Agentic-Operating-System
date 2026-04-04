@@ -1,11 +1,11 @@
 # Epic active : _aucun_
 
-> Milestone : 15 — Policy Engine contextuel
+> Milestone : 16 — Hooks enrichis + UX permissions
 > Statut : IDLE
 
 ## Objectif
 
-_Sprint 3A termine. 1 epic complete (11 tasks + 6 corrections review)._
+_Sprint 3B termine. 1 epic complete (8 tasks + 4 corrections review)._
 
 ## Tasks
 

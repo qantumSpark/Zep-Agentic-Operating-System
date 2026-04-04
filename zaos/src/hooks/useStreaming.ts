@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Message } from "../types/events";
-import type { ZaosEvent, ApprovalRequestedEvent } from "../types/zaosEvents";
+import type { ZaosEvent, ApprovalRequestedEvent, PolicyDecisionEvent } from "../types/zaosEvents";
 import { useChatStore } from "../stores/chatStore";
 import { useActionsStore } from "../stores/actionsStore";
 import { useAgentsStore, mapAgentName } from "../stores/agentsStore";
 import { usePermissionStore } from "../stores/permissionStore";
+import type { PolicyLogEntry } from "../stores/permissionStore";
 import { useSessionStore } from "../stores/sessionStore";
 import { formatToolSummary } from "../utils/toolFormatters";
 
@@ -191,16 +192,33 @@ export function useStreaming() {
 
           case "approval_requested": {
             const permStore = usePermissionStore.getState();
-            permStore.addRequest(ze as ApprovalRequestedEvent);
+            const approvalEvent = ze as ApprovalRequestedEvent;
+            permStore.addRequest(approvalEvent);
 
             const permMsg: Message = {
               id: `perm-${ze.requestId}`,
               role: "system",
               content: "",
               timestamp: Date.now(),
-              permissionRequest: ze as ApprovalRequestedEvent,
+              permissionRequest: approvalEvent,
             };
             store.addMessage(permMsg);
+            break;
+          }
+
+          case "policy_decision": {
+            const policyEvent = ze as PolicyDecisionEvent;
+            const permStore = usePermissionStore.getState();
+            const logEntry: PolicyLogEntry = {
+              timestamp: Date.now(),
+              toolName: policyEvent.toolName ?? "unknown",
+              verdict: policyEvent.verdict,
+              riskLevel: policyEvent.riskLevel,
+              reason: policyEvent.reason,
+              wasAutoApproved: policyEvent.verdict === "allow",
+              wasAutoDenied: policyEvent.verdict === "deny",
+            };
+            permStore.addPolicyLogEntry(logEntry);
             break;
           }
 

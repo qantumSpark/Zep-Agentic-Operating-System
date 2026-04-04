@@ -204,6 +204,11 @@ fn map_control_request(req: &ControlRequest) -> Vec<ZaosEvent> {
         tool_name: req.tool_name().map(|s| s.to_string()),
         tool_input: req.tool_input(),
         description,
+        // Policy Engine fields — set later by ZAOS, not by the runtime mapper
+        policy_verdict: None,
+        policy_risk_level: None,
+        policy_reason: None,
+        policy_matched_rules: None,
     }]
 }
 

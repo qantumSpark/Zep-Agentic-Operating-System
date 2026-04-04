@@ -8,6 +8,19 @@ interface PermissionRequestBlockProps {
   request: ApprovalRequestedEvent;
 }
 
+const RISK_COLORS: Record<string, string> = {
+  low: "bg-green-700 text-green-100",
+  medium: "bg-yellow-700 text-yellow-100",
+  high: "bg-orange-700 text-orange-100",
+  critical: "bg-red-700 text-red-100",
+};
+
+const VERDICT_LABELS: Record<string, string> = {
+  allow: "Recommended: Allow",
+  ask: "Recommended: Review",
+  deny: "Recommended: Deny",
+};
+
 export function PermissionRequestBlock({ request }: PermissionRequestBlockProps) {
   const [expanded, setExpanded] = useState(false);
   const [responded, setResponded] = useState(false);
@@ -19,6 +32,13 @@ export function PermissionRequestBlock({ request }: PermissionRequestBlockProps)
   const description = request.description || "Permission requested";
   const icon = getToolIcon(toolName);
   const summary = formatToolSummary(toolName, toolInput as Record<string, unknown>);
+
+  // Policy Engine fields (optional — fallback gracieux)
+  const riskLevel = request.policyRiskLevel;
+  const verdict = request.policyVerdict;
+  const reason = request.policyReason;
+  const matchedRules = request.policyMatchedRules;
+  const hasPolicy = !!(riskLevel || verdict || reason);
 
   const handleResponse = async (allow: boolean) => {
     setResponded(true);
@@ -38,10 +58,43 @@ export function PermissionRequestBlock({ request }: PermissionRequestBlockProps)
         <span className="text-zinc-400 truncate flex-1">
           {toolName}: {summary}
         </span>
+        {riskLevel && (
+          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${RISK_COLORS[riskLevel] || "bg-zinc-600 text-zinc-200"}`}>
+            {riskLevel.toUpperCase()}
+          </span>
+        )}
         <span className="text-zinc-500 text-xs">
           {expanded ? "\u25B2" : "\u25BC"}
         </span>
       </button>
+
+      {/* Policy info section */}
+      {hasPolicy && (
+        <div className="px-3 py-1.5 border-t border-amber-800/40 space-y-1">
+          {verdict && (
+            <div className="text-xs font-medium text-zinc-300">
+              {VERDICT_LABELS[verdict] || verdict}
+            </div>
+          )}
+          {reason && (
+            <div className="text-xs text-zinc-400">
+              {reason}
+            </div>
+          )}
+          {matchedRules && matchedRules.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {matchedRules.map((rule) => (
+                <span
+                  key={rule}
+                  className="text-xs bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded"
+                >
+                  {rule}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Message */}
       <div className="px-3 py-1 text-zinc-300 text-xs">
