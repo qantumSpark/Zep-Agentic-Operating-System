@@ -1,12 +1,19 @@
 {
-  "phase": "closure",
+  "phase": "idle",
   "epic": "Post-V1.5 — Preparation Codex",
   "task": "Closure — finalisation sprint",
   "mode": "pipeline",
   "gate_validated": false,
-  "gate_ready": true,
-  "last_updated": "2026-04-05T00:00:00Z",
-  "history": [],
+  "gate_ready": false,
+  "last_updated": "2026-04-05T12:14:26.133505400+00:00",
+  "history": [
+    {
+      "from_phase": "closure",
+      "to_phase": "idle",
+      "timestamp": "2026-04-05T12:14:26.133493600+00:00",
+      "reason": "manual transition"
+    }
+  ],
   "session": null,
   "permission_mode": "accept-edits",
   "policy_profile": "guided-build"

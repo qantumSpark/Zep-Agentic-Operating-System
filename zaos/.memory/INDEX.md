@@ -7,8 +7,8 @@
 
 - [architecture.md](architecture.md) — Stack Tauri v2 + React/TS + Rust, layout split-panel chat/dashboard
 - [conventions.md](conventions.md) — Standards TypeScript/React/Rust pour ZAOS
-- [state.md](state.md) — Phase 11 terminee, 193/193 tasks, V1.5 stabilise
-- [current-epic.md](current-epic.md) — Sprint 3B termine, IDLE
+- [state.md](state.md) — 19 milestones termines, phase Learn, product contract rempli
+- [current-epic.md](current-epic.md) — M19 termine, phase Learn (retro + product contract rempli)
 - [backlog-ZAOS-1.5.md](backlog-ZAOS-1.5.md) — 10 findings non bloquants (blocs 2-3)
 - [test-findings.md](test-findings.md) — 17 findings du premier test run reel (2026-04-01)
 - [test-findings-run2.md](test-findings-run2.md) — 8 findings du test run #2 (2026-04-01, post Phase 9)

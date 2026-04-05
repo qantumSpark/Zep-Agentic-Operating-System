@@ -29,7 +29,7 @@
 
 ## Epic active
 
-Aucune — Milestone 19 termine.
+Aucune — Phase Learn (retrospective post-V1.5) en cours.
 
 ## Blocages
 
@@ -37,4 +37,4 @@ Aucun
 
 ## Prochaines priorites
 
-Post-V1.5 termine. Backlog restant : M1 (step numbering), M3 (RwLock runtime_kind), S1-S4 (tests RuntimePaths, serialisation, helpers frontend, deployer unification).
+Retrospective V1.5 en cours. Product contract rempli (brief, experience goals, acceptance checks, release readiness). Reste a determiner la prochaine direction parmi : (A) Sprint qualite/dette technique, (B) Session insights fonctionnels, (C) Integration Codex, (D) Vision V2. Backlog technique : M1 (step numbering), M3 (RwLock runtime_kind), S1-S4 (tests, serialisation, helpers, deployer).
