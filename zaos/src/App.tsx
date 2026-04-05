@@ -16,6 +16,7 @@ import { useProjectStore } from "./stores/projectStore";
 import { useWorkflowKitStore, applyKitStatus } from "./stores/workflowKitStore";
 import type { AgentDef, KitStatusResponse } from "./stores/workflowKitStore";
 import { useProductStore } from "./stores/productStore";
+import { usePersonaStore } from "./stores/personaStore";
 import type { ProductContract } from "./types/productContract";
 import type { Screenshot } from "./types/screenshots";
 
@@ -97,6 +98,9 @@ export function App() {
       } else {
         console.error("get_product_contract failed:", productResult.reason);
       }
+
+      // Load personas via store facade
+      usePersonaStore.getState().loadPersonas();
     })();
   }, []);
 

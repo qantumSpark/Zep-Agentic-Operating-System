@@ -1,11 +1,11 @@
 # Epic active : _aucun_
 
-> Milestone : 17 — Dashboard Decision-First
+> Milestone : 18 — Personas ZAOS + session insights
 > Statut : IDLE
 
 ## Objectif
 
-_Sprint 4A termine. 1 epic complete (11 tasks + 4 corrections review)._
+_Sprint 4B terminé. 1 epic complète (10 tasks + 6 corrections review)._
 
 ## Tasks
 

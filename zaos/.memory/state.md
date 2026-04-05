@@ -1,6 +1,6 @@
 # Etat courant ZAOS
 
-> Derniere mise a jour : 2026-04-04
+> Derniere mise a jour : 2026-04-05
 > ECRASE a chaque mise a jour. Max 50 lignes.
 
 ## Milestones
@@ -24,6 +24,7 @@
 | 15 | Policy Engine contextuel | TERMINE | 1 epic (11 taches + 6 corrections review) |
 | 16 | Hooks enrichis + UX permissions | TERMINE | 1 epic (8 taches + 4 corrections review) |
 | 17 | Dashboard Decision-First | TERMINE | 1 epic (11 taches + 4 corrections review) |
+| 18 | Personas ZAOS + session insights | TERMINE | 1 epic (10 taches + 6 corrections review) |
 
 ## Epic active
 
@@ -35,4 +36,4 @@ Aucun
 
 ## Prochaines priorites
 
-Sprint 4A termine. Prochain : Sprint 4B (Personas ZAOS + session insights).
+Sprint 4B termine. Prochain : Revue post-bloc 4, puis Post-V1.5 — Preparation Codex.

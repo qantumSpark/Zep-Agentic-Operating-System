@@ -52,6 +52,11 @@ export interface SessionInsights {
   date: string;
   epic: string;
   phase: string;
+  session_id: string;
+  duration_secs: number;
+  tokens_input: number;
+  tokens_output: number;
+  agents_used: string[];
   decisions: string[];
   learnings: string[];
   risks: string[];

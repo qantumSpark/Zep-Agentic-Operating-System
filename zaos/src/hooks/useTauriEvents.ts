@@ -12,6 +12,7 @@ import { useWorkflowKitStore, applyKitStatus, type AgentDef, type KitStatusRespo
 import { useProjectStore } from "../stores/projectStore";
 import { useProductStore } from "../stores/productStore";
 import { useAgentsStore } from "../stores/agentsStore";
+import { usePersonaStore } from "../stores/personaStore";
 import type { ProductContract } from "../types/productContract";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
@@ -121,6 +122,22 @@ export function useTauriEvents() {
                   },
                 }).catch((e: unknown) =>
                   console.error("Failed to save session log:", e)
+                );
+
+                // Save session insights (best-effort, non-blocking)
+                invoke("save_session_insights", {
+                  duration_secs: duration,
+                  tokens_input: input,
+                  tokens_output: output,
+                  agents_used: Object.keys(agentTimings),
+                  editorial: {
+                    decisions: [],
+                    learnings: [],
+                    risks: [],
+                    next_validations: [],
+                  },
+                }).catch((e: unknown) =>
+                  console.error("Failed to save session insights:", e)
                 );
               }
 
@@ -270,6 +287,7 @@ export function useTauriEvents() {
           useScreenshotStore.getState().reset();
           useWorkflowKitStore.getState().reset();
           useProductStore.getState().reset();
+          usePersonaStore.getState().reset();
 
           // Reload all project data in parallel
           Promise.all([
@@ -293,6 +311,7 @@ export function useTauriEvents() {
               .then((wfState) => useWorkflowStore.getState().setFullState(wfState)),
             invoke<ProductContract>("get_product_contract")
               .then((contract) => useProductStore.getState().setProductContract(contract)),
+            usePersonaStore.getState().loadPersonas(),
           ]).catch((e) => console.error("Failed to reload project data:", e));
         }
       );

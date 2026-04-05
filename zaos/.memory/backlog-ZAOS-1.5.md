@@ -20,3 +20,6 @@
 | S5-4A | MINEUR | DRY | `ProgressGroup.tsx`, `ActionsFeed.tsx` | StatusIndicator dupliquee entre les deux fichiers. Extraire dans common/. | Nettoyage opportuniste |
 | S6-4A | MINEUR | coherence | `MissionGroup.tsx` | Layout Brief inline (span) vs ProductSection (p + mt-0.5). Divergence intentionnelle mais non documentee. | Pas urgent |
 | S7-4A | MINEUR | perf | `EvidenceGroup.tsx` | hasValidation pas memoize alors que recentScreenshots l'est. Incoherence de pattern. | Pas urgent |
+| m4-4B | MINEUR | fragilite | `reader.rs` | `read_personas` navigue via `memory_dir.parent()` au lieu d'un champ `project_dir` explicite. Fragile si `MemoryReader` change. | Nettoyage opportuniste |
+| S8-4B | SUGGESTION | clarte | `useTauriEvents.ts` | `editorial` toujours vide dans l'appel `save_session_insights`. Ajouter un TODO expliquant d'ou viendront les editoriaux. | Pas urgent |
+| S9-4B | SUGGESTION | robustesse | `session/logger.rs` | `is_meaningful_insights` utilise OR (metadata OU item). Pourrait generer des archives quasi-vides. Envisager AND. | Pas urgent |

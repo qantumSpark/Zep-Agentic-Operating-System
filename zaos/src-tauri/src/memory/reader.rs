@@ -5,7 +5,7 @@ use tokio::fs;
 
 use super::models::{
     AcceptanceCheck, AcceptanceChecks, ExperienceGoal, ExperienceGoals,
-    ProductBrief, ProductContract, ReleaseChecklistItem, ReleaseReadiness,
+    Persona, ProductBrief, ProductContract, ReleaseChecklistItem, ReleaseReadiness,
     SessionInsights,
 };
 
@@ -325,6 +325,33 @@ impl MemoryReader {
                 None
             }),
         }
+    }
+
+    /// Read all persona files from `.zaos/personas/`.
+    pub async fn read_personas(&self) -> Vec<Persona> {
+        // self.memory_dir points to .memory; parent gives us project_dir
+        let personas_dir = self.memory_dir.parent()
+            .unwrap_or(&self.memory_dir)
+            .join(".zaos")
+            .join("personas");
+
+        let mut personas = Vec::new();
+        let mut entries = match fs::read_dir(&personas_dir).await {
+            Ok(entries) => entries,
+            Err(_) => return personas,
+        };
+
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) == Some("md") {
+                if let Ok(content) = fs::read_to_string(&path).await {
+                    personas.push(parse_persona_md(&content));
+                }
+            }
+        }
+
+        personas.sort_by(|a, b| a.name.cmp(&b.name));
+        personas
     }
 }
 
@@ -926,6 +953,11 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
     let mut date = String::from("unknown");
     let mut epic = String::from("unknown");
     let mut phase = String::from("unknown");
+    let mut session_id = String::new();
+    let mut duration_secs: u64 = 0;
+    let mut tokens_input: u64 = 0;
+    let mut tokens_output: u64 = 0;
+    let mut agents_used: Vec<String> = Vec::new();
     let mut decisions: Vec<String> = Vec::new();
     let mut learnings: Vec<String> = Vec::new();
     let mut risks: Vec<String> = Vec::new();
@@ -949,6 +981,21 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
             } else if let Some(val) = meta.strip_prefix("Phase:") {
                 let v = val.trim();
                 if !v.is_empty() && !v.starts_with('_') { phase = v.to_string(); }
+            } else if let Some(val) = meta.strip_prefix("Session-ID:") {
+                let v = val.trim();
+                if !v.is_empty() { session_id = v.to_string(); }
+            } else if let Some(val) = meta.strip_prefix("Duration:") {
+                let v = val.trim().trim_end_matches('s');
+                duration_secs = v.parse().unwrap_or(0);
+            } else if let Some(val) = meta.strip_prefix("Tokens:") {
+                // Format: "1234 in / 5678 out"
+                let parts: Vec<&str> = val.split('/').collect();
+                if parts.len() == 2 {
+                    tokens_input = parts[0].trim().trim_end_matches(" in").trim().parse().unwrap_or(0);
+                    tokens_output = parts[1].trim().trim_end_matches(" out").trim().parse().unwrap_or(0);
+                }
+            } else if let Some(val) = meta.strip_prefix("Agents:") {
+                agents_used = val.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
             }
             continue;
         }
@@ -988,7 +1035,73 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
         }
     }
 
-    SessionInsights { date, epic, phase, decisions, learnings, risks, next_validations }
+    SessionInsights { date, epic, phase, session_id, duration_secs, tokens_input, tokens_output, agents_used, decisions, learnings, risks, next_validations }
+}
+
+/// Parse a persona `.md` file.
+/// Format: H1 title, blockquote metadata (Role:, Maps-to:), H2 sections with lists.
+fn parse_persona_md(content: &str) -> Persona {
+    let mut name = String::new();
+    let mut role = String::new();
+    let mut maps_to = String::from("none");
+    let mut description = String::new();
+    let mut responsibilities: Vec<String> = Vec::new();
+    let mut when_active: Vec<String> = Vec::new();
+
+    enum Section { None, Description, Responsibilities, WhenActive }
+    let mut section = Section::None;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("# ") && !trimmed.starts_with("## ") {
+            name = trimmed[2..].trim().to_string();
+            continue;
+        }
+
+        if trimmed.starts_with("> ") {
+            let meta = &trimmed[2..];
+            if let Some(val) = meta.strip_prefix("Role:") {
+                role = val.trim().to_string();
+            } else if let Some(val) = meta.strip_prefix("Maps-to:") {
+                let v = val.trim();
+                if !v.is_empty() { maps_to = v.to_string(); }
+            }
+            continue;
+        }
+
+        if trimmed.starts_with("## ") {
+            let heading = trimmed[3..].trim().to_lowercase();
+            section = if heading == "description" {
+                Section::Description
+            } else if heading.starts_with("responsabilit") {
+                Section::Responsibilities
+            } else if heading.starts_with("quand") {
+                Section::WhenActive
+            } else {
+                Section::None
+            };
+            continue;
+        }
+
+        if trimmed.is_empty() { continue; }
+
+        match section {
+            Section::Description => {
+                if !description.is_empty() { description.push(' '); }
+                description.push_str(trimmed);
+            }
+            Section::Responsibilities => {
+                if let Some(item) = parse_list_item(trimmed) { responsibilities.push(item); }
+            }
+            Section::WhenActive => {
+                if let Some(item) = parse_list_item(trimmed) { when_active.push(item); }
+            }
+            Section::None => {}
+        }
+    }
+
+    Persona { name, role, maps_to, description, responsibilities, when_active }
 }
 
 #[cfg(test)]
@@ -1610,6 +1723,10 @@ Ready for beta testing.
 > Date: 2026-04-03
 > Epic: Backend Memory
 > Phase: implementation
+> Session-ID: abc12345
+> Duration: 3600s
+> Tokens: 1234 in / 5678 out
+> Agents: architect, coder, reviewer
 
 ## Decisions prises
 
@@ -1632,6 +1749,11 @@ Ready for beta testing.
         assert_eq!(si.date, "2026-04-03");
         assert_eq!(si.epic, "Backend Memory");
         assert_eq!(si.phase, "implementation");
+        assert_eq!(si.session_id, "abc12345");
+        assert_eq!(si.duration_secs, 3600);
+        assert_eq!(si.tokens_input, 1234);
+        assert_eq!(si.tokens_output, 5678);
+        assert_eq!(si.agents_used, vec!["architect", "coder", "reviewer"]);
         assert_eq!(si.decisions.len(), 2);
         assert_eq!(si.learnings, vec!["tokio::join! scales well for parallel reads"]);
         assert_eq!(si.risks, vec!["No tests for new parsers yet"]);
@@ -1672,5 +1794,50 @@ Ready for beta testing.
         assert_eq!(si.epic, "unknown");
         assert_eq!(si.phase, "unknown");
         assert!(si.decisions.is_empty());
+    }
+
+    #[test]
+    fn test_parse_persona_md_full() {
+        let content = "\
+# Builder
+
+> Role: Implementation du code
+> Maps-to: coder
+
+## Description
+
+Implemente le code selon le plan valide.
+
+## Responsabilites
+
+- Implementer les taches du plan
+- Ecrire du code lisible
+
+## Quand ce role intervient
+
+- Phase implementation
+- Apres review
+";
+        let p = parse_persona_md(content);
+        assert_eq!(p.name, "Builder");
+        assert_eq!(p.role, "Implementation du code");
+        assert_eq!(p.maps_to, "coder");
+        assert_eq!(p.description, "Implemente le code selon le plan valide.");
+        assert_eq!(p.responsibilities.len(), 2);
+        assert_eq!(p.responsibilities[0], "Implementer les taches du plan");
+        assert_eq!(p.when_active.len(), 2);
+        assert_eq!(p.when_active[0], "Phase implementation");
+    }
+
+    #[test]
+    fn test_parse_persona_md_empty() {
+        let content = "";
+        let p = parse_persona_md(content);
+        assert_eq!(p.name, "");
+        assert_eq!(p.role, "");
+        assert_eq!(p.maps_to, "none");
+        assert_eq!(p.description, "");
+        assert!(p.responsibilities.is_empty());
+        assert!(p.when_active.is_empty());
     }
 }

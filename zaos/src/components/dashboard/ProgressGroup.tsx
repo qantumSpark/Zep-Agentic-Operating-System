@@ -3,6 +3,7 @@ import { useMemoryStore } from "../../stores/memoryStore";
 import { useActionsStore } from "../../stores/actionsStore";
 import { StatusBadge } from "../common/StatusBadge";
 import { PhaseIndicator } from "./PhaseIndicator";
+import { SessionInsightsBlock } from "./SessionInsightsBlock";
 import { getToolIcon } from "../../utils/toolIcons";
 
 function StatusIndicator({ status }: { status: string }) {
@@ -26,6 +27,9 @@ export function ProgressGroup() {
     <div className="space-y-4 text-sm">
       {/* Bloc 1 — Phase */}
       <PhaseIndicator />
+
+      {/* Bloc 1.5 — Session Insights */}
+      <SessionInsightsBlock />
 
       {/* Bloc 2 — Tasks de l'epic */}
       {currentEpic && currentEpic.tasks.length > 0 && (() => {

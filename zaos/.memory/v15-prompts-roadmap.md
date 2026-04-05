@@ -24,7 +24,7 @@
 | 10 | Sprint 3B — Hooks enrichis + UX permissions | DONE |
 | 11 | Revue post-bloc 3 | DONE |
 | 12 | Sprint 4A — Dashboard Decision-First | DONE |
-| 13 | Sprint 4B — Personas ZAOS + session insights | A FAIRE |
+| 13 | Sprint 4B — Personas ZAOS + session insights | DONE |
 | 14 | Revue post-bloc 4 | A FAIRE |
 | 15 | Post-V1.5 — Preparation Codex | A FAIRE |
 

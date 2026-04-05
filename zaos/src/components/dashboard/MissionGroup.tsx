@@ -2,6 +2,7 @@ import { useProductStore } from "../../stores/productStore";
 import { useMemoryStore } from "../../stores/memoryStore";
 import { StatusBadge } from "../common/StatusBadge";
 import { EpicHeader } from "./EpicHeader";
+import { PersonasList } from "./PersonasList";
 
 export function MissionGroup() {
   const productContract = useProductStore((s) => s.productContract);
@@ -92,6 +93,9 @@ export function MissionGroup() {
 
       {/* Bloc 3 — Epic active */}
       <EpicHeader />
+
+      {/* Bloc 4 — Personas */}
+      <PersonasList />
     </div>
   );
 }

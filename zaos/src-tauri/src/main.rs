@@ -81,6 +81,8 @@ fn main() {
             commands::get_workflow_state,
             commands::get_memory_state,
             commands::get_product_contract,
+            commands::get_personas,
+            commands::save_session_insights,
             commands::check_cli_auth,
             commands::list_sessions,
             commands::save_session_log,

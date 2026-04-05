@@ -1,6 +1,6 @@
 use crate::deployer;
 use crate::events::CliEvent;
-use crate::memory::{MemoryReader, MemoryStateResponse};
+use crate::memory::{MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
@@ -571,6 +571,59 @@ pub async fn get_product_contract(
     let project_dir = state.project_dir().await;
     let reader = MemoryReader::new(project_dir);
     Ok(reader.read_product_contract().await)
+}
+
+/// Get all ZAOS personas from .zaos/personas/
+#[tauri::command]
+pub async fn get_personas(
+    state: State<'_, AppState>,
+) -> Result<Vec<Persona>, String> {
+    tracing::info!("get_personas called");
+    let project_dir = state.project_dir().await;
+    let reader = MemoryReader::new(project_dir);
+    Ok(reader.read_personas().await)
+}
+
+/// Save session insights with auto-metadata from backend state.
+/// Frontend provides metrics (duration, tokens, agents) and editorial content.
+/// Backend overwrites session_id, phase, epic from its own state.
+#[tauri::command]
+pub async fn save_session_insights(
+    state: State<'_, AppState>,
+    duration_secs: u64,
+    tokens_input: u64,
+    tokens_output: u64,
+    agents_used: Vec<String>,
+    editorial: SessionInsightsEditorial,
+) -> Result<(), String> {
+    tracing::info!("save_session_insights called");
+    let project_dir = state.project_dir().await;
+
+    // Auto-metadata from backend state (source of truth)
+    let session_id = {
+        let mgr = state.session_manager.lock().await;
+        mgr.get_session_id().unwrap_or("unknown").to_string()
+    };
+
+    let (phase, epic) = {
+        let engine = state.workflow_engine.lock().await;
+        let ws = engine.get_state();
+        (ws.phase.clone(), ws.epic.clone())
+    };
+
+    crate::session::logger::write_session_insights(
+        &project_dir,
+        &session_id,
+        &phase,
+        &epic,
+        duration_secs,
+        tokens_input,
+        tokens_output,
+        &agents_used,
+        &editorial,
+    )
+    .await
+    .map_err(|e| e.to_string())
 }
 
 // =============================================================================
