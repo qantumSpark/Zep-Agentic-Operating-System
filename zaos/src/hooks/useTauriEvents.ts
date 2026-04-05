@@ -13,6 +13,7 @@ import { useProjectStore } from "../stores/projectStore";
 import { useProductStore } from "../stores/productStore";
 import { useAgentsStore } from "../stores/agentsStore";
 import { usePersonaStore } from "../stores/personaStore";
+import { useRuntimeStore } from "../stores/runtimeStore";
 import type { ProductContract } from "../types/productContract";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
@@ -250,9 +251,9 @@ export function useTauriEvents() {
       });
       unlisteners.push(mcpShowDiffListener);
 
-      // .claude/ directory change events — refresh agents list (only for agents/ changes)
-      const claudeDirChangeListener = await listen<{ file: string }>(
-        "claude-dir-change",
+      // Runtime directory change events — refresh agents list (only for agents/ changes)
+      const runtimeDirChangeListener = await listen<{ file: string }>(
+        "runtime-dir-change",
         (event) => {
           const file = (event.payload as { file?: string })?.file ?? "";
           if (file && !file.includes("agents")) return;
@@ -269,7 +270,7 @@ export function useTauriEvents() {
             .catch(console.error);
         }
       );
-      unlisteners.push(claudeDirChangeListener);
+      unlisteners.push(runtimeDirChangeListener);
 
       // Project changed — reset all stores and reload data
       const projectChangedListener = await listen<{ path: string; name: string }>(
@@ -288,9 +289,11 @@ export function useTauriEvents() {
           useWorkflowKitStore.getState().reset();
           useProductStore.getState().reset();
           usePersonaStore.getState().reset();
+          useRuntimeStore.getState().reset();
 
           // Reload all project data in parallel
           Promise.all([
+            useRuntimeStore.getState().loadRuntimeInfo(),
             invoke<MemoryStateResponse>("get_memory_state")
               .then((mem) => useMemoryStore.getState().setMemoryState(mem)),
             invoke<{ screenshots: Screenshot[] }>("get_screenshots")

@@ -25,7 +25,7 @@
 | 11 | Revue post-bloc 3 | DONE |
 | 12 | Sprint 4A — Dashboard Decision-First | DONE |
 | 13 | Sprint 4B — Personas ZAOS + session insights | DONE |
-| 14 | Revue post-bloc 4 | A FAIRE |
+| 14 | Revue post-bloc 4 | DONE |
 | 15 | Post-V1.5 — Preparation Codex | A FAIRE |
 
 ---

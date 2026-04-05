@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useRuntimeStore } from "./runtimeStore";
 
 // ---------------------------------------------------------------------------
 // TypeScript interfaces
@@ -45,7 +46,11 @@ const AGENT_KEYWORDS: Record<string, string[]> = {
 export function mapAgentName(subagentType: string, description: string, prompt?: string): string {
   // 1. Check prompt for explicit agent file reference
   if (prompt) {
-    const match = prompt.match(/\.claude\/agents\/(\w+)\.md/);
+    const agentsDir = useRuntimeStore.getState().info?.paths.agents_dir ?? ".claude/agents";
+    // Escape special regex chars in the directory path and build pattern dynamically
+    const escaped = agentsDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const agentFileRegex = new RegExp(`${escaped}[/\\\\](\\w+)\\.md`);
+    const match = prompt.match(agentFileRegex);
     if (match) return match[1];
   }
   // 2. If subagent_type is a known agent name, use it directly

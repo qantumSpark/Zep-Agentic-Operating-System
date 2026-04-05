@@ -1,6 +1,6 @@
-# Backlog — Findings non bloquants Blocs 2-4
+# Backlog — Findings non bloquants Blocs 2-4 + Post-V1.5
 
-> Sources : revue post-bloc 2 (2026-04-04), review Sprint 3B (2026-04-04), review Sprint 4A (2026-04-04)
+> Sources : revue post-bloc 2 (2026-04-04), review Sprint 3B (2026-04-04), review Sprint 4A (2026-04-04), review Post-V1.5 (2026-04-05)
 > Statut : tous non bloquants, a traiter quand pertinent
 
 | ID | Severite | Categorie | Fichier(s) | Description | Sprint suggere |
@@ -23,3 +23,12 @@
 | m4-4B | MINEUR | fragilite | `reader.rs` | `read_personas` navigue via `memory_dir.parent()` au lieu d'un champ `project_dir` explicite. Fragile si `MemoryReader` change. | Nettoyage opportuniste |
 | S8-4B | SUGGESTION | clarte | `useTauriEvents.ts` | `editorial` toujours vide dans l'appel `save_session_insights`. Ajouter un TODO expliquant d'ou viendront les editoriaux. | Pas urgent |
 | S9-4B | SUGGESTION | robustesse | `session/logger.rs` | `is_meaningful_insights` utilise OR (metadata OU item). Pourrait generer des archives quasi-vides. Envisager AND. | Pas urgent |
+| M1-B4 | MODERE | fonctionnel | `useTauriEvents.ts`, `SessionInsightsBlock.tsx` | Editorial toujours vide dans save_session_insights — le bloc insights ne montre que des metadonnees. Besoin d'un mecanisme pour peupler decisions/risks/validations. | Post-V1.5 prioritaire |
+| M2-B4 | MODERE | timing | `useTauriEvents.ts`, `watchers/service.rs` | ProductContract non force-refreshe apres write_session_insights. Depend du debounce watcher (~300ms). | Nettoyage opportuniste |
+| M3-B4 | MODERE | coherence | `DecisionsGroup.tsx`, `ProgressGroup.tsx`, `MemorySection.tsx` | Listes de statuts "done" dupliquees et divergentes (7 vs 4 valeurs, case differ). Extraire helper isDoneStatus(). | Nettoyage opportuniste |
+| M1-PV | MINEUR | cosmétique | `commands.rs` | Step numbering dans switch_project corrige partiellement par B1. Revoir la numerotation globale. | Pas urgent |
+| M3-PV | MINEUR | extensibilite | `commands.rs` | runtime_kind immutable (pas RwLock). OK tant qu'un seul runtime. A adapter si switch runtime dynamique. | Pas urgent |
+| S1-PV | SUGGESTION | test | `runtime/paths.rs` | Test unitaire pour RuntimePaths::for_kind() — verifier sous-chemins construits. | Nettoyage opportuniste |
+| S2-PV | SUGGESTION | test | `runtime/paths.rs` | Test serialisation RuntimeKind → "claude" lowercase. Contrat frontend/backend. | Nettoyage opportuniste |
+| S3-PV | SUGGESTION | frontend | `runtimeStore.ts` | Helper getRuntimeKind() si d'autres stores ont besoin de conditionner par runtime. | Sprint ulterieur |
+| S4-PV | SUGGESTION | coherence | `deployer/mod.rs` | deploy() recalcule RuntimePaths au lieu de recevoir depuis AppState. Risque si runtime_kind != default. | Nettoyage opportuniste |

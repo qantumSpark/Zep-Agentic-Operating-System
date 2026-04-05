@@ -1,4 +1,7 @@
 pub mod claude;
+pub mod paths;
+
+pub use paths::{RuntimeKind, RuntimePaths};
 
 use crate::events::CliEvent;
 use async_trait::async_trait;

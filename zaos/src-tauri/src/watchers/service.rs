@@ -1,4 +1,5 @@
 use crate::memory::MemoryReader;
+use crate::runtime::RuntimePaths;
 use crate::screenshots::ScreenshotOrchestrator;
 use crate::workflow::state::{WorkflowState, WorkflowStateDto};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -18,21 +19,23 @@ pub enum WatchCategory {
     Memory,
     /// New image files in `.screenshots/` directory
     Screenshot,
-    /// Changes inside the `.claude/` directory
-    Claude,
+    /// Changes inside the runtime base directory (e.g. `.claude/`)
+    Runtime,
 }
 
 /// Watches `.workflow/state.json` and `.memory/` for changes,
 /// bridging notify's synchronous callbacks into the tokio async runtime.
 pub struct FileWatcherService {
     project_dir: PathBuf,
+    runtime_paths: RuntimePaths,
     task_handle: Option<tauri::async_runtime::JoinHandle<()>>,
 }
 
 impl FileWatcherService {
-    pub fn new(project_dir: PathBuf) -> Self {
+    pub fn new(project_dir: PathBuf, runtime_paths: RuntimePaths) -> Self {
         Self {
             project_dir,
+            runtime_paths,
             task_handle: None,
         }
     }
@@ -112,15 +115,15 @@ impl FileWatcherService {
             );
         }
 
-        // Watch .claude/ directory (recursive — agents, settings, etc.)
-        let claude_dir = self.project_dir.join(".claude");
-        if claude_dir.exists() {
-            watcher.watch(&claude_dir, RecursiveMode::Recursive)?;
-            tracing::info!("Watching .claude directory: {:?}", claude_dir);
+        // Watch runtime base directory (recursive — agents, settings, etc.)
+        let runtime_dir = self.runtime_paths.base_dir.clone();
+        if runtime_dir.exists() {
+            watcher.watch(&runtime_dir, RecursiveMode::Recursive)?;
+            tracing::info!("Watching runtime directory: {:?}", runtime_dir);
         } else {
             tracing::warn!(
-                ".claude directory does not exist yet, skipping watch: {:?}",
-                claude_dir
+                "Runtime directory does not exist yet, skipping watch: {:?}",
+                runtime_dir
             );
         }
 
@@ -128,7 +131,7 @@ impl FileWatcherService {
         let workflow_dir_owned = workflow_dir;
         let memory_dir_owned = memory_dir;
         let screenshots_dir_owned = screenshots_dir;
-        let claude_dir_owned = claude_dir;
+        let runtime_dir_owned = runtime_dir;
         let project_dir = self.project_dir.clone();
         let app_handle = app_handle.clone();
         let state_file_path = workflow_dir_owned.join("state.json");
@@ -169,8 +172,8 @@ impl FileWatcherService {
                         Some(WatchCategory::Memory)
                     } else if path.starts_with(&screenshots_dir_owned) && is_image {
                         Some(WatchCategory::Screenshot)
-                    } else if path.starts_with(&claude_dir_owned) {
-                        Some(WatchCategory::Claude)
+                    } else if path.starts_with(&runtime_dir_owned) {
+                        Some(WatchCategory::Runtime)
                     } else {
                         None
                     };
@@ -287,19 +290,19 @@ impl FileWatcherService {
                                         }
                                     }
                                 }
-                                WatchCategory::Claude => {
-                                    tracing::info!(".claude directory changed: {:?}", path);
+                                WatchCategory::Runtime => {
+                                    tracing::info!("Runtime directory changed: {:?}", path);
                                     let changed_file = path
                                         .file_name()
                                         .and_then(|f| f.to_str())
                                         .unwrap_or("unknown")
                                         .to_string();
                                     if let Err(e) = app_handle.emit(
-                                        "claude-dir-change",
+                                        "runtime-dir-change",
                                         serde_json::json!({ "file": changed_file }),
                                     ) {
                                         tracing::warn!(
-                                            "Failed to emit claude-dir-change: {}",
+                                            "Failed to emit runtime-dir-change: {}",
                                             e
                                         );
                                     }

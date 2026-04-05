@@ -1,3 +1,4 @@
+use crate::runtime::RuntimePaths;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -109,17 +110,15 @@ fn sync_file(
     Ok(outcome)
 }
 
-/// Sync a set of embedded files to project's .claude/{subdir}/
+/// Sync a set of embedded files to the given `target_dir` (e.g. `runtime_paths.agents_dir`).
 fn sync_embedded(
-    project_dir: &Path,
+    target_dir: &Path,
     subdir: &str,
     files: &[super::embedded::EmbeddedFile],
     skip: &[String],
     manifest: &mut DeployManifest,
     report: &mut SyncReport,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let target_dir = project_dir.join(".claude").join(subdir);
-
     for file in files {
         if skip.iter().any(|s| s == file.filename) {
             continue;
@@ -133,10 +132,10 @@ fn sync_embedded(
     Ok(())
 }
 
-/// Generate and sync .claude/settings.json with hook configuration
+/// Generate and sync settings.json (path from `runtime_paths.settings_file`) with hook configuration
 pub fn sync_settings(
     hooks_binary_path: &Path,
-    project_dir: &Path,
+    runtime_paths: &RuntimePaths,
     hooks_enabled: bool,
     manifest: &mut DeployManifest,
     report: &mut SyncReport,
@@ -185,10 +184,10 @@ pub fn sync_settings(
     });
 
     let content = serde_json::to_string_pretty(&settings)?;
-    let target = project_dir.join(".claude").join("settings.json");
+    let target = &runtime_paths.settings_file;
     let rel_path = "settings.json";
 
-    report.record(sync_file(&target, content.as_bytes(), manifest, rel_path)?, rel_path.to_string());
+    report.record(sync_file(target, content.as_bytes(), manifest, rel_path)?, rel_path.to_string());
 
     Ok(())
 }
@@ -211,6 +210,7 @@ pub fn sync_all(
     project_dir: &Path,
     hooks_binary_path: &Path,
     config: &super::config::WorkflowKitConfig,
+    runtime_paths: &RuntimePaths,
 ) -> Result<SyncReport, Box<dyn std::error::Error + Send + Sync>> {
     let mut manifest = DeployManifest::load(project_dir);
     let mut report = SyncReport {
@@ -219,11 +219,11 @@ pub fn sync_all(
         skipped: vec![],
     };
 
-    sync_embedded(project_dir, "agents", super::embedded::AGENTS, &[], &mut manifest, &mut report)?;
-    sync_embedded(project_dir, "rules", super::embedded::RULES, &config.disabled_rules, &mut manifest, &mut report)?;
+    sync_embedded(&runtime_paths.agents_dir, "agents", super::embedded::AGENTS, &[], &mut manifest, &mut report)?;
+    sync_embedded(&runtime_paths.rules_dir, "rules", super::embedded::RULES, &config.disabled_rules, &mut manifest, &mut report)?;
     sync_settings(
         hooks_binary_path,
-        project_dir,
+        runtime_paths,
         config.hooks_enabled,
         &mut manifest,
         &mut report,

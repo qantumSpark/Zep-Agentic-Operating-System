@@ -2,6 +2,7 @@ pub mod config;
 pub mod embedded;
 pub mod sync;
 
+use crate::runtime::{RuntimeKind, RuntimePaths};
 use std::path::{Path, PathBuf};
 use config::WorkflowKitConfig;
 use sync::SyncReport;
@@ -104,5 +105,6 @@ pub fn deploy(project_dir: &Path) -> Result<SyncReport, Box<dyn std::error::Erro
         .unwrap_or_else(|| PathBuf::from("zaos-hooks")); // fallback to PATH
 
     // Sync everything (agents/rules from embedded::, settings generated)
-    sync::sync_all(project_dir, &hooks_path, &config)
+    let runtime_paths = RuntimePaths::for_kind(project_dir, &RuntimeKind::default());
+    sync::sync_all(project_dir, &hooks_path, &config, &runtime_paths)
 }

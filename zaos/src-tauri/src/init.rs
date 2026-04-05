@@ -1,6 +1,7 @@
 // Project directory initialization
 // Ensures .workflow/, .memory/, and .screenshots/ directories exist with default files at startup.
 
+use crate::runtime::paths::{RuntimeKind, RuntimePaths};
 use crate::workflow::state::WorkflowState;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -240,10 +241,11 @@ pub fn ensure_project_dirs(project_dir: &Path) {
         },
     );
 
-    // --- .claude/ directories ---
-    ensure_dir(&project_dir.join(".claude"));
-    ensure_dir(&project_dir.join(".claude").join("agents"));
-    ensure_dir(&project_dir.join(".claude").join("rules"));
+    // --- runtime directories (e.g. .claude/) ---
+    let runtime_paths = RuntimePaths::for_kind(project_dir, &RuntimeKind::default());
+    ensure_dir(&runtime_paths.base_dir);
+    ensure_dir(&runtime_paths.agents_dir);
+    ensure_dir(&runtime_paths.rules_dir);
 
     // --- Deploy workflow kit (agents, rules, settings) ---
     match crate::deployer::deploy(project_dir) {

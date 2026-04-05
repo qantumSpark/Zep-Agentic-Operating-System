@@ -1,6 +1,7 @@
 use crate::deployer;
 use crate::events::CliEvent;
 use crate::memory::{MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
+use crate::runtime::{RuntimeKind, RuntimePaths};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
@@ -19,19 +20,25 @@ pub struct AppState {
     pub screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
     pub project_dir: Arc<RwLock<PathBuf>>,
     pub permission_mode: Arc<RwLock<String>>,
+    /// Currently immutable — only one runtime (Claude) is supported.
+    /// Will need Arc<RwLock<>> if/when runtime switching becomes possible.
+    pub runtime_kind: RuntimeKind,
+    pub runtime_paths: Arc<RwLock<RuntimePaths>>,
 }
 
 impl AppState {
     pub fn new(project_dir: PathBuf) -> Self {
+        let runtime_kind = RuntimeKind::default(); // Claude
+        let runtime_paths = RuntimePaths::for_kind(&project_dir, &runtime_kind);
         AppState {
             session_manager: Arc::new(Mutex::new(
-                SessionManager::new(project_dir.clone()),
+                SessionManager::new(project_dir.clone(), runtime_kind),
             )),
             workflow_engine: Arc::new(Mutex::new(
                 WorkflowEngine::new(project_dir.clone()),
             )),
             watcher_service: Arc::new(Mutex::new(
-                FileWatcherService::new(project_dir.clone()),
+                FileWatcherService::new(project_dir.clone(), runtime_paths.clone()),
             )),
             screenshot_orchestrator: Arc::new(Mutex::new(
                 ScreenshotOrchestrator::new(
@@ -41,11 +48,17 @@ impl AppState {
             )),
             project_dir: Arc::new(RwLock::new(project_dir)),
             permission_mode: Arc::new(RwLock::new("strict".to_string())),
+            runtime_kind,
+            runtime_paths: Arc::new(RwLock::new(runtime_paths)),
         }
     }
 
     pub async fn project_dir(&self) -> PathBuf {
         self.project_dir.read().await.clone()
+    }
+
+    pub async fn runtime_paths(&self) -> RuntimePaths {
+        self.runtime_paths.read().await.clone()
     }
 }
 /// Validate that a resource name contains only safe characters (no path traversal)
@@ -106,6 +119,13 @@ pub struct ListSessionsResponse {
 pub struct SetPolicyProfileResponse {
     pub success: bool,
     pub profile: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeInfo {
+    pub kind: RuntimeKind,
+    pub name: String,
+    pub paths: RuntimePaths,
 }
 
 // =============================================================================
@@ -762,17 +782,19 @@ pub async fn get_workflow_kit_status(
     let config = deployer::config::WorkflowKitConfig::load(&project_dir);
     let manifest = deployer::sync::DeployManifest::load(&project_dir);
 
-    let agents_dir = project_dir.join(".claude").join("agents");
-    let agent_count = std::fs::read_dir(&agents_dir)
+    let runtime_paths = state.runtime_paths().await;
+
+    let agents_dir = &runtime_paths.agents_dir;
+    let agent_count = std::fs::read_dir(agents_dir)
         .map(|entries| entries.filter_map(|e| e.ok()).count())
         .unwrap_or(0);
 
-    let rules_dir = project_dir.join(".claude").join("rules");
-    let rule_count = std::fs::read_dir(&rules_dir)
+    let rules_dir = &runtime_paths.rules_dir;
+    let rule_count = std::fs::read_dir(rules_dir)
         .map(|entries| entries.filter_map(|e| e.ok()).count())
         .unwrap_or(0);
 
-    let settings_exists = project_dir.join(".claude").join("settings.json").exists();
+    let settings_exists = runtime_paths.settings_file.exists();
 
     Ok(WorkflowKitStatus {
         deployed: agent_count > 0,
@@ -805,13 +827,12 @@ pub struct AgentInfo {
     pub description: String,
 }
 
-/// List all agent files in .claude/agents/ with name and first-line description
+/// List all agent files in the runtime agents directory with name and first-line description
 #[tauri::command]
 pub async fn list_agents(
     state: State<'_, AppState>,
 ) -> Result<Vec<AgentInfo>, String> {
-    let project_dir = state.project_dir().await;
-    let agents_dir = project_dir.join(".claude").join("agents");
+    let agents_dir = state.runtime_paths().await.agents_dir;
     let mut agents = Vec::new();
 
     if let Ok(entries) = std::fs::read_dir(&agents_dir) {
@@ -840,8 +861,7 @@ pub async fn read_agent(
 ) -> Result<String, String> {
     tracing::info!("read_agent called: {}", name);
     validate_safe_name(&name)?;
-    let project_dir = state.project_dir().await;
-    let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
+    let path = state.runtime_paths().await.agents_dir.join(format!("{}.md", name));
     std::fs::read_to_string(&path).map_err(|e| format!("Failed to read agent {}: {}", name, e))
 }
 
@@ -854,9 +874,9 @@ pub async fn save_agent(
 ) -> Result<(), String> {
     tracing::info!("save_agent called: {}", name);
     validate_safe_name(&name)?;
-    let project_dir = state.project_dir().await;
-    let agents_dir = project_dir.join(".claude").join("agents");
-    std::fs::create_dir_all(&agents_dir).map_err(|e| e.to_string())?;
+    let runtime_paths = state.runtime_paths().await;
+    let agents_dir = &runtime_paths.agents_dir;
+    std::fs::create_dir_all(agents_dir).map_err(|e| e.to_string())?;
     let path = agents_dir.join(format!("{}.md", name));
     std::fs::write(&path, content).map_err(|e| format!("Failed to save agent {}: {}", name, e))?;
     tracing::info!("Agent saved: {}", name);
@@ -871,8 +891,7 @@ pub async fn delete_agent(
 ) -> Result<(), String> {
     tracing::info!("delete_agent called: {}", name);
     validate_safe_name(&name)?;
-    let project_dir = state.project_dir().await;
-    let path = project_dir.join(".claude").join("agents").join(format!("{}.md", name));
+    let path = state.runtime_paths().await.agents_dir.join(format!("{}.md", name));
     if path.exists() {
         std::fs::remove_file(&path).map_err(|e| format!("Failed to delete agent {}: {}", name, e))?;
         tracing::info!("Agent deleted: {}", name);
@@ -909,6 +928,19 @@ pub async fn get_project_info(
     tracing::info!("get_project_info called");
     let project_dir = state.project_dir().await;
     Ok(ProjectInfo::from_path(&project_dir))
+}
+
+/// Get runtime info (kind, display name, paths)
+#[tauri::command]
+pub async fn get_runtime_info(
+    state: State<'_, AppState>,
+) -> Result<RuntimeInfo, String> {
+    tracing::info!("get_runtime_info called");
+    Ok(RuntimeInfo {
+        kind: state.runtime_kind,
+        name: state.runtime_kind.display_name().to_string(),
+        paths: state.runtime_paths().await,
+    })
 }
 
 /// Switch to a different project directory
@@ -956,7 +988,7 @@ pub async fn switch_project(
     crate::init::ensure_project_dirs(&new_dir);
 
     // 5. Replace session_manager
-    *state.session_manager.lock().await = SessionManager::new(new_dir.clone());
+    *state.session_manager.lock().await = SessionManager::new(new_dir.clone(), state.runtime_kind);
 
     // 6. Replace workflow_engine
     *state.workflow_engine.lock().await = WorkflowEngine::new(new_dir.clone());
@@ -973,17 +1005,21 @@ pub async fn switch_project(
     // 9. Update project_dir (after all services are replaced)
     *state.project_dir.write().await = new_dir.clone();
 
-    // 9. Restart watchers
+    // 10. Update runtime_paths
+    let new_runtime_paths = RuntimePaths::for_kind(&new_dir, &state.runtime_kind);
+    *state.runtime_paths.write().await = new_runtime_paths.clone();
+
+    // 11. Restart watchers (use the same new_runtime_paths)
     let mut watcher = state.watcher_service.lock().await;
-    *watcher = FileWatcherService::new(new_dir.clone());
+    *watcher = FileWatcherService::new(new_dir.clone(), new_runtime_paths);
     watcher
         .start(app.clone(), state.screenshot_orchestrator.clone())
         .map_err(|e| format!("Failed to start watchers: {}", e))?;
 
-    // 10. Build ProjectInfo
+    // 12. Build ProjectInfo
     let info = ProjectInfo::from_path(&new_dir);
 
-    // 11. Emit project-changed event
+    // 13. Emit project-changed event
     app.emit("project-changed", &info)
         .map_err(|e| format!("Failed to emit project-changed: {}", e))?;
 

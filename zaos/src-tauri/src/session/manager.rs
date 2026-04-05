@@ -1,5 +1,5 @@
 use crate::events::CliEvent;
-use crate::runtime::{AgentRuntime, RuntimeError, SessionRecord};
+use crate::runtime::{AgentRuntime, RuntimeError, RuntimeKind, SessionRecord};
 use crate::runtime::claude::ClaudeRuntime;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -47,24 +47,28 @@ pub type CliSession = SessionRecord;
 pub struct SessionManager {
     runtime: Box<dyn AgentRuntime>,
     project_dir: PathBuf,
+    #[allow(dead_code)]
+    runtime_kind: RuntimeKind,
 }
 
 impl SessionManager {
     /// Create a new SessionManager with the default Claude runtime.
-    pub fn new(project_dir: PathBuf) -> Self {
+    pub fn new(project_dir: PathBuf, runtime_kind: RuntimeKind) -> Self {
         let runtime = Box::new(ClaudeRuntime::new(project_dir.clone()));
         SessionManager {
             runtime,
             project_dir,
+            runtime_kind,
         }
     }
 
     /// Create a SessionManager with a custom runtime (for future use / testing).
     #[allow(dead_code)]
-    pub fn with_runtime(project_dir: PathBuf, runtime: Box<dyn AgentRuntime>) -> Self {
+    pub fn with_runtime(project_dir: PathBuf, runtime_kind: RuntimeKind, runtime: Box<dyn AgentRuntime>) -> Self {
         SessionManager {
             runtime,
             project_dir,
+            runtime_kind,
         }
     }
 
@@ -153,13 +157,13 @@ mod tests {
 
     #[test]
     fn test_session_manager_creation() {
-        let manager = SessionManager::new(PathBuf::from("/tmp"));
+        let manager = SessionManager::new(PathBuf::from("/tmp"), RuntimeKind::default());
         assert!(!manager.is_session_started());
     }
 
     #[test]
     fn test_runtime_name() {
-        let manager = SessionManager::new(PathBuf::from("/tmp"));
+        let manager = SessionManager::new(PathBuf::from("/tmp"), RuntimeKind::default());
         assert_eq!(manager.runtime_name(), "Claude Code CLI");
     }
 }

@@ -1,7 +1,7 @@
 {
   "phase": "closure",
-  "epic": "Personas ZAOS + session insights",
-  "task": "Comprehension — audit zones concernées",
+  "epic": "Post-V1.5 — Preparation Codex",
+  "task": "Closure — finalisation sprint",
   "mode": "pipeline",
   "gate_validated": false,
   "gate_ready": true,

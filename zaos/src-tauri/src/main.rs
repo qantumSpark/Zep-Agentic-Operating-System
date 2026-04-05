@@ -99,6 +99,7 @@ fn main() {
             commands::delete_agent,
             commands::switch_project,
             commands::get_project_info,
+            commands::get_runtime_info,
             commands::start_epic,
             commands::set_gate_ready,
             commands::set_policy_profile,

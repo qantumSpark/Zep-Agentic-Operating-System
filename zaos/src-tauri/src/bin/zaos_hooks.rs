@@ -49,6 +49,29 @@ impl Default for Config {
     }
 }
 
+/// Standalone runtime path helper — keep in sync with `runtime/paths.rs`.
+/// Currently only Claude is supported. When adding a new runtime,
+/// add a branch here mirroring `RuntimePaths::for_kind()` in the main crate.
+#[allow(dead_code)]
+struct HookRuntimePaths {
+    base_dir: PathBuf,
+    agents_dir: PathBuf,
+    rules_dir: PathBuf,
+    settings_file: PathBuf,
+}
+
+impl HookRuntimePaths {
+    fn claude(project_dir: &Path) -> Self {
+        let base = project_dir.join(".claude");
+        Self {
+            agents_dir: base.join("agents"),
+            rules_dir: base.join("rules"),
+            settings_file: base.join("settings.json"),
+            base_dir: base,
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -627,36 +650,37 @@ fn cmd_welcome() {
         println!("  {} {}", marker, label);
     }
 
-    // Count files in .claude/agents/
-    let agents_dir = project_dir.join(".claude").join("agents");
-    let agent_count = count_files_in_dir(&agents_dir);
+    let rp = HookRuntimePaths::claude(&project_dir);
+
+    // Count files in agents dir
+    let agent_count = count_files_in_dir(&rp.agents_dir);
     let marker = if agent_count > 0 { "[OK]" } else { "[--]" };
     println!(
-        "  {} .claude/agents/ ({} fichier{})",
+        "  {} {} ({} fichier{})",
         marker,
+        rp.agents_dir.display(),
         agent_count,
         if agent_count != 1 { "s" } else { "" }
     );
 
-    // Count files in .claude/rules/
-    let rules_dir = project_dir.join(".claude").join("rules");
-    let rules_count = count_files_in_dir(&rules_dir);
+    // Count files in rules dir
+    let rules_count = count_files_in_dir(&rp.rules_dir);
     let marker = if rules_count > 0 { "[OK]" } else { "[--]" };
     println!(
-        "  {} .claude/rules/ ({} fichier{})",
+        "  {} {} ({} fichier{})",
         marker,
+        rp.rules_dir.display(),
         rules_count,
         if rules_count != 1 { "s" } else { "" }
     );
 
-    // Count settings.json
-    let settings_path = project_dir.join(".claude").join("settings.json");
-    let marker = if settings_path.exists() {
+    // Check settings file
+    let marker = if rp.settings_file.exists() {
         "[OK]"
     } else {
         "[--]"
     };
-    println!("  {} .claude/settings.json", marker);
+    println!("  {} {}", marker, rp.settings_file.display());
 
     println!();
 

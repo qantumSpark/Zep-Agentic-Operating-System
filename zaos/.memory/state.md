@@ -25,10 +25,11 @@
 | 16 | Hooks enrichis + UX permissions | TERMINE | 1 epic (8 taches + 4 corrections review) |
 | 17 | Dashboard Decision-First | TERMINE | 1 epic (11 taches + 4 corrections review) |
 | 18 | Personas ZAOS + session insights | TERMINE | 1 epic (10 taches + 6 corrections review) |
+| 19 | Post-V1.5 Preparation Codex | TERMINE | 1 epic (11 taches + 4 corrections review) |
 
 ## Epic active
 
-_Aucun epic en cours._
+Aucune — Milestone 19 termine.
 
 ## Blocages
 
@@ -36,4 +37,4 @@ Aucun
 
 ## Prochaines priorites
 
-Sprint 4B termine. Prochain : Revue post-bloc 4, puis Post-V1.5 — Preparation Codex.
+Post-V1.5 termine. Backlog restant : M1 (step numbering), M3 (RwLock runtime_kind), S1-S4 (tests RuntimePaths, serialisation, helpers frontend, deployer unification).

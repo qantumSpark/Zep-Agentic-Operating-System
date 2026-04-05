@@ -17,6 +17,7 @@ import { useWorkflowKitStore, applyKitStatus } from "./stores/workflowKitStore";
 import type { AgentDef, KitStatusResponse } from "./stores/workflowKitStore";
 import { useProductStore } from "./stores/productStore";
 import { usePersonaStore } from "./stores/personaStore";
+import { useRuntimeStore } from "./stores/runtimeStore";
 import type { ProductContract } from "./types/productContract";
 import type { Screenshot } from "./types/screenshots";
 
@@ -46,6 +47,9 @@ export function App() {
       if (!notifGranted) {
         await requestPermission();
       }
+
+      // Load runtime info first — it's the source of truth for paths
+      await useRuntimeStore.getState().loadRuntimeInfo();
 
       const [authResult, memResult, screenshotResult, projectResult, kitResult, agentsResult, productResult] = await Promise.allSettled([
         invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
