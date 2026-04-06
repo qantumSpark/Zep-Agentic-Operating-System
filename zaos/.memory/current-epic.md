@@ -1,20 +1,18 @@
-# Epic active : Bugfix B3-B4 — Policy engine bugs
+# Epic active : switch_project fiable
 
-> Milestone : 25 — Bugfixes backlog
-> Statut : EN COURS
+> Milestone : 25 — Vague 1 Stabilisation du socle (E1)
+> Statut : TERMINE
 
 ## Objectif
 
-Corriger deux bugs dans policy.rs : (B3) FileDelete jamais retourne par derive_action_type, (B4) is_test_command verifie tool_name au lieu du contenu command.
+Corriger switch_project pour qu'il recharge correctement le workflow state, le permission_mode et le policy_profile du projet cible.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Ajouter champ command_text a ActionContext | `policy.rs` | DONE | Pour B4 |
-| 2 | Corriger is_test_command pour inspecter command_text | `policy.rs` | DONE | B4 fix |
-| 3 | Override action_type vers FileDelete quand Bash destructif | `commands.rs` | DONE | B3 fix |
-| 4 | Extraire command_text dans le forwarder | `commands.rs` | DONE | Pour B4 |
-| 5 | Ajouter command_text au ActionContext debug endpoint | `commands.rs` | DONE | Pour B4 |
-| 6 | Adapter les tests existants | `policy.rs` | DONE | command_text ajoute partout |
-| 7 | Verification cargo test | - | DONE | 160 tests passed |
+| 1 | Appeler load_state() apres remplacement du WorkflowEngine | `commands.rs` | DONE | Bloc 6b ajoute |
+| 2 | Sync permission_mode depuis le state charge | `commands.rs` | DONE | Hardcode "strict" supprime |
+| 3 | Sync policy_profile depuis le state charge | `commands.rs` | DONE | Inclus dans load_state() |
+| 4 | Verification cargo test + scenario switch | `commands.rs` | DONE | 160 tests OK |
+| 5 | Review B1 — Reset permission_mode dans branche Err | `commands.rs` | DONE | 160 tests OK |

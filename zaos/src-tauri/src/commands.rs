@@ -1044,14 +1044,33 @@ pub async fn switch_project(
     // 6. Replace workflow_engine
     *state.workflow_engine.lock().await = WorkflowEngine::new(new_dir.clone());
 
+    // 6b. Load persisted workflow state from new project
+    {
+        let mut engine = state.workflow_engine.lock().await;
+        match engine.load_state().await {
+            Ok(wf_state) => {
+                // Sync permission_mode from loaded state
+                *state.permission_mode.write().await = wf_state.permission_mode.clone();
+                tracing::info!(
+                    "Workflow state loaded for new project: phase={}, mode={:?}, permission={}",
+                    wf_state.phase, wf_state.mode, wf_state.permission_mode
+                );
+            }
+            Err(e) => {
+                tracing::warn!("Could not load workflow state for new project (using defaults): {}", e);
+                // Reset to safe default so we don't inherit the previous project's permission mode
+                *state.permission_mode.write().await = "strict".to_string();
+            }
+        }
+    }
+
     // 7. Replace screenshot_orchestrator
     *state.screenshot_orchestrator.lock().await = ScreenshotOrchestrator::new(
         new_dir.join(".screenshots"),
         Box::new(FilesystemAdapter),
     );
 
-    // 8. Reset permission_mode cache
-    *state.permission_mode.write().await = "strict".to_string();
+    // 8. (permission_mode is now synced in step 6b from loaded state)
 
     // 9. Update project_dir (after all services are replaced)
     *state.project_dir.write().await = new_dir.clone();

@@ -34,9 +34,11 @@
 
 | 24 | Chantier Codex (5/5) — Completion seam runtime | TERMINE | epic5: seam runtime (16 taches) |
 
+| 25 | Vague 1 — Stabilisation du socle | EN COURS | E1 DONE, E2-E8 a faire |
+
 ## Epic active
 
-Aucune — Chantier Codex 5/5 TERMINE
+Aucune — E1 switch_project termine. Prochaine : E2 MCP alignment
 
 ## Blocages
 
@@ -44,4 +46,4 @@ Aucun
 
 ## Prochaines priorites
 
-Chantier Codex TERMINE (5/5 epics). Bugfixes audit en cours (B1-B4). Backlog : I1 (optimistic update rollback WorkflowSection), I2 (supprimer parser.rs dead code), I3 (supprimer claudeMapper.ts dead code), I4 (separer types generiques de events.ts), I5 (dedup editorial logger.rs), M1-M10 (cleanup quality cf audit), E4-B1 (on-compact→editorial), E4-B2 (is_meaningful || → &&), H1 (hooks binary paths), D1-D2 (deployer multi-runtime).
+Vague 1 (1/8) : E1 DONE. Restent : E2 (MCP alignment), E3 (sync coherente), E4 (auth check), E5 (watchers), E6 (read models), E7 (hygiene repo), E8 (Rust socle). Backlog : I1-I5, E4-B1/B2, H1, D1-D2.
