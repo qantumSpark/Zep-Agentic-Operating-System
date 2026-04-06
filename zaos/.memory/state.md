@@ -38,7 +38,7 @@
 
 ## Epic active
 
-Aucune — E3 sync coherente termine. Prochaine : E4 auth check
+Aucune — E4 auth check termine. Prochaine : E5 watchers
 
 ## Blocages
 
@@ -46,4 +46,4 @@ Aucun
 
 ## Prochaines priorites
 
-Vague 1 (3/8) : E1-E3 DONE. Restent : E4 (auth check), E5 (watchers), E6 (read models), E7 (hygiene repo), E8 (Rust socle). Backlog : I1-I5, E4-B1/B2, H1, D1-D2, E2-S1 (lock mcp_handle).
+Vague 1 (4/8) : E1-E4 DONE. Restent : E5 (watchers), E6 (read models), E7 (hygiene repo), E8 (Rust socle). Backlog : I1-I5, H1, D1-D2, E2-S1 (lock mcp_handle), SG3 (with_runtime dead code).

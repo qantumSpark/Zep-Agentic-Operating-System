@@ -4,6 +4,7 @@ use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tokio::sync::broadcast;
+use tokio::time;
 
 use crate::events::types::CliEvent;
 use crate::events::claude_mapper::map_cli_event;
@@ -64,20 +65,66 @@ impl AgentRuntime for ClaudeRuntime {
         "Claude Code CLI"
     }
 
-    async fn check_auth(&self) -> Result<String> {
-        let output = Command::new("claude")
-            .arg("--version")
-            .output()
-            .await
-            .map_err(|_| RuntimeError::CliNotFound)?;
+    async fn check_installed(&self) -> Result<String> {
+        let output = match time::timeout(
+            std::time::Duration::from_secs(5),
+            Command::new("claude").arg("--version").output(),
+        )
+        .await
+        {
+            Ok(res) => res.map_err(|_| RuntimeError::CliNotFound)?,
+            Err(_) => {
+                tracing::warn!("claude --version timed out");
+                return Err(RuntimeError::CliNotFound);
+            }
+        };
 
         if !output.status.success() {
             return Err(RuntimeError::CliNotFound);
         }
 
-        let version = String::from_utf8_lossy(&output.stdout);
+        let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
         tracing::info!("Claude CLI version: {}", version);
-        Ok(version.to_string())
+        Ok(version)
+    }
+
+    async fn check_auth(&self) -> Result<String> {
+        // First verify the binary is installed and get the version
+        let version = self.check_installed().await?;
+
+        // Then check authentication via `claude auth status --json`
+        let output = match time::timeout(
+            std::time::Duration::from_secs(10),
+            Command::new("claude").args(["auth", "status", "--json"]).output(),
+        )
+        .await
+        {
+            Ok(res) => res.map_err(|_| RuntimeError::CliNotFound)?,
+            Err(_) => {
+                tracing::warn!("claude auth status timed out");
+                return Err(RuntimeError::NotAuthenticated);
+            }
+        };
+
+        // Parse stdout as JSON to check `loggedIn` field
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        if output.status.success() {
+            // Try to parse JSON and check loggedIn
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(stdout.as_ref()) {
+                if json.get("loggedIn").and_then(|v| v.as_bool()) == Some(true) {
+                    tracing::info!("Claude CLI authenticated (version {})", version);
+                    return Ok(version);
+                }
+            }
+            // exit 0 but loggedIn is false or missing
+            tracing::warn!("Claude CLI found but not authenticated");
+            return Err(RuntimeError::NotAuthenticated);
+        }
+
+        // Non-zero exit code → not authenticated
+        tracing::warn!("Claude auth status returned non-zero exit code");
+        Err(RuntimeError::NotAuthenticated)
     }
 
     async fn start_session(&mut self) -> Result<broadcast::Receiver<ZaosEvent>> {

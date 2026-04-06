@@ -2,7 +2,7 @@ use crate::deployer;
 use crate::events::zaos_events::ZaosEvent;
 use crate::mcp_server::McpServerHandle;
 use crate::memory::{MemoryHealthReport, MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
-use crate::runtime::{RuntimeKind, RuntimePaths};
+use crate::runtime::{RuntimeError, RuntimeKind, RuntimePaths};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
 use crate::watchers::FileWatcherService;
@@ -108,6 +108,7 @@ pub struct SetModeResponse {
 }
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CheckAuthResponse {
+    pub cli_found: bool,
     pub authenticated: bool,
     pub version: String,
     pub message: String,
@@ -545,23 +546,60 @@ pub async fn set_gate_ready(
     Ok(WorkflowStateDto::from_state(wf_state))
 }
 
-/// Check CLI authentication status
+/// Check CLI authentication status.
+///
+/// First checks whether the CLI binary is installed, then whether it is
+/// authenticated.  Returns a [`CheckAuthResponse`] that distinguishes
+/// "CLI missing" from "CLI present but not logged in".
 #[tauri::command]
 pub async fn check_cli_auth(
     state: State<'_, AppState>,
 ) -> Result<CheckAuthResponse, String> {
     let session = state.session_manager.lock().await;
+
+    // Step 1 — is the binary on PATH?
+    let version = match session.check_cli_installed().await {
+        Ok(v) => v,
+        Err(_) => {
+            return Ok(CheckAuthResponse {
+                cli_found: false,
+                authenticated: false,
+                version: String::new(),
+                message: "CLI not found".to_string(),
+            });
+        }
+    };
+
+    // Step 2 — is the user authenticated?
     match session.check_cli_auth().await {
-        Ok(version) => Ok(CheckAuthResponse {
+        Ok(_) => Ok(CheckAuthResponse {
+            cli_found: true,
             authenticated: true,
             version: version.trim().to_string(),
             message: format!("{} authenticated", session.runtime_name()),
         }),
-        Err(_) => Ok(CheckAuthResponse {
-            authenticated: false,
-            version: String::new(),
-            message: "CLI not found or not authenticated".to_string(),
-        }),
+        Err(e) => {
+            // Distinguish NotAuthenticated from other errors
+            let is_not_auth = matches!(
+                e,
+                crate::session::SessionError::Runtime(RuntimeError::NotAuthenticated)
+            );
+            if is_not_auth {
+                Ok(CheckAuthResponse {
+                    cli_found: true,
+                    authenticated: false,
+                    version: version.trim().to_string(),
+                    message: "CLI found but not authenticated".to_string(),
+                })
+            } else {
+                Ok(CheckAuthResponse {
+                    cli_found: true,
+                    authenticated: false,
+                    version: version.trim().to_string(),
+                    message: format!("Auth check failed: {}", e),
+                })
+            }
+        }
     }
 }
 

@@ -21,6 +21,9 @@ pub enum RuntimeError {
     #[error("Runtime CLI not found")]
     CliNotFound,
 
+    #[error("CLI found but not authenticated")]
+    NotAuthenticated,
+
     #[error("Session not started")]
     NotStarted,
 
@@ -62,8 +65,13 @@ pub trait AgentRuntime: Send + Sync {
     /// Human-readable name for this runtime (e.g. "Claude Code CLI")
     fn name(&self) -> &str;
 
-    /// Check whether the runtime is installed and authenticated.
-    /// Returns a version string on success.
+    /// Check whether the runtime CLI binary is installed (present on PATH).
+    /// Returns the version string on success, or `CliNotFound` if absent.
+    async fn check_installed(&self) -> Result<String>;
+
+    /// Check whether the runtime is installed **and** authenticated.
+    /// Returns a version string on success, `NotAuthenticated` if the CLI
+    /// is present but the user is not logged in, or `CliNotFound` if absent.
     async fn check_auth(&self) -> Result<String>;
 
     /// Start a new session. Returns a broadcast receiver for parsed events.

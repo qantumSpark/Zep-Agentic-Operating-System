@@ -45,6 +45,7 @@ interface SessionStoreState {
   connections: Connections;
 
   // CLI auth
+  cliFound: boolean;
   cliVersion: string;
   cliAuthMessage: string;
 
@@ -61,7 +62,7 @@ interface SessionStoreState {
   setSessionId: (id: string) => void;
   setStartTime: (time: number) => void;
   updateConnections: (connections: Partial<Connections>) => void;
-  setCliAuth: (authenticated: boolean, version: string, message: string) => void;
+  setCliAuth: (cliFound: boolean, authenticated: boolean, version: string, message: string) => void;
   resetSession: () => void;
   loadSessions: () => Promise<void>;
 }
@@ -83,6 +84,7 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
     gopeak: false,
     godot: false,
   },
+  cliFound: false,
   cliVersion: "",
   cliAuthMessage: "",
   sessions: [],
@@ -147,8 +149,9 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
       },
     })),
 
-  setCliAuth: (authenticated: boolean, version: string, message: string) =>
+  setCliAuth: (cliFound: boolean, authenticated: boolean, version: string, message: string) =>
     set((state) => ({
+      cliFound,
       cliVersion: version,
       cliAuthMessage: message,
       connections: { ...state.connections, cli: authenticated },
@@ -167,6 +170,7 @@ export const useSessionStore = create<SessionStoreState>((set) => ({
       model: "",
       sessionId: "",
       startTime: 0,
+      cliFound: false,
       connections: {
         cli: false,
         gopeak: false,

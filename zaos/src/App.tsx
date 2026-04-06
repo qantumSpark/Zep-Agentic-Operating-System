@@ -40,11 +40,11 @@ export function App() {
       }
 
       // Global auth check (not project-specific)
-      invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth")
-        .then((auth) => useSessionStore.getState().setCliAuth(auth.authenticated, auth.version, auth.message))
+      invoke<{ cli_found: boolean; authenticated: boolean; version: string; message: string }>("check_cli_auth")
+        .then((auth) => useSessionStore.getState().setCliAuth(auth.cli_found, auth.authenticated, auth.version, auth.message))
         .catch((e) => {
           console.error("check_cli_auth failed:", e);
-          useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
+          useSessionStore.getState().setCliAuth(false, false, "", "CLI check failed");
         });
 
       // Load all project context via single entry point

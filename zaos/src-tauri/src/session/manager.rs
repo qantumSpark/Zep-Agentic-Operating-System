@@ -55,6 +55,12 @@ impl SessionManager {
         }
     }
 
+    /// Check if the runtime CLI binary is installed (present on PATH).
+    /// Returns the version string on success.
+    pub async fn check_cli_installed(&self) -> Result<String> {
+        self.runtime.check_installed().await.map_err(SessionError::Runtime)
+    }
+
     /// Check if the runtime CLI is available and authenticated.
     pub async fn check_cli_auth(&self) -> Result<String> {
         self.runtime.check_auth().await.map_err(SessionError::Runtime)

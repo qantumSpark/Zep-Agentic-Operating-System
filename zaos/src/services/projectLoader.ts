@@ -93,10 +93,12 @@ export async function loadProjectContext(opts?: LoadProjectContextOptions): Prom
     usePersonaStore.getState().loadPersonas(),
     invoke<MemoryHealthReport>("get_memory_health")
       .then((report) => useMemoryStore.getState().setHealth(report)),
+    invoke<{ cli_found: boolean; authenticated: boolean; version: string; message: string }>("check_cli_auth")
+      .then((auth) => useSessionStore.getState().setCliAuth(auth.cli_found, auth.authenticated, auth.version, auth.message)),
   ]);
 
   // Log les echecs individuels
-  const labels = ["memory", "screenshots", "workflow", "kit-status", "agents", "product-contract", "personas", "memory-health"];
+  const labels = ["memory", "screenshots", "workflow", "kit-status", "agents", "product-contract", "personas", "memory-health", "cli-auth"];
   results.forEach((r, i) => {
     if (r.status === "rejected") {
       console.error(`[loadProjectContext] ${labels[i]} failed:`, r.reason);
