@@ -2,4 +2,4 @@ pub mod models;
 pub mod reader;
 
 pub use models::{Persona, ProductContract, SessionInsightsEditorial};
-pub use reader::{MemoryReader, MemoryStateResponse};
+pub use reader::{MemoryHealthReport, MemoryReader, MemoryStateResponse};

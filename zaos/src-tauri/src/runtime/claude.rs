@@ -5,7 +5,9 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tokio::sync::broadcast;
 
-use crate::events::CliEvent;
+use crate::events::types::CliEvent;
+use crate::events::claude_mapper::map_cli_event;
+use crate::events::zaos_events::ZaosEvent;
 use super::{AgentRuntime, Result, RuntimeError, SessionRecord};
 
 fn truncate_str(s: &str, max_len: usize) -> String {
@@ -79,7 +81,7 @@ impl AgentRuntime for ClaudeRuntime {
         Ok(version.to_string())
     }
 
-    async fn start_session(&mut self) -> Result<broadcast::Receiver<CliEvent>> {
+    async fn start_session(&mut self) -> Result<broadcast::Receiver<ZaosEvent>> {
         let (tx, rx) = broadcast::channel(512);
 
         let mut cmd = Command::new("claude");
@@ -129,10 +131,24 @@ impl AgentRuntime for ClaudeRuntime {
         // Store child for lifecycle management
         self.child = Some(child);
 
-        // Spawn JSONL parser task
+        // Spawn JSONL parser task — parse CliEvent then map to ZaosEvent
         tokio::spawn(async move {
-            if let Err(e) = crate::events::parse_stream(stdout, tx).await {
-                tracing::error!("Event parser error: {}", e);
+            let reader = tokio::io::BufReader::new(stdout);
+            let mut lines = reader.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                if line.is_empty() { continue; }
+                match serde_json::from_str::<CliEvent>(&line) {
+                    Ok(cli_event) => {
+                        tracing::debug!("Parsed CLI event: {:?}", cli_event);
+                        for zaos_event in map_cli_event(&cli_event) {
+                            let _ = tx.send(zaos_event);
+                        }
+                    }
+                    Err(e) => {
+                        let preview = &line[..500.min(line.len())];
+                        tracing::warn!("Parse error: {} on line: {}", e, preview);
+                    }
+                }
             }
         });
 

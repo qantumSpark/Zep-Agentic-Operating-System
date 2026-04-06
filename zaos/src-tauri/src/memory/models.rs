@@ -82,6 +82,8 @@ pub struct SessionInsights {
     pub learnings: Vec<String>,
     pub risks: Vec<String>,
     pub next_validations: Vec<String>,
+    #[serde(default)]
+    pub suggested_next_persona: String,
 }
 
 // ── Persona (.zaos/personas/*.md) ──

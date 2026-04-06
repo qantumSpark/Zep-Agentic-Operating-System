@@ -23,6 +23,25 @@ pub enum MemoryError {
 
 pub type Result<T> = std::result::Result<T, MemoryError>;
 
+/// A structured warning emitted when a markdown field is missing or malformed
+/// during parsing.  The parser still produces a best-effort value; warnings
+/// are collected alongside it so that callers (e.g. memory-health checks) can
+/// surface them without aborting.
+#[derive(Debug, Clone, Serialize)]
+pub struct ParseWarning {
+    pub field: String,
+    pub message: String,
+}
+
+/// Wraps a parsed value together with any warnings that were generated during
+/// parsing.  The `value` is always usable (defaults are substituted for missing
+/// fields); `warnings` lists every such substitution.
+#[derive(Debug, Clone)]
+pub struct ParseResult<T> {
+    pub value: T,
+    pub warnings: Vec<ParseWarning>,
+}
+
 /// A single entry parsed from INDEX.md
 ///
 /// Represents a line like: `- [Title](filename.md) — Description text`
@@ -110,6 +129,34 @@ pub struct MemoryStateResponse {
     pub current_epic: Option<CurrentEpic>,
 }
 
+/// Health status of a single memory file.
+#[derive(Debug, Clone, Serialize)]
+pub struct FileHealthEntry {
+    /// File name, e.g. "current-epic.md", "state.md", "INDEX.md"
+    pub name: String,
+    /// Whether the file exists on disk
+    pub present: bool,
+    /// Whether the file parses without errors (true if not applicable or not present)
+    pub parseable: bool,
+    /// Warnings emitted during parsing
+    pub warnings: Vec<ParseWarning>,
+}
+
+/// Aggregated health report for the `.memory/` directory.
+#[derive(Debug, Clone, Serialize)]
+pub struct MemoryHealthReport {
+    /// Per-file health entries
+    pub files: Vec<FileHealthEntry>,
+    /// Whether the epic name in state.json matches the one in current-epic.md
+    pub epic_name_match: bool,
+    /// Epic name as stored in state.json (workflow engine)
+    pub epic_name_workflow: String,
+    /// Epic name as parsed from current-epic.md
+    pub epic_name_memory: String,
+    /// Global warnings (e.g. cross-file inconsistencies)
+    pub warnings: Vec<String>,
+}
+
 /// MemoryReader reads files from .memory/ directory
 pub struct MemoryReader {
     memory_dir: PathBuf,
@@ -171,13 +218,16 @@ impl MemoryReader {
             Err(e) => return Err(MemoryError::Io(e)),
         };
 
-        let state = parse_state_md(&content);
+        let result = parse_state_md(&content);
+        for w in &result.warnings {
+            tracing::debug!("state.md parse warning [{}]: {}", w.field, w.message);
+        }
         tracing::debug!(
             "Parsed state: {} milestones, active_epic={:?}",
-            state.milestones.len(),
-            state.active_epic
+            result.value.milestones.len(),
+            result.value.active_epic
         );
-        Ok(state)
+        Ok(result.value)
     }
 
     /// Read and parse `.memory/current-epic.md` into a structured `CurrentEpic`.
@@ -197,13 +247,16 @@ impl MemoryReader {
             Err(e) => return Err(MemoryError::Io(e)),
         };
 
-        let epic = parse_current_epic_md(&content);
+        let result = parse_current_epic_md(&content);
+        for w in &result.warnings {
+            tracing::debug!("current-epic.md parse warning [{}]: {}", w.field, w.message);
+        }
         tracing::debug!(
             "Parsed current epic: name={:?}, {} tasks",
-            epic.name,
-            epic.tasks.len()
+            result.value.name,
+            result.value.tasks.len()
         );
-        Ok(Some(epic))
+        Ok(Some(result.value))
     }
 
     /// Read all memory files concurrently and return an aggregated snapshot.
@@ -353,6 +406,126 @@ impl MemoryReader {
         personas.sort_by(|a, b| a.name.cmp(&b.name));
         personas
     }
+
+    /// Run a lightweight health check on the `.memory/` directory.
+    ///
+    /// Checks file presence, parsability, and cross-file consistency
+    /// (epic name in `state.json` vs `current-epic.md`).
+    pub async fn check_health(&self, workflow_epic: &str) -> MemoryHealthReport {
+        let mut files = Vec::new();
+        let mut global_warnings: Vec<String> = Vec::new();
+        let mut epic_name_memory = String::new();
+
+        // --- INDEX.md: presence only (no structured parse) ---
+        let index_path = self.memory_dir.join("INDEX.md");
+        let index_present = fs::metadata(&index_path).await.is_ok();
+        files.push(FileHealthEntry {
+            name: "INDEX.md".to_string(),
+            present: index_present,
+            parseable: true, // no structured parse for INDEX
+            warnings: Vec::new(),
+        });
+        if !index_present {
+            global_warnings.push("INDEX.md is missing".to_string());
+        }
+
+        // --- state.md: presence + parse ---
+        let state_path = self.memory_dir.join("state.md");
+        match fs::read_to_string(&state_path).await {
+            Ok(content) => {
+                let result = parse_state_md(&content);
+                let parseable = result.warnings.is_empty();
+                files.push(FileHealthEntry {
+                    name: "state.md".to_string(),
+                    present: true,
+                    parseable,
+                    warnings: result.warnings,
+                });
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                files.push(FileHealthEntry {
+                    name: "state.md".to_string(),
+                    present: false,
+                    parseable: true, // N/A — parsability is irrelevant when file is absent
+                    warnings: Vec::new(),
+                });
+                global_warnings.push("state.md is missing".to_string());
+            }
+            Err(e) => {
+                files.push(FileHealthEntry {
+                    name: "state.md".to_string(),
+                    present: true,
+                    parseable: false,
+                    warnings: vec![ParseWarning {
+                        field: "io".to_string(),
+                        message: format!("Failed to read file: {}", e),
+                    }],
+                });
+            }
+        }
+
+        // --- current-epic.md: presence + parse + extract epic name ---
+        let epic_path = self.memory_dir.join("current-epic.md");
+        match fs::read_to_string(&epic_path).await {
+            Ok(content) => {
+                let result = parse_current_epic_md(&content);
+                let parseable = result.warnings.is_empty();
+                epic_name_memory = result.value.name.clone();
+                files.push(FileHealthEntry {
+                    name: "current-epic.md".to_string(),
+                    present: true,
+                    parseable,
+                    warnings: result.warnings,
+                });
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                files.push(FileHealthEntry {
+                    name: "current-epic.md".to_string(),
+                    present: false,
+                    parseable: true, // N/A — parsability is irrelevant when file is absent
+                    warnings: Vec::new(),
+                });
+                // Not necessarily a warning — no epic may be active
+            }
+            Err(e) => {
+                files.push(FileHealthEntry {
+                    name: "current-epic.md".to_string(),
+                    present: true,
+                    parseable: false,
+                    warnings: vec![ParseWarning {
+                        field: "io".to_string(),
+                        message: format!("Failed to read file: {}", e),
+                    }],
+                });
+            }
+        }
+
+        // --- Cross-file consistency: epic name ---
+        let epic_name_workflow = workflow_epic.to_string();
+        let epic_name_match = if epic_name_workflow.is_empty() && epic_name_memory.is_empty() {
+            true // both empty — consistent
+        } else {
+            epic_name_workflow == epic_name_memory
+        };
+
+        if !epic_name_match
+            && !epic_name_workflow.is_empty()
+            && !epic_name_memory.is_empty()
+        {
+            global_warnings.push(format!(
+                "Epic name mismatch: state.json has '{}', current-epic.md has '{}'",
+                epic_name_workflow, epic_name_memory
+            ));
+        }
+
+        MemoryHealthReport {
+            files,
+            epic_name_match,
+            epic_name_workflow,
+            epic_name_memory,
+            warnings: global_warnings,
+        }
+    }
 }
 
 /// Parse the full content of `state.md` into a `MemoryState`.
@@ -360,10 +533,11 @@ impl MemoryReader {
 /// Uses a simple state-machine approach: track the current `## Heading` and
 /// collect lines accordingly.  Missing sections gracefully produce empty/default
 /// values.
-fn parse_state_md(content: &str) -> MemoryState {
+fn parse_state_md(content: &str) -> ParseResult<MemoryState> {
     let mut milestones: Vec<MilestoneEntry> = Vec::new();
     let mut active_epic = String::new();
     let mut blocages = String::new();
+    let mut warnings: Vec<ParseWarning> = Vec::new();
 
     enum Section {
         None,
@@ -374,6 +548,9 @@ fn parse_state_md(content: &str) -> MemoryState {
     }
 
     let mut section = Section::None;
+    let mut found_milestones_section = false;
+    let mut found_active_epic_section = false;
+    let mut milestone_row_index: usize = 0;
 
     for line in content.lines() {
         let trimmed = line.trim();
@@ -382,8 +559,10 @@ fn parse_state_md(content: &str) -> MemoryState {
         if trimmed.starts_with("## ") {
             let heading = trimmed[3..].trim().to_lowercase();
             section = if heading == "milestones" {
+                found_milestones_section = true;
                 Section::Milestones
             } else if heading.starts_with("epic active") || heading.starts_with("epic actif") {
+                found_active_epic_section = true;
                 Section::ActiveEpic
             } else if heading.starts_with("blocage") {
                 Section::Blocages
@@ -395,8 +574,21 @@ fn parse_state_md(content: &str) -> MemoryState {
 
         match section {
             Section::Milestones => {
-                if let Some(entry) = parse_milestone_row(trimmed) {
-                    milestones.push(entry);
+                // Only consider lines that look like table rows (start with '|')
+                if trimmed.starts_with('|') {
+                    // Skip header and separator rows silently
+                    let is_separator = trimmed.trim_matches('|').trim().chars().all(|c| c == '-' || c == '|' || c == ' ');
+                    let is_header = trimmed.contains("# |") || trimmed.contains("| # |");
+                    if !is_separator && !is_header {
+                        milestone_row_index += 1;
+                        match parse_milestone_row(trimmed) {
+                            Some(entry) => milestones.push(entry),
+                            None => warnings.push(ParseWarning {
+                                field: "milestones".to_string(),
+                                message: format!("milestone row {} parse failed", milestone_row_index),
+                            }),
+                        }
+                    }
                 }
             }
             Section::ActiveEpic => {
@@ -419,10 +611,27 @@ fn parse_state_md(content: &str) -> MemoryState {
         }
     }
 
-    MemoryState {
-        milestones,
-        active_epic,
-        blocages,
+    if !found_milestones_section {
+        warnings.push(ParseWarning {
+            field: "milestones".to_string(),
+            message: "milestones section missing".to_string(),
+        });
+    }
+
+    if !found_active_epic_section {
+        warnings.push(ParseWarning {
+            field: "active_epic".to_string(),
+            message: "active_epic section missing".to_string(),
+        });
+    }
+
+    ParseResult {
+        value: MemoryState {
+            milestones,
+            active_epic,
+            blocages,
+        },
+        warnings,
     }
 }
 
@@ -487,12 +696,13 @@ fn parse_milestone_row(line: &str) -> Option<MilestoneEntry> {
 /// Extracts metadata from the blockquote header (`> Milestone : ...`, `> Statut : ...`),
 /// the epic name from the `# Epic active : ...` heading, the objective paragraph, and
 /// the tasks table.
-fn parse_current_epic_md(content: &str) -> CurrentEpic {
+fn parse_current_epic_md(content: &str) -> ParseResult<CurrentEpic> {
     let mut name = String::new();
     let mut milestone = String::new();
     let mut status = String::new();
     let mut objective = String::new();
     let mut tasks: Vec<EpicTask> = Vec::new();
+    let mut warnings: Vec<ParseWarning> = Vec::new();
 
     enum Section {
         Header,
@@ -502,6 +712,9 @@ fn parse_current_epic_md(content: &str) -> CurrentEpic {
     }
 
     let mut section = Section::Header;
+    let mut found_milestone_blockquote = false;
+    let mut found_status_blockquote = false;
+    let mut task_row_index: usize = 0;
 
     for line in content.lines() {
         let trimmed = line.trim();
@@ -521,8 +734,10 @@ fn parse_current_epic_md(content: &str) -> CurrentEpic {
             let meta = &trimmed[2..];
             if let Some(val) = meta.strip_prefix("Milestone :") {
                 milestone = val.trim().to_string();
+                found_milestone_blockquote = true;
             } else if let Some(val) = meta.strip_prefix("Statut :") {
                 status = val.trim().to_string();
+                found_status_blockquote = true;
             }
             continue;
         }
@@ -550,20 +765,56 @@ fn parse_current_epic_md(content: &str) -> CurrentEpic {
                 }
             }
             Section::Tasks => {
-                if let Some(task) = parse_epic_task_row(trimmed) {
-                    tasks.push(task);
+                // Only consider lines that look like table rows (start with '|')
+                if trimmed.starts_with('|') {
+                    let is_separator = trimmed.trim_matches('|').trim().chars().all(|c| c == '-' || c == '|' || c == ' ');
+                    let is_header = trimmed.contains("# |") || trimmed.contains("| # |");
+                    if !is_separator && !is_header {
+                        task_row_index += 1;
+                        match parse_epic_task_row(trimmed) {
+                            Some(task) => tasks.push(task),
+                            None => warnings.push(ParseWarning {
+                                field: "tasks".to_string(),
+                                message: format!("task row {} parse failed", task_row_index),
+                            }),
+                        }
+                    }
                 }
             }
             _ => {}
         }
     }
 
-    CurrentEpic {
-        name,
-        milestone,
-        status,
-        objective,
-        tasks,
+    if name.is_empty() {
+        warnings.push(ParseWarning {
+            field: "name".to_string(),
+            message: "epic name missing".to_string(),
+        });
+    }
+
+    if !found_milestone_blockquote {
+        warnings.push(ParseWarning {
+            field: "milestone".to_string(),
+            message: "milestone blockquote missing".to_string(),
+        });
+    }
+
+    if !found_status_blockquote {
+        warnings.push(ParseWarning {
+            field: "status".to_string(),
+            message: "status blockquote missing".to_string(),
+        });
+    }
+
+    ParseResult {
+        value: CurrentEpic {
+            name,
+            milestone,
+            status,
+            objective,
+            tasks,
+        },
+        warnings,
     }
 }
 
@@ -962,6 +1213,7 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
     let mut learnings: Vec<String> = Vec::new();
     let mut risks: Vec<String> = Vec::new();
     let mut next_validations: Vec<String> = Vec::new();
+    let mut suggested_next_persona = String::new();
 
     enum Section { None, Decisions, Learnings, Risks, NextValidations }
     let mut section = Section::None;
@@ -983,7 +1235,7 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
                 if !v.is_empty() && !v.starts_with('_') { phase = v.to_string(); }
             } else if let Some(val) = meta.strip_prefix("Session-ID:") {
                 let v = val.trim();
-                if !v.is_empty() { session_id = v.to_string(); }
+                if !v.is_empty() && !v.starts_with('_') { session_id = v.to_string(); }
             } else if let Some(val) = meta.strip_prefix("Duration:") {
                 let v = val.trim().trim_end_matches('s');
                 duration_secs = v.parse().unwrap_or(0);
@@ -996,6 +1248,9 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
                 }
             } else if let Some(val) = meta.strip_prefix("Agents:") {
                 agents_used = val.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect();
+            } else if let Some(val) = meta.strip_prefix("Suggested-Persona:") {
+                let v = val.trim();
+                if !v.is_empty() { suggested_next_persona = v.to_string(); }
             }
             continue;
         }
@@ -1035,7 +1290,7 @@ fn parse_session_insights_md(content: &str) -> SessionInsights {
         }
     }
 
-    SessionInsights { date, epic, phase, session_id, duration_secs, tokens_input, tokens_output, agents_used, decisions, learnings, risks, next_validations }
+    SessionInsights { date, epic, phase, session_id, duration_secs, tokens_input, tokens_output, agents_used, decisions, learnings, risks, next_validations, suggested_next_persona }
 }
 
 /// Parse a persona `.md` file.
@@ -1285,7 +1540,9 @@ Phase 2 — Dashboard Temps Reel EN COURS (0/17 taches)
 
 Aucun
 "#;
-        let state = parse_state_md(md);
+        let result = parse_state_md(md);
+        assert!(result.warnings.is_empty(), "full state should have no warnings");
+        let state = result.value;
 
         assert_eq!(state.milestones.len(), 3);
 
@@ -1309,28 +1566,35 @@ Aucun
 
     #[test]
     fn test_parse_state_md_empty() {
-        let state = parse_state_md("");
+        let result = parse_state_md("");
+        let state = result.value;
         assert!(state.milestones.is_empty());
         assert!(state.active_epic.is_empty());
         assert!(state.blocages.is_empty());
+        // Empty content should warn about missing sections
+        assert!(result.warnings.iter().any(|w| w.message == "milestones section missing"));
+        assert!(result.warnings.iter().any(|w| w.message == "active_epic section missing"));
     }
 
     #[test]
     fn test_parse_state_md_missing_sections() {
         let md = "## Milestones\n\n| # | Milestone | Statut | Epics |\n|---|---|---|---|\n| 1 | Only one | DONE | stuff |\n";
-        let state = parse_state_md(md);
+        let result = parse_state_md(md);
+        let state = result.value;
 
         assert_eq!(state.milestones.len(), 1);
         assert_eq!(state.milestones[0].name, "Only one");
         assert!(state.active_epic.is_empty());
         assert!(state.blocages.is_empty());
+        // Missing epic active section should produce a warning
+        assert!(result.warnings.iter().any(|w| w.message == "active_epic section missing"));
     }
 
     #[test]
     fn test_parse_state_md_multiline_blocages() {
         let md = "## Blocages\n\nPremier blocage\nDeuxieme blocage\n";
-        let state = parse_state_md(md);
-        assert_eq!(state.blocages, "Premier blocage\nDeuxieme blocage");
+        let result = parse_state_md(md);
+        assert_eq!(result.value.blocages, "Premier blocage\nDeuxieme blocage");
     }
 
     #[test]
@@ -1357,7 +1621,8 @@ Active now
 
 None
 "#;
-        let state = parse_state_md(md);
+        let result = parse_state_md(md);
+        let state = result.value;
         assert_eq!(state.milestones.len(), 1);
         assert_eq!(state.active_epic, "Active now");
         assert_eq!(state.blocages, "None");
@@ -1416,7 +1681,9 @@ Rendre le dashboard ZAOS vivant.
 
 - Stream A
 "#;
-        let epic = parse_current_epic_md(md);
+        let result = parse_current_epic_md(md);
+        assert!(result.warnings.is_empty(), "full epic should have no warnings");
+        let epic = result.value;
         assert_eq!(epic.name, "Phase 2 — Dashboard Temps Reel");
         assert_eq!(epic.milestone, "2 — Dashboard temps reel");
         assert_eq!(epic.status, "EN COURS");
@@ -1437,9 +1704,14 @@ Rendre le dashboard ZAOS vivant.
 
     #[test]
     fn test_parse_current_epic_md_empty() {
-        let epic = parse_current_epic_md("");
+        let result = parse_current_epic_md("");
+        let epic = result.value;
         assert!(epic.name.is_empty());
         assert!(epic.tasks.is_empty());
+        // Empty content should warn about missing name, milestone, status
+        assert!(result.warnings.iter().any(|w| w.message == "epic name missing"));
+        assert!(result.warnings.iter().any(|w| w.message == "milestone blockquote missing"));
+        assert!(result.warnings.iter().any(|w| w.message == "status blockquote missing"));
     }
 
     #[test]
@@ -1727,6 +1999,7 @@ Ready for beta testing.
 > Duration: 3600s
 > Tokens: 1234 in / 5678 out
 > Agents: architect, coder, reviewer
+> Suggested-Persona: Builder
 
 ## Decisions prises
 
@@ -1758,6 +2031,7 @@ Ready for beta testing.
         assert_eq!(si.learnings, vec!["tokio::join! scales well for parallel reads"]);
         assert_eq!(si.risks, vec!["No tests for new parsers yet"]);
         assert_eq!(si.next_validations, vec!["Run full test suite after Epic 3"]);
+        assert_eq!(si.suggested_next_persona, "Builder");
     }
 
     #[test]
@@ -1774,6 +2048,7 @@ Ready for beta testing.
         assert_eq!(si.epic, "unknown");
         assert_eq!(si.phase, "unknown");
         assert_eq!(si.decisions, vec!["One decision"]);
+        assert_eq!(si.suggested_next_persona, "");
     }
 
     #[test]
@@ -1794,6 +2069,7 @@ Ready for beta testing.
         assert_eq!(si.epic, "unknown");
         assert_eq!(si.phase, "unknown");
         assert!(si.decisions.is_empty());
+        assert_eq!(si.suggested_next_persona, "");
     }
 
     #[test]

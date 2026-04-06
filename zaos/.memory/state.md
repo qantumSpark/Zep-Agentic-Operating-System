@@ -1,6 +1,6 @@
 # Etat courant ZAOS
 
-> Derniere mise a jour : 2026-04-05
+> Derniere mise a jour : 2026-04-06
 > ECRASE a chaque mise a jour. Max 50 lignes.
 
 ## Milestones
@@ -26,10 +26,17 @@
 | 17 | Dashboard Decision-First | TERMINE | 1 epic (11 taches + 4 corrections review) |
 | 18 | Personas ZAOS + session insights | TERMINE | 1 epic (10 taches + 6 corrections review) |
 | 19 | Post-V1.5 Preparation Codex | TERMINE | 1 epic (11 taches + 4 corrections review) |
+| 20 | Chantier Codex (1/5) — Coherence multi-projets | TERMINE | epic1: hydratation frontend |
+
+| 21 | Chantier Codex (2/5) — Canonical memory ownership | TERMINE | epic2: ownership + health (24 taches) |
+| 22 | Chantier Codex (3/5) — Reprise de session utile | TERMINE | epic4: session insights (14 taches) |
+| 23 | Chantier Codex (4/5) — Consolidation cockpit | TERMINE | epic3: dedup dashboard (10 taches) |
+
+| 24 | Chantier Codex (5/5) — Completion seam runtime | TERMINE | epic5: seam runtime (16 taches) |
 
 ## Epic active
 
-Aucune — Phase Learn (retrospective post-V1.5) en cours.
+Aucune — Chantier Codex 5/5 TERMINE
 
 ## Blocages
 
@@ -37,4 +44,4 @@ Aucun
 
 ## Prochaines priorites
 
-Retrospective V1.5 en cours. Product contract rempli (brief, experience goals, acceptance checks, release readiness). Reste a determiner la prochaine direction parmi : (A) Sprint qualite/dette technique, (B) Session insights fonctionnels, (C) Integration Codex, (D) Vision V2. Backlog technique : M1 (step numbering), M3 (RwLock runtime_kind), S1-S4 (tests, serialisation, helpers, deployer).
+Chantier Codex TERMINE (5/5 epics). Backlog technique restant : M1 (step numbering), S1-S4 (tests, serialisation, helpers, deployer), E4-B1 (brancher on-compact sur update_session_editorial), E4-B2 (is_meaningful_insights: || → && pour eviter archivage vide). Gaps runtime (cf RUNTIME_SEAM.md) : H1 (hooks binary paths), D1-D2 (deployer multi-runtime), P1-P2 (dead parser code).

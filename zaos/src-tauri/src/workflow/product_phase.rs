@@ -41,6 +41,7 @@ impl Default for ProductPhase {
 }
 
 /// Ordered list of active product phases (excludes None).
+#[cfg(test)]
 pub const PRODUCT_PHASE_ORDER: [ProductPhase; 7] = [
     ProductPhase::Imagine,
     ProductPhase::Shape,

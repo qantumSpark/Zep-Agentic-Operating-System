@@ -15,7 +15,6 @@ export function StartupDashboard() {
   // Workflow
   const phase = useWorkflowStore((s) => s.phase);
   const mode = useWorkflowStore((s) => s.mode);
-  const task = useWorkflowStore((s) => s.task);
   const productPhase = useWorkflowStore((s) => s.productPhase);
 
   // Session
@@ -105,7 +104,7 @@ export function StartupDashboard() {
         )}
 
         {/* ---- Workflow State ---- */}
-        {(phase || task || (productPhase && productPhase !== ProductPhase.None)) && (
+        {(phase || (productPhase && productPhase !== ProductPhase.None)) && (
           <div className="flex flex-wrap items-center justify-center gap-2">
             {/* Product phase — primary badge */}
             {productPhase && productPhase !== ProductPhase.None && (
@@ -129,12 +128,6 @@ export function StartupDashboard() {
               />
               {mode}
             </span>
-            {/* Task badge */}
-            {task && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-xs text-zinc-400 max-w-[260px] truncate">
-                {task}
-              </span>
-            )}
           </div>
         )}
 

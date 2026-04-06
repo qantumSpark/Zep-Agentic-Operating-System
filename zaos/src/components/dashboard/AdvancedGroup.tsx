@@ -1,7 +1,6 @@
 import { CollapsibleSection } from "../common/CollapsibleSection";
 import { WorkflowSection } from "./WorkflowSection";
 import { PipelineSection } from "./PipelineSection";
-import { MemorySection } from "./MemorySection";
 import { ProductSection } from "./ProductSection";
 import { UnifiedAgentsSection } from "./UnifiedAgentsSection";
 import { ActionsFeed } from "./ActionsFeed";
@@ -22,10 +21,6 @@ export function AdvancedGroup() {
 
       <CollapsibleSection title="Pipeline" defaultOpen={false}>
         <PipelineSection />
-      </CollapsibleSection>
-
-      <CollapsibleSection title="Memory (complet)" defaultOpen={false}>
-        <MemorySection />
       </CollapsibleSection>
 
       <CollapsibleSection title="Product (complet)" defaultOpen={false}>

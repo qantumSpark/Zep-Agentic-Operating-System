@@ -2,7 +2,7 @@
 //!
 //! This is the Rust equivalent of the former TypeScript `claudeMapper.ts`.
 //! One CliEvent may produce zero or more ZaosEvents (e.g. an AssistantEvent
-//! with 3 content blocks → 3 separate events).
+//! with 3 content blocks -> 3 separate events).
 
 use super::types::*;
 use super::zaos_events::ZaosEvent;

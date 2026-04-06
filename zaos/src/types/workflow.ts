@@ -15,23 +15,6 @@ export enum Phase {
 
 export type PhaseState = "idle" | "done" | "active" | "pending";
 
-export interface WorkflowState {
-  epic: Epic;
-  phase: Phase;
-  mode: WorkflowMode;
-  task: string;
-  gateValidated: boolean;
-  pipelineProgress: Record<Phase, PhaseState>;
-  currentAgents: string[];
-  timestamp: number;
-}
-
-export interface Epic {
-  name: string;
-  description: string;
-  startTime: number;
-}
-
 export type WorkflowMode = "free" | "pipeline";
 
 export interface AgentInfo {

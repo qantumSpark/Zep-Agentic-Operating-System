@@ -13,12 +13,14 @@ fn default_policy_profile() -> String {
 }
 
 /// WorkflowState mirrors the schema in .workflow/state.json
-/// Extended with ZAOS-specific fields: history and session info
+/// Extended with ZAOS-specific fields: history, permissions, policy
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkflowState {
     // Core fields
     pub phase: String,
     pub epic: String,
+    /// @deprecated — la source de verite pour la task courante est .memory/current-epic.md.
+    /// Ce champ reste pour backward compat serde.
     pub task: String,
     pub mode: WorkflowMode,
     pub gate_validated: bool,
@@ -29,9 +31,6 @@ pub struct WorkflowState {
     // ZAOS extensions (optional)
     #[serde(default)]
     pub history: Vec<PhaseTransition>,
-
-    #[serde(default)]
-    pub session: Option<SessionMetadata>,
 
     #[serde(default = "default_permission_mode")]
     pub permission_mode: String,
@@ -62,23 +61,6 @@ pub struct PhaseTransition {
     pub reason: Option<String>,
 }
 
-/// Session metadata attached to workflow state
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SessionMetadata {
-    pub session_id: String,
-    pub started_at: String,
-    pub updated_at: String,
-    pub tokens_used: TokenUsage,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct TokenUsage {
-    pub input: u64,
-    pub output: u64,
-    pub cache_read: u64,
-    pub cache_creation: u64,
-}
-
 impl Default for WorkflowState {
     fn default() -> Self {
         WorkflowState {
@@ -90,7 +72,6 @@ impl Default for WorkflowState {
             gate_ready: false,
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
-            session: None,
             permission_mode: default_permission_mode(),
             policy_profile: default_policy_profile(),
         }
@@ -109,7 +90,6 @@ impl WorkflowState {
             gate_ready: false,
             last_updated: Utc::now().to_rfc3339(),
             history: Vec::new(),
-            session: None,
             permission_mode: default_permission_mode(),
             policy_profile: default_policy_profile(),
         }
@@ -126,30 +106,6 @@ impl WorkflowState {
         self.last_updated = Utc::now().to_rfc3339();
     }
 
-    /// Update session metadata
-    pub fn set_session(&mut self, session_id: String) {
-        let now = Utc::now().to_rfc3339();
-        self.session = Some(SessionMetadata {
-            session_id,
-            started_at: now.clone(),
-            updated_at: now,
-            tokens_used: TokenUsage::default(),
-        });
-    }
-
-    /// Update token usage in session
-    pub fn update_tokens(&mut self, input: u64, output: u64, cache_read: u64, cache_creation: u64) {
-        if let Some(ref mut session) = self.session {
-            session.tokens_used = TokenUsage {
-                input,
-                output,
-                cache_read,
-                cache_creation,
-            };
-            session.updated_at = Utc::now().to_rfc3339();
-        }
-        self.last_updated = Utc::now().to_rfc3339();
-    }
 }
 
 /// DTO sent to the frontend — enriches WorkflowState with derived product phase.
@@ -166,10 +122,19 @@ pub struct WorkflowStateDto {
     pub policy_profile: String,
     pub last_updated: String,
     pub history: Vec<PhaseTransition>,
-    pub session: Option<SessionMetadata>,
     pub product_phase: ProductPhase,
     pub next_product_phase: Option<ProductPhase>,
     pub next_tech_phase: Option<String>,
+
+    // Epic enrichment from .memory/current-epic.md
+    /// Epic status (e.g. "EN COURS", "TERMINE")
+    pub epic_status: Option<String>,
+    /// Epic objective text
+    pub epic_objective: Option<String>,
+    /// Total number of tasks in the epic
+    pub epic_task_count: Option<u32>,
+    /// Number of tasks with DONE or VALIDATED status
+    pub epic_done_count: Option<u32>,
 }
 
 impl WorkflowStateDto {
@@ -203,7 +168,7 @@ impl WorkflowStateDto {
         WorkflowStateDto {
             phase: state.phase.clone(),
             epic: state.epic.clone(),
-            task: state.task.clone(),
+            task: String::new(),
             mode: state.mode,
             gate_validated: state.gate_validated,
             gate_ready: state.gate_ready,
@@ -211,11 +176,29 @@ impl WorkflowStateDto {
             policy_profile: state.policy_profile.clone(),
             last_updated: state.last_updated.clone(),
             history: state.history.clone(),
-            session: state.session.clone(),
             product_phase,
             next_product_phase,
             next_tech_phase,
+            epic_status: None,
+            epic_objective: None,
+            epic_task_count: None,
+            epic_done_count: None,
         }
+    }
+
+    /// Enrich the DTO with data from a parsed `CurrentEpic`.
+    ///
+    /// Populates `epic_status`, `epic_objective`, `epic_task_count`, and
+    /// `epic_done_count` from the current-epic.md data.
+    pub fn enrich_from_epic(&mut self, epic: &crate::memory::reader::CurrentEpic) {
+        self.epic_status = Some(epic.status.clone());
+        self.epic_objective = Some(epic.objective.clone());
+        self.epic_task_count = Some(epic.tasks.len() as u32);
+        let done_count = epic.tasks.iter().filter(|t| {
+            let s = t.status.to_uppercase();
+            s == "DONE" || s == "VALIDATED"
+        }).count();
+        self.epic_done_count = Some(done_count as u32);
     }
 }
 
@@ -349,7 +332,7 @@ mod tests {
 
         assert_eq!(dto.phase, "architecture");
         assert_eq!(dto.epic, "SomeEpic");
-        assert_eq!(dto.task, "task-42");
+        assert_eq!(dto.task, ""); // task field is deprecated, always empty in DTO
         assert_eq!(dto.mode, WorkflowMode::Free);
         assert!(dto.gate_validated);
         assert!(dto.gate_ready);

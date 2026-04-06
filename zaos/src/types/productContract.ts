@@ -61,6 +61,7 @@ export interface SessionInsights {
   learnings: string[];
   risks: string[];
   next_validations: string[];
+  suggested_next_persona: string;
 }
 
 export interface ProductContract {

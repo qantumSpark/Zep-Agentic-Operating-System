@@ -109,6 +109,9 @@ fn load_file_full(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_default()
 }
 
+/// NOTE: This is a standalone copy of workflow::task_check::has_active_tasks.
+/// If you modify this function, update the canonical version in task_check.rs
+/// and run `cargo test -p zaos -- task_check` to verify drift detection.
 fn has_active_tasks(epic_content: &str) -> bool {
     let mut found_data_row = false;
 

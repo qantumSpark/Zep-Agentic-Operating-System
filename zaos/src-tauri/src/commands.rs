@@ -1,6 +1,6 @@
 use crate::deployer;
-use crate::events::CliEvent;
-use crate::memory::{MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
+use crate::events::zaos_events::ZaosEvent;
+use crate::memory::{MemoryHealthReport, MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
 use crate::runtime::{RuntimeKind, RuntimePaths};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
 use crate::session::{CliSession, SessionManager};
@@ -20,9 +20,8 @@ pub struct AppState {
     pub screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
     pub project_dir: Arc<RwLock<PathBuf>>,
     pub permission_mode: Arc<RwLock<String>>,
-    /// Currently immutable — only one runtime (Claude) is supported.
-    /// Will need Arc<RwLock<>> if/when runtime switching becomes possible.
-    pub runtime_kind: RuntimeKind,
+    /// Runtime kind, wrapped in Arc<RwLock<>> to allow future runtime switching.
+    pub runtime_kind: Arc<RwLock<RuntimeKind>>,
     pub runtime_paths: Arc<RwLock<RuntimePaths>>,
 }
 
@@ -48,7 +47,7 @@ impl AppState {
             )),
             project_dir: Arc::new(RwLock::new(project_dir)),
             permission_mode: Arc::new(RwLock::new("strict".to_string())),
-            runtime_kind,
+            runtime_kind: Arc::new(RwLock::new(runtime_kind)),
             runtime_paths: Arc::new(RwLock::new(runtime_paths)),
         }
     }
@@ -132,7 +131,7 @@ pub struct RuntimeInfo {
 // Tauri Commands
 // =============================================================================
 
-/// Send a prompt to Claude Code CLI.
+/// Send a prompt to the active runtime CLI session.
 /// Starts a long-lived CLI session if not already running, then sends the message via stdin.
 /// Forwards all parsed CLI events to the frontend via app.emit("agent-event").
 #[tauri::command]
@@ -178,20 +177,19 @@ pub async fn send_prompt(
                     tracing::debug!("Forwarding event to frontend: {:?}", event);
 
                     // Extract session_id from system init events
-                    if let CliEvent::System(ref sys) = event {
+                    if let ZaosEvent::SessionInit { ref session_id, .. } = event {
                         let mut mgr = sm.lock().await;
-                        mgr.set_session_id(sys.session_id.clone());
-                        tracing::info!("Session ID captured: {}", sys.session_id);
+                        mgr.set_session_id(session_id.clone());
+                        tracing::info!("Session ID captured: {}", session_id);
                     }
 
                     // Policy Engine evaluation for permission requests
-                    if let CliEvent::ControlRequest(ref req) = event {
+                    if let ZaosEvent::ApprovalRequested { ref request_id, ref tool_name, ref tool_input, ref description, .. } = event {
                         use crate::policy::{derive_action_type, is_destructive_command, evaluate as policy_evaluate, ActionContext, PolicyProfile, Verdict, verdict_to_str, risk_level_to_str};
                         use crate::workflow::product_phase::derive_product_phase;
-                        use crate::events::zaos_events::ZaosEvent;
 
-                        let tool_name_str = req.tool_name().unwrap_or("unknown").to_string();
-                        let tool_input_val = req.tool_input().unwrap_or(serde_json::Value::Null);
+                        let tool_name_str = tool_name.as_deref().unwrap_or("unknown").to_string();
+                        let tool_input_val = tool_input.clone().unwrap_or(serde_json::Value::Null);
 
                         // 1. Build ActionContext
                         let action_type = derive_action_type(&tool_name_str);
@@ -274,11 +272,11 @@ pub async fn send_prompt(
                                     tracing::error!("Failed to emit policy_decision event: {}", e);
                                 }
 
-                                let input = req.tool_input();
+                                let input = tool_input.clone();
                                 let mut mgr = sm.lock().await;
-                                match mgr.send_permission_response(&req.request_id, true, input).await {
+                                match mgr.send_permission_response(request_id, true, input).await {
                                     Ok(()) => {
-                                        tracing::info!("Auto-approved {} (request {})", tool_name_str, req.request_id);
+                                        tracing::info!("Auto-approved {} (request {})", tool_name_str, request_id);
                                         continue;
                                     }
                                     Err(e) => {
@@ -301,9 +299,9 @@ pub async fn send_prompt(
                                 }
 
                                 let mut mgr = sm.lock().await;
-                                match mgr.send_permission_response(&req.request_id, false, None).await {
+                                match mgr.send_permission_response(request_id, false, None).await {
                                     Ok(()) => {
-                                        tracing::info!("Auto-denied {} (request {})", tool_name_str, req.request_id);
+                                        tracing::info!("Auto-denied {} (request {})", tool_name_str, request_id);
                                         continue;
                                     }
                                     Err(e) => {
@@ -314,15 +312,11 @@ pub async fn send_prompt(
                             }
                             Verdict::Ask => {
                                 // Emit enriched ApprovalRequested event with policy metadata
-                                let description = req.message.clone().or_else(|| {
-                                    req.extra.get("request")?.get("description")?.as_str().map(|s| s.to_string())
-                                });
-
                                 let enriched = ZaosEvent::ApprovalRequested {
-                                    request_id: req.request_id.clone(),
-                                    tool_name: req.tool_name().map(|s| s.to_string()),
-                                    tool_input: req.tool_input(),
-                                    description,
+                                    request_id: request_id.clone(),
+                                    tool_name: tool_name.clone(),
+                                    tool_input: tool_input.clone(),
+                                    description: description.clone(),
                                     policy_verdict: Some(verdict_to_str(decision.verdict).to_string()),
                                     policy_risk_level: Some(risk_level_to_str(decision.risk_level).to_string()),
                                     policy_reason: Some(decision.reason.clone()),
@@ -332,22 +326,20 @@ pub async fn send_prompt(
                                 if let Err(e) = app_handle.emit("agent-event", &enriched) {
                                     tracing::error!("Failed to emit enriched ApprovalRequested: {}", e);
                                 }
-                                continue; // Skip default mapper for this event
+                                continue;
                             }
                         }
                     }
 
-                    // Map to ZAOS normalized events and emit each
-                    for zaos_event in crate::events::mapper::map_cli_event(&event) {
-                        if let Err(e) = app_handle.emit("agent-event", &zaos_event) {
-                            tracing::error!("Failed to emit ZAOS event: {}", e);
-                        }
+                    // Emit ZAOS event directly to frontend
+                    if let Err(e) = app_handle.emit("agent-event", &event) {
+                        tracing::error!("Failed to emit ZAOS event: {}", e);
                     }
 
                     // Detect successful turn end → attempt to mark gate as ready
-                    if let CliEvent::Result(ref result) = event {
+                    if let ZaosEvent::RunCompleted { is_error, .. } = &event {
                         let mut engine = we.lock().await;
-                        if let Err(e) = engine.try_mark_gate_ready_after_turn(result.is_error).await {
+                        if let Err(e) = engine.try_mark_gate_ready_after_turn(*is_error).await {
                             tracing::warn!("Failed in gate_ready evaluation: {}", e);
                         }
                     }
@@ -501,14 +493,23 @@ pub async fn set_permission_mode(
     })
 }
 
-/// Get current workflow state
+/// Get current workflow state, enriched with epic data from .memory/current-epic.md
 #[tauri::command]
 pub async fn get_workflow_state(
     state: State<'_, AppState>,
 ) -> Result<WorkflowStateDto, String> {
     let workflow = state.workflow_engine.lock().await;
     let wf_state = workflow.get_state();
-    Ok(WorkflowStateDto::from_state(wf_state))
+    let mut dto = WorkflowStateDto::from_state(wf_state);
+
+    // Enrich with current-epic.md data (best-effort, leave None on error)
+    let project_dir = state.project_dir().await;
+    let reader = MemoryReader::new(project_dir);
+    if let Ok(Some(epic)) = reader.read_current_epic().await {
+        dto.enrich_from_epic(&epic);
+    }
+
+    Ok(dto)
 }
 /// Manually set gate_ready flag (for debug/recovery)
 #[tauri::command]
@@ -582,6 +583,24 @@ pub async fn get_memory_state(
     reader.read_all().await
 }
 
+/// Get memory health diagnostic (file presence, parsability, epic name consistency)
+#[tauri::command]
+pub async fn get_memory_health(
+    state: State<'_, AppState>,
+) -> Result<MemoryHealthReport, String> {
+    tracing::info!("get_memory_health called");
+
+    // Get the epic name from the workflow engine (state.json)
+    let workflow_epic = {
+        let engine = state.workflow_engine.lock().await;
+        engine.get_state().epic.clone()
+    };
+
+    let project_dir = state.project_dir().await;
+    let reader = MemoryReader::new(project_dir);
+    Ok(reader.check_health(&workflow_epic).await)
+}
+
 /// Get product contract (all 5 product artifacts aggregated)
 #[tauri::command]
 pub async fn get_product_contract(
@@ -606,6 +625,8 @@ pub async fn get_personas(
 
 /// Save session insights with auto-metadata from backend state.
 /// Frontend provides metrics (duration, tokens, agents) and editorial content.
+/// `editorial` is optional — when `None`, the backend defaults to empty arrays
+/// (decisions, blockers, learnings) via `SessionInsightsEditorial::default()`.
 /// Backend overwrites session_id, phase, epic from its own state.
 #[tauri::command]
 pub async fn save_session_insights(
@@ -614,7 +635,7 @@ pub async fn save_session_insights(
     tokens_input: u64,
     tokens_output: u64,
     agents_used: Vec<String>,
-    editorial: SessionInsightsEditorial,
+    editorial: Option<SessionInsightsEditorial>,
 ) -> Result<(), String> {
     tracing::info!("save_session_insights called");
     let project_dir = state.project_dir().await;
@@ -631,6 +652,8 @@ pub async fn save_session_insights(
         (ws.phase.clone(), ws.epic.clone())
     };
 
+    let editorial = editorial.unwrap_or_default();
+
     crate::session::logger::write_session_insights(
         &project_dir,
         &session_id,
@@ -644,6 +667,18 @@ pub async fn save_session_insights(
     )
     .await
     .map_err(|e| e.to_string())
+}
+
+/// Update only the editorial sections (decisions, blockers, learnings)
+/// of an existing `session-insights.md`, preserving original metadata.
+#[tauri::command]
+pub async fn update_session_editorial(
+    state: State<'_, AppState>,
+    editorial: SessionInsightsEditorial,
+) -> Result<(), String> {
+    tracing::info!("update_session_editorial called");
+    let project_dir = state.project_dir().await;
+    crate::session::logger::update_editorial_only(&project_dir, &editorial).await
 }
 
 // =============================================================================
@@ -936,9 +971,10 @@ pub async fn get_runtime_info(
     state: State<'_, AppState>,
 ) -> Result<RuntimeInfo, String> {
     tracing::info!("get_runtime_info called");
+    let rk = *state.runtime_kind.read().await;
     Ok(RuntimeInfo {
-        kind: state.runtime_kind,
-        name: state.runtime_kind.display_name().to_string(),
+        kind: rk,
+        name: rk.display_name().to_string(),
         paths: state.runtime_paths().await,
     })
 }
@@ -988,7 +1024,8 @@ pub async fn switch_project(
     crate::init::ensure_project_dirs(&new_dir);
 
     // 5. Replace session_manager
-    *state.session_manager.lock().await = SessionManager::new(new_dir.clone(), state.runtime_kind);
+    let rk = *state.runtime_kind.read().await;
+    *state.session_manager.lock().await = SessionManager::new(new_dir.clone(), rk);
 
     // 6. Replace workflow_engine
     *state.workflow_engine.lock().await = WorkflowEngine::new(new_dir.clone());
@@ -1006,14 +1043,14 @@ pub async fn switch_project(
     *state.project_dir.write().await = new_dir.clone();
 
     // 10. Update runtime_paths
-    let new_runtime_paths = RuntimePaths::for_kind(&new_dir, &state.runtime_kind);
+    let new_runtime_paths = RuntimePaths::for_kind(&new_dir, &rk);
     *state.runtime_paths.write().await = new_runtime_paths.clone();
 
     // 11. Restart watchers (use the same new_runtime_paths)
     let mut watcher = state.watcher_service.lock().await;
     *watcher = FileWatcherService::new(new_dir.clone(), new_runtime_paths);
     watcher
-        .start(app.clone(), state.screenshot_orchestrator.clone())
+        .start(app.clone(), state.screenshot_orchestrator.clone(), state.workflow_engine.clone())
         .map_err(|e| format!("Failed to start watchers: {}", e))?;
 
     // 12. Build ProjectInfo

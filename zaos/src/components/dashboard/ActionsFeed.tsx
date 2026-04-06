@@ -1,17 +1,7 @@
 import { useMemo } from "react";
 import { useActionsStore } from "../../stores/actionsStore";
 import { getToolIcon } from "../../utils/toolIcons";
-
-function StatusIndicator({ status }: { status: string }) {
-  if (status === "running") {
-    return (
-      <span className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse" />
-    );
-  }
-  if (status === "success") return <span>✅</span>;
-  if (status === "error") return <span>❌</span>;
-  return <span>⏳</span>;
-}
+import { StatusIndicator } from "../common/StatusIndicator";
 
 export function ActionsFeed() {
   const actions = useActionsStore((state) => state.actions);

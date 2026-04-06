@@ -365,7 +365,6 @@ pub struct WorkflowState {
   pub gate_validated: bool,
   pub last_updated: String,
   pub history: Vec<PhaseTransition>,
-  pub session: Option<SessionMetadata>,
 }
 
 pub enum WorkflowMode { Free, Pipeline }
@@ -377,18 +376,9 @@ pub struct PhaseTransition {
   pub reason: Option<String>,
 }
 
-pub struct SessionMetadata {
-  pub session_id: String,
-  pub started_at: String,
-  pub updated_at: String,
-  pub tokens_used: TokenUsage,
-}
-
 impl WorkflowState {
   pub fn new(phase: String, epic: String, task: String) -> Self
   pub fn record_transition(&mut self, from: String, to: String, reason: Option<String>)
-  pub fn set_session(&mut self, session_id: String)
-  pub fn update_tokens(&mut self, input: u64, output: u64, cache_read: u64, cache_creation: u64)
 }
 ```
 

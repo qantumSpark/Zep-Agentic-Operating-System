@@ -9,17 +9,8 @@ import { useTauriEvents } from "./hooks/useTauriEvents";
 import { useStreaming } from "./hooks/useStreaming";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSessionStore } from "./stores/sessionStore";
-import { useMemoryStore, type MemoryStateResponse } from "./stores/memoryStore";
-import { useScreenshotStore } from "./stores/screenshotStore";
 import { useThemeStore } from "./stores/themeStore";
-import { useProjectStore } from "./stores/projectStore";
-import { useWorkflowKitStore, applyKitStatus } from "./stores/workflowKitStore";
-import type { AgentDef, KitStatusResponse } from "./stores/workflowKitStore";
-import { useProductStore } from "./stores/productStore";
-import { usePersonaStore } from "./stores/personaStore";
-import { useRuntimeStore } from "./stores/runtimeStore";
-import type { ProductContract } from "./types/productContract";
-import type { Screenshot } from "./types/screenshots";
+import { loadProjectContext } from "./services/projectLoader";
 
 /**
  * Main App component
@@ -48,63 +39,16 @@ export function App() {
         await requestPermission();
       }
 
-      // Load runtime info first — it's the source of truth for paths
-      await useRuntimeStore.getState().loadRuntimeInfo();
+      // Global auth check (not project-specific)
+      invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth")
+        .then((auth) => useSessionStore.getState().setCliAuth(auth.authenticated, auth.version, auth.message))
+        .catch((e) => {
+          console.error("check_cli_auth failed:", e);
+          useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
+        });
 
-      const [authResult, memResult, screenshotResult, projectResult, kitResult, agentsResult, productResult] = await Promise.allSettled([
-        invoke<{ authenticated: boolean; version: string; message: string }>("check_cli_auth"),
-        invoke<MemoryStateResponse>("get_memory_state"),
-        invoke<{ screenshots: Screenshot[] }>("get_screenshots"),
-        invoke<{ path: string; name: string }>("get_project_info"),
-        invoke<KitStatusResponse>("get_workflow_kit_status"),
-        invoke<{ name: string; description: string }[]>("list_agents"),
-        invoke<ProductContract>("get_product_contract"),
-      ]);
-      if (authResult.status === "fulfilled") {
-        useSessionStore.getState().setCliAuth(authResult.value.authenticated, authResult.value.version, authResult.value.message);
-      } else {
-        console.error("check_cli_auth failed:", authResult.reason);
-        useSessionStore.getState().setCliAuth(false, "", "CLI check failed");
-      }
-      if (memResult.status === "fulfilled") {
-        useMemoryStore.getState().setMemoryState(memResult.value);
-      } else {
-        console.error("get_memory_state failed:", memResult.reason);
-      }
-      if (screenshotResult.status === "fulfilled") {
-        useScreenshotStore.getState().setScreenshots(screenshotResult.value.screenshots);
-      } else {
-        console.error("get_screenshots failed:", screenshotResult.reason);
-      }
-      if (projectResult.status === "fulfilled") {
-        useProjectStore.getState().setProject(projectResult.value.path, projectResult.value.name);
-      } else {
-        console.error("get_project_info failed:", projectResult.reason);
-      }
-      if (kitResult.status === "fulfilled") {
-        applyKitStatus(kitResult.value);
-      } else {
-        console.error("get_workflow_kit_status failed:", kitResult.reason);
-      }
-      if (agentsResult.status === "fulfilled") {
-        const agentDefs: AgentDef[] = agentsResult.value.map((a) => ({
-          name: a.name,
-          description: a.description,
-          deployed: true,
-          custom: false,
-        }));
-        useWorkflowKitStore.getState().setAgents(agentDefs);
-      } else {
-        console.error("list_agents failed:", agentsResult.reason);
-      }
-      if (productResult.status === "fulfilled") {
-        useProductStore.getState().setProductContract(productResult.value);
-      } else {
-        console.error("get_product_contract failed:", productResult.reason);
-      }
-
-      // Load personas via store facade
-      usePersonaStore.getState().loadPersonas();
+      // Load all project context via single entry point
+      await loadProjectContext();
     })();
   }, []);
 

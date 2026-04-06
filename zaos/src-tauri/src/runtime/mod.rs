@@ -3,7 +3,7 @@ pub mod paths;
 
 pub use paths::{RuntimeKind, RuntimePaths};
 
-use crate::events::CliEvent;
+use crate::events::zaos_events::ZaosEvent;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -55,8 +55,8 @@ pub struct SessionRecord {
 /// - Permission handling specific to that runtime
 /// - Session storage format and location
 ///
-/// The event channel currently carries [`CliEvent`] (Claude format).
-/// Future runtimes translate their native events into this format.
+/// The event channel carries [`ZaosEvent`] — the runtime-agnostic event type.
+/// Each runtime implementation translates its native events into this format.
 #[async_trait]
 pub trait AgentRuntime: Send + Sync {
     /// Human-readable name for this runtime (e.g. "Claude Code CLI")
@@ -67,7 +67,7 @@ pub trait AgentRuntime: Send + Sync {
     async fn check_auth(&self) -> Result<String>;
 
     /// Start a new session. Returns a broadcast receiver for parsed events.
-    async fn start_session(&mut self) -> Result<broadcast::Receiver<CliEvent>>;
+    async fn start_session(&mut self) -> Result<broadcast::Receiver<ZaosEvent>>;
 
     /// Send a user message to the active session.
     async fn send_message(&mut self, message: &str) -> Result<()>;
@@ -90,9 +90,18 @@ pub trait AgentRuntime: Send + Sync {
     fn set_session_id(&mut self, id: String);
 
     /// Get the current session ID, if any.
-    #[allow(dead_code)]
     fn get_session_id(&self) -> Option<&str>;
 
     /// List past sessions from this runtime's storage.
     async fn list_sessions(&self) -> Result<Vec<SessionRecord>>;
+}
+
+/// Create a runtime instance for the given kind.
+///
+/// This is the single entry-point for runtime construction. Adding a new
+/// runtime means adding a branch here (and implementing `AgentRuntime`).
+pub fn create_runtime(kind: RuntimeKind, project_dir: std::path::PathBuf) -> Box<dyn AgentRuntime> {
+    match kind {
+        RuntimeKind::Claude => Box::new(claude::ClaudeRuntime::new(project_dir)),
+    }
 }

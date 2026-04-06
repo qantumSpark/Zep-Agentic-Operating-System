@@ -80,9 +80,11 @@ fn main() {
             commands::set_permission_mode,
             commands::get_workflow_state,
             commands::get_memory_state,
+            commands::get_memory_health,
             commands::get_product_contract,
             commands::get_personas,
             commands::save_session_insights,
+            commands::update_session_editorial,
             commands::check_cli_auth,
             commands::list_sessions,
             commands::save_session_log,
@@ -109,10 +111,11 @@ fn main() {
             let state = app.state::<AppState>();
             let watcher = state.watcher_service.clone();
             let orch = state.screenshot_orchestrator.clone();
+            let wf_engine_for_watcher = state.workflow_engine.clone();
             let handle = app.handle().clone();
 
             // Start file watchers
-            match watcher.blocking_lock().start(handle.clone(), orch.clone()) {
+            match watcher.blocking_lock().start(handle.clone(), orch.clone(), wf_engine_for_watcher) {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }

@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { WorkflowState, Epic, WorkflowMode, Phase, PhaseState } from "../types/workflow";
-import { PHASE_ORDER, ProductPhase, PolicyProfile } from "../types/workflow";
+import type { WorkflowMode, PhaseState } from "../types/workflow";
+import { Phase, PHASE_ORDER, ProductPhase, PolicyProfile } from "../types/workflow";
 
 /**
  * Shape of the backend WorkflowState payload (snake_case from Rust serde).
@@ -8,7 +8,6 @@ import { PHASE_ORDER, ProductPhase, PolicyProfile } from "../types/workflow";
 export interface BackendWorkflowPayload {
   phase: string;
   epic: string;
-  task: string;
   mode: WorkflowMode;
   gate_validated: boolean;
   gate_ready?: boolean;
@@ -24,17 +23,10 @@ export interface BackendWorkflowPayload {
   product_phase?: string;
   next_product_phase?: string | null;
   next_tech_phase?: string | null;
-  session?: {
-    session_id: string;
-    started_at: string;
-    updated_at: string;
-    tokens_used: {
-      input: number;
-      output: number;
-      cache_read: number;
-      cache_creation: number;
-    };
-  } | null;
+  epic_status?: string;
+  epic_objective?: string;
+  epic_task_count?: number;
+  epic_done_count?: number;
 }
 
 /**
@@ -67,8 +59,11 @@ function derivePipelineProgress(
 
 interface WorkflowStoreState {
   phase: Phase | null;
-  epic: Epic | null;
-  task: string;
+  epic: string | null;
+  epicStatus: string | null;
+  epicObjective: string | null;
+  epicTaskCount: number | null;
+  epicDoneCount: number | null;
   mode: WorkflowMode;
   gateValidated: boolean;
   gateReady: boolean;
@@ -80,11 +75,9 @@ interface WorkflowStoreState {
   pipelineProgress: Record<string, PhaseState>;
 
   // Actions
-  updateState: (state: Partial<WorkflowState>) => void;
   setFullState: (payload: BackendWorkflowPayload) => void;
   setPhase: (phase: Phase) => void;
-  setEpic: (epic: Epic) => void;
-  setTask: (task: string) => void;
+  setEpic: (epic: string) => void;
   setMode: (mode: WorkflowMode) => void;
   validateGate: (validated: boolean) => void;
   setPermissionMode: (mode: string) => void;
@@ -99,7 +92,10 @@ interface WorkflowStoreState {
 export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
   phase: null,
   epic: null,
-  task: "",
+  epicStatus: null,
+  epicObjective: null,
+  epicTaskCount: null,
+  epicDoneCount: null,
   mode: "pipeline",
   gateValidated: false,
   gateReady: false,
@@ -110,30 +106,40 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
   nextTechPhase: null,
   pipelineProgress: {},
 
-  updateState: (state: Partial<WorkflowState>) =>
-    set({
-      phase: state.phase,
-      epic: state.epic,
-      task: state.task,
-      mode: state.mode,
-      gateValidated: state.gateValidated,
-      pipelineProgress: state.pipelineProgress || {},
-    }),
-
   setFullState: (payload: BackendWorkflowPayload) => {
-    const phase = (payload.phase || "idle") as Phase;
-    const pipelineProgress = derivePipelineProgress(phase);
+    // Validate phase against known enum values
+    const rawPhase = payload.phase || "idle";
+    const validPhases = Object.values(Phase) as string[];
+    let phase: Phase;
+    if (validPhases.includes(rawPhase)) {
+      phase = rawPhase as Phase;
+    } else {
+      console.warn("[workflowStore] Unknown phase received:", rawPhase);
+      phase = Phase.Idle;
+    }
 
-    // Map backend epic string to Epic object
-    const epic: Epic | null = payload.epic
-      ? { name: payload.epic, description: "", startTime: 0 }
-      : null;
+    // Validate mode against known values
+    const rawMode = payload.mode || "pipeline";
+    const validModes: WorkflowMode[] = ["free", "pipeline"];
+    let mode: WorkflowMode;
+    if ((validModes as string[]).includes(rawMode)) {
+      mode = rawMode as WorkflowMode;
+    } else {
+      console.warn("[workflowStore] Unknown mode received:", rawMode);
+      // Default to "pipeline" to match backend WorkflowMode::default()
+      mode = "pipeline";
+    }
+
+    const pipelineProgress = derivePipelineProgress(phase);
 
     set({
       phase,
-      epic,
-      task: payload.task || "",
-      mode: payload.mode || "free",
+      epic: payload.epic || null,
+      epicStatus: payload.epic_status ?? null,
+      epicObjective: payload.epic_objective ?? null,
+      epicTaskCount: payload.epic_task_count ?? null,
+      epicDoneCount: payload.epic_done_count ?? null,
+      mode,
       gateValidated: payload.gate_validated ?? false,
       gateReady: payload.gate_ready ?? false,
       permissionMode: payload.permission_mode || "strict",
@@ -156,14 +162,9 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
       phase,
     }),
 
-  setEpic: (epic: Epic) =>
+  setEpic: (epic: string) =>
     set({
       epic,
-    }),
-
-  setTask: (task: string) =>
-    set({
-      task,
     }),
 
   setMode: (mode: WorkflowMode) =>
@@ -192,7 +193,10 @@ export const useWorkflowStore = create<WorkflowStoreState>((set) => ({
     set({
       phase: null,
       epic: null,
-      task: "",
+      epicStatus: null,
+      epicObjective: null,
+      epicTaskCount: null,
+      epicDoneCount: null,
       mode: "pipeline",
       gateValidated: false,
       gateReady: false,

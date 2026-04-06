@@ -3,6 +3,7 @@ import { useChatStore } from "../../stores/chatStore";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useWorkflowStore } from "../../stores/workflowStore";
 import { useThemeStore } from "../../stores/themeStore";
+import { useRuntimeStore } from "../../stores/runtimeStore";
 import { formatDuration } from "../../utils/formatDuration";
 import { ProjectPicker } from "../common/ProjectPicker";
 
@@ -19,6 +20,7 @@ export function StatusBar() {
   const startTime = useSessionStore((state) => state.startTime);
   const mode = useWorkflowStore((state) => state.mode);
   const { theme, toggleTheme } = useThemeStore();
+  const runtimeName = useRuntimeStore((s) => s.info?.name) ?? "CLI";
   const isStreaming = useChatStore((state) => state.isStreaming);
   const isThinking = useChatStore((state) => state.isThinking);
   const lastStreamLine = useChatStore((state) => state.lastStreamLine);
@@ -85,7 +87,7 @@ export function StatusBar() {
       <div className="flex items-center gap-3 min-w-0">
         <span>🔗</span>
         <div className="flex gap-1.5">
-          <div title={connections.cli ? "Claude CLI " + cliVersion : cliAuthMessage || "CLI not connected"} className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
+          <div title={connections.cli ? runtimeName + " " + cliVersion : cliAuthMessage || "CLI not connected"} className={`w-2 h-2 rounded-full ${connections.cli ? "bg-green-500" : "bg-red-500"}`} />
           <div title="GoPeak" className={`w-2 h-2 rounded-full ${connections.gopeak ? "bg-green-500" : "bg-red-500"}`} />
           <div title="Godot" className={`w-2 h-2 rounded-full ${connections.godot ? "bg-green-500" : "bg-red-500"}`} />
         </div>

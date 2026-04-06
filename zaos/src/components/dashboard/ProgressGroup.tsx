@@ -5,13 +5,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { PhaseIndicator } from "./PhaseIndicator";
 import { SessionInsightsBlock } from "./SessionInsightsBlock";
 import { getToolIcon } from "../../utils/toolIcons";
-
-function StatusIndicator({ status }: { status: string }) {
-  if (status === "running") return <span className="inline-block w-3 h-3 rounded-full bg-blue-500 animate-pulse" />;
-  if (status === "success") return <span>✅</span>;
-  if (status === "error") return <span>❌</span>;
-  return <span>⏳</span>;
-}
+import { StatusIndicator } from "../common/StatusIndicator";
 
 export function ProgressGroup() {
   const currentEpic = useMemoryStore((s) => s.currentEpic);

@@ -1,6 +1,6 @@
-use crate::events::CliEvent;
+use crate::events::zaos_events::ZaosEvent;
 use crate::runtime::{AgentRuntime, RuntimeError, RuntimeKind, SessionRecord};
-use crate::runtime::claude::ClaudeRuntime;
+use crate::runtime::create_runtime;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use thiserror::Error;
@@ -10,18 +10,6 @@ use tokio::sync::broadcast;
 pub enum SessionError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
-
-    #[error("CLI not found in PATH")]
-    #[allow(dead_code)]
-    CliNotFound,
-
-    #[error("Session not spawned")]
-    #[allow(dead_code)]
-    NotSpawned,
-
-    #[error("Parse error: {0}")]
-    #[allow(dead_code)]
-    ParseError(String),
 
     #[error("Runtime error: {0}")]
     Runtime(#[from] RuntimeError),
@@ -47,28 +35,23 @@ pub type CliSession = SessionRecord;
 pub struct SessionManager {
     runtime: Box<dyn AgentRuntime>,
     project_dir: PathBuf,
-    #[allow(dead_code)]
-    runtime_kind: RuntimeKind,
 }
 
 impl SessionManager {
-    /// Create a new SessionManager with the default Claude runtime.
+    /// Create a new SessionManager with the specified runtime kind.
     pub fn new(project_dir: PathBuf, runtime_kind: RuntimeKind) -> Self {
-        let runtime = Box::new(ClaudeRuntime::new(project_dir.clone()));
+        let runtime = create_runtime(runtime_kind, project_dir.clone());
         SessionManager {
             runtime,
             project_dir,
-            runtime_kind,
         }
     }
 
     /// Create a SessionManager with a custom runtime (for future use / testing).
-    #[allow(dead_code)]
-    pub fn with_runtime(project_dir: PathBuf, runtime_kind: RuntimeKind, runtime: Box<dyn AgentRuntime>) -> Self {
+    pub fn with_runtime(project_dir: PathBuf, runtime: Box<dyn AgentRuntime>) -> Self {
         SessionManager {
             runtime,
             project_dir,
-            runtime_kind,
         }
     }
 
@@ -83,7 +66,6 @@ impl SessionManager {
     }
 
     /// Get current session ID.
-    #[allow(dead_code)]
     pub fn get_session_id(&self) -> Option<&str> {
         self.runtime.get_session_id()
     }
@@ -92,7 +74,7 @@ impl SessionManager {
     ///
     /// Runs the ZAOS pre-session hook (deployer sync) before delegating
     /// to the runtime's `start_session`.
-    pub async fn start_session(&mut self) -> Result<broadcast::Receiver<CliEvent>> {
+    pub async fn start_session(&mut self) -> Result<broadcast::Receiver<ZaosEvent>> {
         // Pre-session hook: auto-sync workflow kit
         let config = crate::deployer::config::WorkflowKitConfig::load(&self.project_dir);
         if config.auto_sync {

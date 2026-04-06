@@ -24,6 +24,9 @@ interface PermissionState {
   policyLog: PolicyLogEntry[];
   addPolicyLogEntry: (entry: PolicyLogEntry) => void;
   clearPolicyLog: () => void;
+
+  // Reset
+  reset: () => void;
 }
 
 export const usePermissionStore = create<PermissionState>((set, get) => ({
@@ -63,4 +66,6 @@ export const usePermissionStore = create<PermissionState>((set, get) => ({
     })),
 
   clearPolicyLog: () => set({ policyLog: [] }),
+
+  reset: () => set({ pendingRequests: [], policyLog: [] }),
 }));

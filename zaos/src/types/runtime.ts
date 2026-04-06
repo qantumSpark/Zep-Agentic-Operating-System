@@ -6,7 +6,8 @@ export interface RuntimePaths {
 }
 
 export interface RuntimeInfo {
-  kind: "claude";
+  /** Current runtime identifier. New runtimes add their variant here (e.g. "codex", "gemini"). */
+  kind: "claude" | (string & {});
   name: string;
   paths: RuntimePaths;
 }

@@ -1,49 +1,9 @@
 use crate::workflow::state::{WorkflowMode, WorkflowState};
+use crate::workflow::task_check::has_active_tasks;
 use std::path::PathBuf;
 use thiserror::Error;
 use tokio::fs;
 use tokio::sync::broadcast;
-
-/// Check if current-epic.md has any tasks in active state (TODO, EN COURS, etc.).
-/// Returns false if all tasks are DONE/VALIDATED or if the table is empty.
-fn has_active_tasks(epic_content: &str) -> bool {
-    let mut found_data_row = false;
-
-    for line in epic_content.lines() {
-        let trimmed = line.trim_start();
-        if !trimmed.starts_with('|') || trimmed.contains("---") {
-            continue;
-        }
-
-        let cells: Vec<&str> = trimmed.split('|').map(|c| c.trim()).collect();
-        if cells.len() < 6 {
-            continue;
-        }
-
-        let first_cell = cells[1];
-        if first_cell == "#" || first_cell == "Task" || first_cell == "Statut" {
-            continue;
-        }
-
-        found_data_row = true;
-
-        let status = cells[4].to_uppercase();
-        if status.contains("TODO")
-            || status.contains("EN COURS")
-            || status.contains("A FAIRE")
-            || status.contains("IN_PROGRESS")
-            || status.contains("BLOQUE")
-        {
-            return true;
-        }
-    }
-
-    if !found_data_row {
-        return true; // No data rows = plan not yet created = consider active
-    }
-
-    false
-}
 
 #[derive(Error, Debug)]
 pub enum WorkflowError {
@@ -252,9 +212,11 @@ impl WorkflowEngine {
         Ok(())
     }
 
-    /// Set task
+    /// @deprecated — la source de verite pour la task courante est .memory/current-epic.md.
+    /// Ce setter reste pour backward compat mais ne devrait plus etre appele.
     #[allow(dead_code)]
     pub async fn set_task(&mut self, description: String) -> Result<()> {
+        tracing::warn!("set_task() is deprecated — task state should come from .memory/current-epic.md");
         self.current_state.task = description;
         self.persist_and_notify().await?;
         Ok(())

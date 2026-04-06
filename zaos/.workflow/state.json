@@ -1,17 +1,17 @@
 {
-  "phase": "idle",
-  "epic": "Post-V1.5 — Preparation Codex",
-  "task": "Closure — finalisation sprint",
+  "phase": "implementation",
+  "epic": "Post-V1.5 — Coherence multi-projets et hydratation frontend",
+  "task": "T14 — S2 Filtrer _none_ Session-ID parser — DONE",
   "mode": "pipeline",
-  "gate_validated": false,
-  "gate_ready": false,
-  "last_updated": "2026-04-05T12:14:26.133505400+00:00",
+  "gate_validated": true,
+  "gate_ready": true,
+  "last_updated": "2026-04-06T00:00:00.000000000+00:00",
   "history": [
     {
-      "from_phase": "closure",
-      "to_phase": "idle",
-      "timestamp": "2026-04-05T12:14:26.133493600+00:00",
-      "reason": "manual transition"
+      "from_phase": "implementation",
+      "to_phase": "closure",
+      "timestamp": "2026-04-06T00:00:00.000000000+00:00",
+      "reason": "Epic 1 Chantier Codex — all tasks done, review corrections applied, build OK"
     }
   ],
   "session": null,

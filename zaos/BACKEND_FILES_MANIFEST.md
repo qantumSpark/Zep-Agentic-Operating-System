@@ -149,23 +149,18 @@
 **Key Types:**
 - `WorkflowState` struct:
   - Core fields: phase, epic, task, mode, gate_validated, last_updated
-  - Extended fields: history (Vec<PhaseTransition>), session (SessionMetadata)
+  - Extended fields: history (Vec<PhaseTransition>)
 - `WorkflowMode` enum: Free, Pipeline
 - `PhaseTransition` struct: from_phase, to_phase, timestamp, reason
-- `SessionMetadata` struct: session_id, started_at, updated_at, tokens_used
-- `TokenUsage` struct: input, output, cache_read, cache_creation
 
 **Key Methods:**
 - `new(phase, epic, task)` — create WorkflowState
 - `default()` — default state: phase="idle", mode=Pipeline
 - `record_transition(from, to, reason)` — add to history
-- `set_session(session_id)` — initialize session metadata
-- `update_tokens(input, output, cache_read, cache_creation)` — track token usage
 
 **Features:**
 - Timestamps use chrono::Utc::now() in RFC3339 format
 - History audit trail of all phase transitions
-- Session metadata tracks token usage for UI display
 - Mirrors .workflow/state.json schema with ZAOS extensions
 
 #### `/src-tauri/src/workflow/engine.rs` (234 lines)

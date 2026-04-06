@@ -100,6 +100,10 @@ pub async fn write_session_insights(
     content.push_str(&format!("> Duration: {}s\n", duration_secs));
     content.push_str(&format!("> Tokens: {} in / {} out\n", tokens_input, tokens_output));
     content.push_str(&format!("> Agents: {}\n", agents_str));
+    let persona = suggested_persona_for_phase(phase);
+    if !persona.is_empty() {
+        content.push_str(&format!("> Suggested-Persona: {}\n", persona));
+    }
 
     content.push_str("\n## Decisions prises\n\n");
     if editorial.decisions.is_empty() {
@@ -112,7 +116,7 @@ pub async fn write_session_insights(
 
     content.push_str("\n## Ce qu'on a appris\n\n");
     if editorial.learnings.is_empty() {
-        content.push_str("- _aucun_\n");
+        content.push_str("- _aucun apprentissage_\n");
     } else {
         for l in &editorial.learnings {
             content.push_str(&format!("- {}\n", l));
@@ -121,7 +125,7 @@ pub async fn write_session_insights(
 
     content.push_str("\n## Risques et points ouverts\n\n");
     if editorial.risks.is_empty() {
-        content.push_str("- _aucun_\n");
+        content.push_str("- _aucun risque identifie_\n");
     } else {
         for r in &editorial.risks {
             content.push_str(&format!("- {}\n", r));
@@ -130,7 +134,7 @@ pub async fn write_session_insights(
 
     content.push_str("\n## Prochaines validations\n\n");
     if editorial.next_validations.is_empty() {
-        content.push_str("- _aucune_\n");
+        content.push_str("- _aucune validation prevue_\n");
     } else {
         for v in &editorial.next_validations {
             content.push_str(&format!("- {}\n", v));
@@ -140,6 +144,106 @@ pub async fn write_session_insights(
     tokio::fs::write(&insights_path, content).await?;
     tracing::info!("Session insights written to session-insights.md");
     Ok(())
+}
+
+/// Update only the editorial sections of an existing `session-insights.md`,
+/// preserving the original metadata blockquote lines.
+/// Returns an error if the file does not exist yet.
+pub async fn update_editorial_only(
+    project_dir: &Path,
+    editorial: &SessionInsightsEditorial,
+) -> Result<(), String> {
+    let insights_path = project_dir.join(".memory").join("session-insights.md");
+
+    let existing = tokio::fs::read_to_string(&insights_path)
+        .await
+        .map_err(|_| "session-insights.md does not exist yet".to_string())?;
+
+    // Parse: keep H1 heading and blockquote metadata lines from the header only.
+    // Stop collecting blockquotes once a section heading (## ) is encountered.
+    let mut heading = String::new();
+    let mut metadata_lines: Vec<String> = Vec::new();
+    let mut in_header = true;
+
+    for line in existing.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("# ") && !trimmed.starts_with("## ") && heading.is_empty() {
+            heading = line.to_string();
+        } else if trimmed.starts_with("## ") {
+            in_header = false;
+        } else if in_header && trimmed.starts_with("> ") {
+            metadata_lines.push(line.to_string());
+        }
+    }
+
+    if heading.is_empty() {
+        heading = "# Session Insights".to_string();
+    }
+
+    // Rebuild the file
+    let mut content = String::new();
+    content.push_str(&heading);
+    content.push_str("\n\n");
+    for meta in &metadata_lines {
+        content.push_str(meta);
+        content.push('\n');
+    }
+
+    content.push_str("\n## Decisions prises\n\n");
+    if editorial.decisions.is_empty() {
+        content.push_str("- _aucune_\n");
+    } else {
+        for d in &editorial.decisions {
+            content.push_str(&format!("- {}\n", d));
+        }
+    }
+
+    content.push_str("\n## Ce qu'on a appris\n\n");
+    if editorial.learnings.is_empty() {
+        content.push_str("- _aucun apprentissage_\n");
+    } else {
+        for l in &editorial.learnings {
+            content.push_str(&format!("- {}\n", l));
+        }
+    }
+
+    content.push_str("\n## Risques et points ouverts\n\n");
+    if editorial.risks.is_empty() {
+        content.push_str("- _aucun risque identifie_\n");
+    } else {
+        for r in &editorial.risks {
+            content.push_str(&format!("- {}\n", r));
+        }
+    }
+
+    content.push_str("\n## Prochaines validations\n\n");
+    if editorial.next_validations.is_empty() {
+        content.push_str("- _aucune validation prevue_\n");
+    } else {
+        for v in &editorial.next_validations {
+            content.push_str(&format!("- {}\n", v));
+        }
+    }
+
+    tokio::fs::write(&insights_path, content)
+        .await
+        .map_err(|e| format!("Failed to write session-insights.md: {}", e))?;
+
+    tracing::info!("Session insights editorial updated (metadata preserved)");
+    Ok(())
+}
+
+/// Map a pipeline phase to the most relevant persona.
+/// Names must match the frontend `PHASE_PERSONA_MAP` in `personaMapping.ts`.
+fn suggested_persona_for_phase(phase: &str) -> &'static str {
+    match phase {
+        "comprehension" | "specification" | "architecture" => "Product Architect",
+        "implementation" => "Builder",
+        "review" => "Reviewer",
+        "test" => "Tester",
+        "closure" => "Release Manager",
+        _ => "",
+    }
 }
 
 /// Check if an existing session-insights.md has meaningful content.

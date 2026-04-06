@@ -54,10 +54,10 @@ All Rust backend files for the ZAOS Tauri v2 project have been created. The impl
 ### Workflow Engine
 10. **src-tauri/src/workflow/state.rs** — WorkflowState struct:
     - Core fields: phase, epic, task, mode, gate_validated, last_updated
-    - Extended fields: history (Vec<PhaseTransition>), session (SessionMetadata)
+    - Extended fields: history (Vec<PhaseTransition>)
     - WorkflowMode enum: Free, Pipeline
-    - PhaseTransition, SessionMetadata, TokenUsage types
-    - Methods: record_transition(), set_session(), update_tokens()
+    - PhaseTransition type
+    - Methods: record_transition()
 
 11. **src-tauri/src/workflow/engine.rs** — WorkflowEngine:
     - load_state() → reads from .workflow/state.json
@@ -137,7 +137,7 @@ All Rust backend files for the ZAOS Tauri v2 project have been created. The impl
 - **SessionManager**: Manages CLI subprocess lifecycle, stdin/stdout
 - **WorkflowEngine**: Reads/writes .workflow/state.json, manages phase transitions
 - **Workflow history**: Maintains audit trail of phase changes with timestamps
-- **Token tracking**: SessionMetadata tracks input/output/cache tokens
+- **Token tracking**: Token usage tracked via CLI result events
 
 ### Error Handling
 - Custom error types with thiserror: SessionError, WorkflowError, ParserError, MemoryError

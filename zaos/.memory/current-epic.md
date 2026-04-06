@@ -1,24 +1,29 @@
-# Epic active : Post-V1.5 — Preparation Codex
+# Epic active : Completion du seam runtime
 
-> Milestone : 19 — Post-V1.5 — Preparation Codex
+> Milestone : 24 — Chantier Codex (5/5)
 > Statut : TERMINE
 
 ## Objectif
 
-Preparer ZAOS a accueillir un futur second runtime (Codex) en auditant les zones Claude-specific, ajoutant un runtime registry minimal, et documentant ce qui reste a faire.
+Completer le seam runtime pour qu'un futur CodexRuntime soit un ajout controle. Formaliser les interfaces, internaliser le mapping, nettoyer les hardcodes Claude, documenter la feuille de route.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Creer RuntimeKind enum + RuntimePaths struct | `runtime/paths.rs`, `runtime/mod.rs` | DONE | Copy, Eq, Default derives. serde lowercase |
-| 2 | Enrichir AppState avec runtime_kind + runtime_paths | `commands.rs` | DONE | Source de verite unique |
-| 3 | Remplacer chemins hardcodes dans commands.rs | `commands.rs` | DONE | 7 remplacements, agent CRUD + workflow_kit_status |
-| 4 | Remplacer chemins hardcodes dans init.rs | `init.rs` | DONE | Creation dirs via RuntimePaths |
-| 5 | Centraliser chemins dans deployer/sync.rs | `deployer/sync.rs` | DONE | sync_embedded, sync_settings, sync_all via RuntimePaths |
-| 6 | Centraliser + renommer event watchers | `watchers/service.rs` | DONE | runtime-dir-change, WatchCategory::Runtime |
-| 7 | Parametrer SessionManager par RuntimeKind | `session/manager.rs`, `commands.rs` | DONE | Stocke kind, 2 call sites maj |
-| 8 | Ajouter IPC get_runtime_info | `commands.rs`, `main.rs` | DONE | RuntimeInfo: kind + name + paths |
-| 9 | Types + store frontend | `types/runtime.ts`, `stores/runtimeStore.ts` | DONE | RuntimeInfo avec name lisible |
-| 10 | Integration frontend | `App.tsx`, `useTauriEvents.ts` | DONE | runtime-dir-change, runtimeStore boot + reset |
-| 11 | Documentation inline des seams | `runtime/paths.rs` | DONE | Seams documentes: ajout runtime, agnostic vs specific |
+| 1 | Changer signature trait start_session() → Receiver ZaosEvent | `runtime/mod.rs` | DONE | Import + signature + doc |
+| 2 | Internaliser mapping CliEvent→ZaosEvent dans ClaudeRuntime | `runtime/claude.rs` | DONE | Parsing inline + mapping |
+| 3 | Propager ZaosEvent dans SessionManager | `session/manager.rs` | DONE | Import + signature |
+| 4 | Simplifier forwarder dans commands.rs | `commands.rs` | DONE | CliEvent elimine, emit direct, cargo check OK |
+| 5 | Factory create_runtime() | `runtime/mod.rs`, `session/manager.rs` | DONE | Factory + tests OK |
+| 6 | RuntimeKind switchable Arc RwLock dans AppState | `commands.rs` | DONE | Arc RwLock + read().await |
+| 7 | Renommer mapper.rs → claude_mapper.rs | `events/` | DONE | Rename + doc + 7 tests OK |
+| 8 | Elargir type RuntimeInfo.kind frontend | `runtime.ts` | DONE | "claude" union string extensible |
+| 9 | UI runtime-aware textes dynamiques | `ThinkingIndicator.tsx`, `StatusBar.tsx` | DONE | runtimeStore dynamique |
+| 10 | Supprimer fallback .claude/agents dans agentsStore | `agentsStore.ts` | DONE | Fallback vide + commentaire |
+| 11 | Feuille de route RUNTIME_SEAM.md | `RUNTIME_SEAM.md` | DONE | Architecture + checklist + backlog |
+| 12 | S1 — Supprimer re-export parse_stream | `events/mod.rs` | DONE | Review suggestion |
+| 13 | S2 — Supprimer glob re-export types::* | `events/mod.rs` | DONE | Review suggestion |
+| 14 | S3 — Supprimer variants SessionError morts | `session/manager.rs` | DONE | CliNotFound, NotSpawned, ParseError supprimés |
+| 15 | S4 — Supprimer champ runtime_kind mort | `session/manager.rs` | DONE | Champ struct supprimé, param new() gardé pour factory |
+| 16 | S5 — Corriger doc comment new() | `session/manager.rs` | DONE | "default Claude" → "specified runtime kind" |

@@ -8,12 +8,10 @@ import { useMemoryStore, type MemoryStateResponse } from "../stores/memoryStore"
 import { useSessionStore } from "../stores/sessionStore";
 import { useScreenshotStore } from "../stores/screenshotStore";
 import { useDiffStore } from "../stores/diffStore";
-import { useWorkflowKitStore, applyKitStatus, type AgentDef, type KitStatusResponse } from "../stores/workflowKitStore";
-import { useProjectStore } from "../stores/projectStore";
+import { useWorkflowKitStore, type AgentDef } from "../stores/workflowKitStore";
 import { useProductStore } from "../stores/productStore";
 import { useAgentsStore } from "../stores/agentsStore";
-import { usePersonaStore } from "../stores/personaStore";
-import { useRuntimeStore } from "../stores/runtimeStore";
+import { loadProjectContext } from "../services/projectLoader";
 import type { ProductContract } from "../types/productContract";
 import type { Screenshot, Iteration } from "../types/screenshots";
 import { formatDuration } from "../utils/formatDuration";
@@ -131,12 +129,6 @@ export function useTauriEvents() {
                   tokens_input: input,
                   tokens_output: output,
                   agents_used: Object.keys(agentTimings),
-                  editorial: {
-                    decisions: [],
-                    learnings: [],
-                    risks: [],
-                    next_validations: [],
-                  },
                 }).catch((e: unknown) =>
                   console.error("Failed to save session insights:", e)
                 );
@@ -166,6 +158,13 @@ export function useTauriEvents() {
           // Diagnostic: log phase transitions
           const prevPhase = workflowStore.phase;
           workflowStore.setFullState(event.payload);
+
+          // Refresh memory health (best-effort) — health compares state.json.epic vs current-epic
+          const memoryStore = useMemoryStore.getState();
+          memoryStore.loadHealth().catch((e: unknown) =>
+            console.error("[workflow-change] loadHealth failed:", e)
+          );
+
           if (prevPhase !== event.payload.phase) {
             console.info(
               `[Workflow] Phase transition: ${prevPhase ?? "null"} → ${event.payload.phase}`,
@@ -191,6 +190,10 @@ export function useTauriEvents() {
         (event) => {
           const memoryStore = useMemoryStore.getState();
           memoryStore.setMemoryState(event.payload);
+          // Refresh health report (best-effort)
+          memoryStore.loadHealth().catch((e) =>
+            console.error("[memory-change] loadHealth failed:", e)
+          );
         }
       );
       unlisteners.push(memoryChangeListener);
@@ -272,61 +275,16 @@ export function useTauriEvents() {
       );
       unlisteners.push(runtimeDirChangeListener);
 
-      // Project changed — reset all stores and reload data
+      // Project changed — delegate to centralized loader
       const projectChangedListener = await listen<{ path: string; name: string }>(
         "project-changed",
         (event) => {
           const { path, name } = event.payload;
-
-          // Atomic update: project info + clear loading in one set()
-          useProjectStore.setState({ projectDir: path, projectName: name, isLoading: false });
-
-          // Reset all stores
-          useWorkflowStore.getState().resetWorkflow();
-          useMemoryStore.getState().reset();
-          useSessionStore.getState().resetSession();
-          useScreenshotStore.getState().reset();
-          useWorkflowKitStore.getState().reset();
-          useProductStore.getState().reset();
-          usePersonaStore.getState().reset();
-          useRuntimeStore.getState().reset();
-
-          // Reload all project data in parallel
-          Promise.all([
-            useRuntimeStore.getState().loadRuntimeInfo(),
-            invoke<MemoryStateResponse>("get_memory_state")
-              .then((mem) => useMemoryStore.getState().setMemoryState(mem)),
-            invoke<{ screenshots: Screenshot[] }>("get_screenshots")
-              .then((res) => useScreenshotStore.getState().setScreenshots(res.screenshots)),
-            invoke<KitStatusResponse>("get_workflow_kit_status")
-              .then(applyKitStatus),
-            invoke<{ name: string; description: string }[]>("list_agents")
-              .then((agents) => {
-                const mapped: AgentDef[] = agents.map((a) => ({
-                  name: a.name,
-                  description: a.description,
-                  deployed: true,
-                  custom: false,
-                }));
-                useWorkflowKitStore.getState().setAgents(mapped);
-              }),
-            invoke<BackendWorkflowPayload>("get_workflow_state")
-              .then((wfState) => useWorkflowStore.getState().setFullState(wfState)),
-            invoke<ProductContract>("get_product_contract")
-              .then((contract) => useProductStore.getState().setProductContract(contract)),
-            usePersonaStore.getState().loadPersonas(),
-          ]).catch((e) => console.error("Failed to reload project data:", e));
+          loadProjectContext({ projectPath: path, projectName: name })
+            .catch((e) => console.error("[project-changed] loadProjectContext failed:", e));
         }
       );
       unlisteners.push(projectChangedListener);
-
-      // Hydrate workflow state on mount — ensures UI is in sync even if no file change occurs
-      try {
-        const wfState = await invoke<BackendWorkflowPayload>("get_workflow_state");
-        useWorkflowStore.getState().setFullState(wfState);
-      } catch (e) {
-        console.warn("Failed to hydrate workflow state on mount:", e);
-      }
     };
 
     setupListeners();

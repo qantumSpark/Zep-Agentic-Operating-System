@@ -1,6 +1,7 @@
 use crate::memory::MemoryReader;
 use crate::runtime::RuntimePaths;
 use crate::screenshots::ScreenshotOrchestrator;
+use crate::workflow::engine::WorkflowEngine;
 use crate::workflow::state::{WorkflowState, WorkflowStateDto};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashMap;
@@ -57,6 +58,7 @@ impl FileWatcherService {
         &mut self,
         app_handle: tauri::AppHandle,
         screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
+        workflow_engine: Arc<Mutex<WorkflowEngine>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let workflow_dir = self.project_dir.join(".workflow");
         let memory_dir = self.project_dir.join(".memory");
@@ -207,7 +209,23 @@ impl FileWatcherService {
                                                         state.gate_ready,
                                                         state.gate_validated
                                                     );
-                                                    let dto = WorkflowStateDto::from_state(&state);
+
+                                                    // Sync WorkflowEngine in-memory state
+                                                    {
+                                                        let mut engine = workflow_engine.lock().await;
+                                                        if let Err(e) = engine.load_state().await {
+                                                            tracing::warn!(
+                                                                "Failed to sync WorkflowEngine from disk: {}",
+                                                                e
+                                                            );
+                                                        }
+                                                    }
+
+                                                    let mut dto = WorkflowStateDto::from_state(&state);
+                                                    // Enrich with current-epic.md data (best-effort)
+                                                    if let Ok(Some(epic)) = memory_reader.read_current_epic().await {
+                                                        dto.enrich_from_epic(&epic);
+                                                    }
                                                     if let Err(e) =
                                                         app_handle.emit("workflow-change", &dto)
                                                     {

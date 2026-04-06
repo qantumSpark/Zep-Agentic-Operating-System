@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c *)"
+      "Bash(python -c *)",
+      "Bash(\"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/.zaos/bin/zaos-hooks.exe\" --help)",
+      "Bash(npm run:*)"
     ]
   }
 }

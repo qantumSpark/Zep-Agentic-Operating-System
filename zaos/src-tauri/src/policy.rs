@@ -45,6 +45,7 @@ impl PolicyProfile {
     }
 }
 
+#[cfg(test)]
 pub const ALL_PROFILES: &[PolicyProfile] = &[
     PolicyProfile::Observe,
     PolicyProfile::GuidedBuild,
@@ -88,6 +89,7 @@ pub struct ActionContext {
     pub tool_name: Option<String>,
     pub product_phase: ProductPhase,
     pub is_destructive: bool,
+    #[allow(dead_code)] // Populated but not yet used in evaluate(); reserved for future policy rules
     pub is_reversible: bool,
 }
 
