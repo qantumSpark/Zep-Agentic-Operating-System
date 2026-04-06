@@ -1,5 +1,6 @@
 use crate::deployer;
 use crate::events::zaos_events::ZaosEvent;
+use crate::mcp_server::McpServerHandle;
 use crate::memory::{MemoryHealthReport, MemoryReader, MemoryStateResponse, Persona, SessionInsightsEditorial};
 use crate::runtime::{RuntimeKind, RuntimePaths};
 use crate::screenshots::{FilesystemAdapter, Screenshot, ScreenshotOrchestrator};
@@ -23,6 +24,8 @@ pub struct AppState {
     /// Runtime kind, wrapped in Arc<RwLock<>> to allow future runtime switching.
     pub runtime_kind: Arc<RwLock<RuntimeKind>>,
     pub runtime_paths: Arc<RwLock<RuntimePaths>>,
+    /// MCP server handle for shutdown/restart lifecycle.
+    pub mcp_handle: Arc<Mutex<Option<McpServerHandle>>>,
 }
 
 impl AppState {
@@ -49,6 +52,7 @@ impl AppState {
             permission_mode: Arc::new(RwLock::new("strict".to_string())),
             runtime_kind: Arc::new(RwLock::new(runtime_kind)),
             runtime_paths: Arc::new(RwLock::new(runtime_paths)),
+            mcp_handle: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -1045,24 +1049,24 @@ pub async fn switch_project(
     *state.workflow_engine.lock().await = WorkflowEngine::new(new_dir.clone());
 
     // 6b. Load persisted workflow state from new project
-    {
+    let loaded_permission_mode = {
         let mut engine = state.workflow_engine.lock().await;
         match engine.load_state().await {
             Ok(wf_state) => {
-                // Sync permission_mode from loaded state
-                *state.permission_mode.write().await = wf_state.permission_mode.clone();
                 tracing::info!(
                     "Workflow state loaded for new project: phase={}, mode={:?}, permission={}",
                     wf_state.phase, wf_state.mode, wf_state.permission_mode
                 );
+                wf_state.permission_mode.clone()
             }
             Err(e) => {
                 tracing::warn!("Could not load workflow state for new project (using defaults): {}", e);
-                // Reset to safe default so we don't inherit the previous project's permission mode
-                *state.permission_mode.write().await = "strict".to_string();
+                "strict".to_string()
             }
         }
-    }
+    };
+    // Sync permission_mode cache (outside engine lock)
+    *state.permission_mode.write().await = loaded_permission_mode;
 
     // 7. Replace screenshot_orchestrator
     *state.screenshot_orchestrator.lock().await = ScreenshotOrchestrator::new(
@@ -1083,8 +1087,36 @@ pub async fn switch_project(
     let mut watcher = state.watcher_service.lock().await;
     *watcher = FileWatcherService::new(new_dir.clone(), new_runtime_paths);
     watcher
-        .start(app.clone(), state.screenshot_orchestrator.clone(), state.workflow_engine.clone())
+        .start(app.clone(), state.screenshot_orchestrator.clone(), state.workflow_engine.clone(), state.permission_mode.clone())
         .map_err(|e| format!("Failed to start watchers: {}", e))?;
+
+    // 11b. Restart MCP server for new project
+    {
+        // Stop old MCP server and cleanup its discovery files
+        let mut mcp_guard = state.mcp_handle.lock().await;
+        if let Some(old_handle) = mcp_guard.take() {
+            old_handle.cancel_token.cancel();
+            old_handle.cleanup();
+            tracing::info!("Old MCP server stopped and cleaned up");
+        }
+
+        // Start new MCP server for the new project
+        match crate::mcp_server::start_mcp_server(
+            state.workflow_engine.clone(),
+            state.screenshot_orchestrator.clone(),
+            app.clone(),
+            new_dir.clone(),
+        ).await {
+            Ok(new_handle) => {
+                tracing::info!(port = new_handle.port, "MCP server restarted for new project");
+                *mcp_guard = Some(new_handle);
+            }
+            Err(e) => {
+                tracing::error!("Failed to restart MCP server: {}", e);
+                // Non-fatal: project switch continues without MCP
+            }
+        }
+    }
 
     // 12. Build ProjectInfo
     let info = ProjectInfo::from_path(&new_dir);

@@ -21,9 +21,7 @@ mod workflow;
 
 use commands::AppState;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tauri::Manager;
-use tokio::sync::Mutex;
 use tracing_subscriber::EnvFilter;
 
 fn main() {
@@ -61,10 +59,8 @@ fn main() {
     // Create app state
     let app_state = AppState::new(project_dir);
 
-    // Shared handle for MCP server shutdown cleanup
-    let mcp_handle_store: Arc<Mutex<Option<mcp_server::McpServerHandle>>> =
-        Arc::new(Mutex::new(None));
-    let mcp_handle_for_shutdown = mcp_handle_store.clone();
+    // Clone MCP handle Arc before app_state is moved into .manage()
+    let mcp_handle_for_shutdown = app_state.mcp_handle.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -115,7 +111,7 @@ fn main() {
             let handle = app.handle().clone();
 
             // Start file watchers
-            match watcher.blocking_lock().start(handle.clone(), orch.clone(), wf_engine_for_watcher) {
+            match watcher.blocking_lock().start(handle.clone(), orch.clone(), wf_engine_for_watcher, state.permission_mode.clone()) {
                 Ok(()) => tracing::info!("FileWatcherService started"),
                 Err(e) => tracing::warn!("FileWatcherService failed to start: {}", e),
             }
@@ -134,7 +130,7 @@ fn main() {
             // Start MCP server
             let wf_engine = state.workflow_engine.clone();
             let project_dir = state.project_dir.blocking_read().clone();
-            let store = mcp_handle_store.clone();
+            let mcp_store = state.mcp_handle.clone();
 
             tauri::async_runtime::spawn(async move {
                 match mcp_server::start_mcp_server(
@@ -147,7 +143,7 @@ fn main() {
                 {
                     Ok(mcp_handle) => {
                         tracing::info!(port = mcp_handle.port, "MCP server started");
-                        *store.lock().await = Some(mcp_handle);
+                        *mcp_store.lock().await = Some(mcp_handle);
                     }
                     Err(e) => {
                         tracing::error!("Failed to start MCP server: {}", e);

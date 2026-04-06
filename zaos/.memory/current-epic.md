@@ -1,18 +1,18 @@
-# Epic active : switch_project fiable
+# Epic active : Sync coherente workflow/runtime/permission
 
-> Milestone : 25 — Vague 1 Stabilisation du socle (E1)
+> Milestone : 25 — Vague 1 Stabilisation du socle (E3)
 > Statut : TERMINE
 
 ## Objectif
 
-Corriger switch_project pour qu'il recharge correctement le workflow state, le permission_mode et le policy_profile du projet cible.
+Quand un processus externe modifie state.json (ex: hooks Claude), le cache permission_mode dans AppState doit etre sync automatiquement via le watcher.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Appeler load_state() apres remplacement du WorkflowEngine | `commands.rs` | DONE | Bloc 6b ajoute |
-| 2 | Sync permission_mode depuis le state charge | `commands.rs` | DONE | Hardcode "strict" supprime |
-| 3 | Sync policy_profile depuis le state charge | `commands.rs` | DONE | Inclus dans load_state() |
-| 4 | Verification cargo test + scenario switch | `commands.rs` | DONE | 160 tests OK |
-| 5 | Review B1 — Reset permission_mode dans branche Err | `commands.rs` | DONE | 160 tests OK |
+| 1 | Ajouter parametre permission_mode a start() | `watchers/service.rs` | DONE | Arc RwLock String |
+| 2 | Sync permission_mode apres load_state dans handler Workflow | `watchers/service.rs` | DONE | Ecriture dans l'Arc |
+| 3 | Passer permission_mode dans les appelants de start() | `main.rs`, `commands.rs` | DONE | 2 call sites adaptes |
+| 4 | Verification build + tests | - | DONE | 160 tests OK, 0 nouveau warning |
+| 5 | Review S1 — Deplacer permission_mode.write hors du engine lock | `commands.rs` | DONE | 160 tests OK |

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 use tauri::Emitter;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, Mutex, RwLock};
 
 /// Category of file change detected by the watcher.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -59,6 +59,7 @@ impl FileWatcherService {
         app_handle: tauri::AppHandle,
         screenshot_orchestrator: Arc<Mutex<ScreenshotOrchestrator>>,
         workflow_engine: Arc<Mutex<WorkflowEngine>>,
+        permission_mode: Arc<RwLock<String>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let workflow_dir = self.project_dir.join(".workflow");
         let memory_dir = self.project_dir.join(".memory");
@@ -220,6 +221,9 @@ impl FileWatcherService {
                                                             );
                                                         }
                                                     }
+
+                                                    // Sync permission_mode cache
+                                                    *permission_mode.write().await = state.permission_mode.clone();
 
                                                     let mut dto = WorkflowStateDto::from_state(&state);
                                                     // Enrich with current-epic.md data (best-effort)

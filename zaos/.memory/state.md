@@ -34,11 +34,11 @@
 
 | 24 | Chantier Codex (5/5) — Completion seam runtime | TERMINE | epic5: seam runtime (16 taches) |
 
-| 25 | Vague 1 — Stabilisation du socle | EN COURS | E1 DONE, E2-E8 a faire |
+| 25 | Vague 1 — Stabilisation du socle | EN COURS | E1-E3 DONE, E4-E8 a faire |
 
 ## Epic active
 
-Aucune — E1 switch_project termine. Prochaine : E2 MCP alignment
+Aucune — E3 sync coherente termine. Prochaine : E4 auth check
 
 ## Blocages
 
@@ -46,4 +46,4 @@ Aucun
 
 ## Prochaines priorites
 
-Vague 1 (1/8) : E1 DONE. Restent : E2 (MCP alignment), E3 (sync coherente), E4 (auth check), E5 (watchers), E6 (read models), E7 (hygiene repo), E8 (Rust socle). Backlog : I1-I5, E4-B1/B2, H1, D1-D2.
+Vague 1 (3/8) : E1-E3 DONE. Restent : E4 (auth check), E5 (watchers), E6 (read models), E7 (hygiene repo), E8 (Rust socle). Backlog : I1-I5, E4-B1/B2, H1, D1-D2, E2-S1 (lock mcp_handle).
