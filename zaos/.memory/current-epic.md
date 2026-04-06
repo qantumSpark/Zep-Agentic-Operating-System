@@ -1,29 +1,20 @@
-# Epic active : Completion du seam runtime
+# Epic active : Bugfix B3-B4 — Policy engine bugs
 
-> Milestone : 24 — Chantier Codex (5/5)
-> Statut : TERMINE
+> Milestone : 25 — Bugfixes backlog
+> Statut : EN COURS
 
 ## Objectif
 
-Completer le seam runtime pour qu'un futur CodexRuntime soit un ajout controle. Formaliser les interfaces, internaliser le mapping, nettoyer les hardcodes Claude, documenter la feuille de route.
+Corriger deux bugs dans policy.rs : (B3) FileDelete jamais retourne par derive_action_type, (B4) is_test_command verifie tool_name au lieu du contenu command.
 
 ## Tasks
 
 | # | Task | Fichier(s) | Statut | Notes |
 |---|------|-----------|--------|-------|
-| 1 | Changer signature trait start_session() → Receiver ZaosEvent | `runtime/mod.rs` | DONE | Import + signature + doc |
-| 2 | Internaliser mapping CliEvent→ZaosEvent dans ClaudeRuntime | `runtime/claude.rs` | DONE | Parsing inline + mapping |
-| 3 | Propager ZaosEvent dans SessionManager | `session/manager.rs` | DONE | Import + signature |
-| 4 | Simplifier forwarder dans commands.rs | `commands.rs` | DONE | CliEvent elimine, emit direct, cargo check OK |
-| 5 | Factory create_runtime() | `runtime/mod.rs`, `session/manager.rs` | DONE | Factory + tests OK |
-| 6 | RuntimeKind switchable Arc RwLock dans AppState | `commands.rs` | DONE | Arc RwLock + read().await |
-| 7 | Renommer mapper.rs → claude_mapper.rs | `events/` | DONE | Rename + doc + 7 tests OK |
-| 8 | Elargir type RuntimeInfo.kind frontend | `runtime.ts` | DONE | "claude" union string extensible |
-| 9 | UI runtime-aware textes dynamiques | `ThinkingIndicator.tsx`, `StatusBar.tsx` | DONE | runtimeStore dynamique |
-| 10 | Supprimer fallback .claude/agents dans agentsStore | `agentsStore.ts` | DONE | Fallback vide + commentaire |
-| 11 | Feuille de route RUNTIME_SEAM.md | `RUNTIME_SEAM.md` | DONE | Architecture + checklist + backlog |
-| 12 | S1 — Supprimer re-export parse_stream | `events/mod.rs` | DONE | Review suggestion |
-| 13 | S2 — Supprimer glob re-export types::* | `events/mod.rs` | DONE | Review suggestion |
-| 14 | S3 — Supprimer variants SessionError morts | `session/manager.rs` | DONE | CliNotFound, NotSpawned, ParseError supprimés |
-| 15 | S4 — Supprimer champ runtime_kind mort | `session/manager.rs` | DONE | Champ struct supprimé, param new() gardé pour factory |
-| 16 | S5 — Corriger doc comment new() | `session/manager.rs` | DONE | "default Claude" → "specified runtime kind" |
+| 1 | Ajouter champ command_text a ActionContext | `policy.rs` | DONE | Pour B4 |
+| 2 | Corriger is_test_command pour inspecter command_text | `policy.rs` | DONE | B4 fix |
+| 3 | Override action_type vers FileDelete quand Bash destructif | `commands.rs` | DONE | B3 fix |
+| 4 | Extraire command_text dans le forwarder | `commands.rs` | DONE | Pour B4 |
+| 5 | Ajouter command_text au ActionContext debug endpoint | `commands.rs` | DONE | Pour B4 |
+| 6 | Adapter les tests existants | `policy.rs` | DONE | command_text ajoute partout |
+| 7 | Verification cargo test | - | DONE | 160 tests passed |

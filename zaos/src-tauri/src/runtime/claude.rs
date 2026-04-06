@@ -10,11 +10,10 @@ use crate::events::claude_mapper::map_cli_event;
 use crate::events::zaos_events::ZaosEvent;
 use super::{AgentRuntime, Result, RuntimeError, SessionRecord};
 
-fn truncate_str(s: &str, max_len: usize) -> String {
-    if s.len() > max_len {
-        format!("{}...", &s[..max_len])
-    } else {
-        s.to_string()
+fn truncate_str(s: &str, max_chars: usize) -> String {
+    match s.char_indices().nth(max_chars) {
+        Some((byte_pos, _)) => format!("{}...", &s[..byte_pos]),
+        None => s.to_string(),
     }
 }
 

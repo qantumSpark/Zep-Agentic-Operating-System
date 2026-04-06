@@ -78,6 +78,7 @@ pub fn ensure_project_dirs(project_dir: &Path) {
             concat!(
                 "# Epic active : _aucun_\n",
                 "\n",
+                "> Milestone : (aucun)\n",
                 "> Statut : IDLE\n",
                 "\n",
                 "## Objectif\n",

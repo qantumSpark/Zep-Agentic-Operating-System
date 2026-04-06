@@ -192,7 +192,7 @@ pub async fn send_prompt(
                         let tool_input_val = tool_input.clone().unwrap_or(serde_json::Value::Null);
 
                         // 1. Build ActionContext
-                        let action_type = derive_action_type(&tool_name_str);
+                        let mut action_type = derive_action_type(&tool_name_str);
 
                         // Extract file_paths from tool_input
                         let file_paths = {
@@ -214,6 +214,19 @@ pub async fn send_prompt(
 
                         let is_destructive = is_destructive_command(&tool_input_val);
 
+                        // Extract command_text for Bash tools (used by is_test_command)
+                        let command_text = if tool_name_str == "Bash" {
+                            tool_input_val.get("command").and_then(|v| v.as_str()).map(|s| s.to_string())
+                        } else {
+                            None
+                        };
+
+                        // Override action_type: destructive Bash commands → FileDelete
+                        // so they receive the stricter FileDelete policy verdict
+                        if action_type == crate::policy::ActionType::BashCommand && is_destructive {
+                            action_type = crate::policy::ActionType::FileDelete;
+                        }
+
                         // Get product_phase and policy profile from workflow state (single lock)
                         let (product_phase, profile) = {
                             let engine = we.lock().await;
@@ -227,6 +240,7 @@ pub async fn send_prompt(
                             action_type,
                             file_paths,
                             tool_name: Some(tool_name_str.clone()),
+                            command_text,
                             product_phase,
                             is_destructive,
                             is_reversible: !is_destructive,
@@ -1129,6 +1143,7 @@ pub async fn get_policy_evaluation(
         action_type: action,
         file_paths,
         tool_name,
+        command_text: None, // debug endpoint: no raw command text
         product_phase,
         is_destructive: is_destructive.unwrap_or(false),
         is_reversible: true,
@@ -1152,7 +1167,7 @@ pub async fn start_epic(
     engine.start_epic(name.clone()).await.map_err(|e| e.to_string())?;
 
     let epic_content = format!(
-        "# Epic active : {}\n\n> Statut : EN COURS\n\n## Objectif\n\n{}\n\n## Tasks\n\n| # | Task | Fichier(s) | Statut | Notes |\n|---|------|-----------|--------|-------|\n\n_En attente du plan._\n",
+        "# Epic active : {}\n\n> Milestone : (a definir)\n> Statut : EN COURS\n\n## Objectif\n\n{}\n\n## Tasks\n\n| # | Task | Fichier(s) | Statut | Notes |\n|---|------|-----------|--------|-------|\n\n_En attente du plan._\n",
         name,
         if description.is_empty() { "_Pas de description._" } else { &description }
     );

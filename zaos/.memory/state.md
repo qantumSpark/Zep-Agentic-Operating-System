@@ -44,4 +44,4 @@ Aucun
 
 ## Prochaines priorites
 
-Chantier Codex TERMINE (5/5 epics). Backlog technique restant : M1 (step numbering), S1-S4 (tests, serialisation, helpers, deployer), E4-B1 (brancher on-compact sur update_session_editorial), E4-B2 (is_meaningful_insights: || → && pour eviter archivage vide). Gaps runtime (cf RUNTIME_SEAM.md) : H1 (hooks binary paths), D1-D2 (deployer multi-runtime), P1-P2 (dead parser code).
+Chantier Codex TERMINE (5/5 epics). Bugfixes audit en cours (B1-B4). Backlog : I1 (optimistic update rollback WorkflowSection), I2 (supprimer parser.rs dead code), I3 (supprimer claudeMapper.ts dead code), I4 (separer types generiques de events.ts), I5 (dedup editorial logger.rs), M1-M10 (cleanup quality cf audit), E4-B1 (on-compact→editorial), E4-B2 (is_meaningful || → &&), H1 (hooks binary paths), D1-D2 (deployer multi-runtime).

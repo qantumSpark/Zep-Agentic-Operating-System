@@ -87,6 +87,9 @@ pub struct ActionContext {
     pub action_type: ActionType,
     pub file_paths: Vec<String>,
     pub tool_name: Option<String>,
+    /// The raw command string extracted from Bash tool input (e.g. "cargo test").
+    /// Used by `is_test_command` to inspect the actual command, not just tool_name.
+    pub command_text: Option<String>,
     pub product_phase: ProductPhase,
     pub is_destructive: bool,
     #[allow(dead_code)] // Populated but not yet used in evaluate(); reserved for future policy rules
@@ -115,10 +118,12 @@ fn is_memory_or_doc(paths: &[String]) -> bool {
     })
 }
 
-/// Returns true if the tool_name contains "test" (simple heuristic)
-fn is_test_command(tool_name: &Option<String>) -> bool {
-    match tool_name {
-        Some(name) => name.to_lowercase().contains("test"),
+/// Returns true if the command text contains "test" (simple heuristic).
+/// Inspects `command_text` (the actual bash command) rather than `tool_name`
+/// (which is always "Bash" for bash commands and would never match).
+fn is_test_command(ctx: &ActionContext) -> bool {
+    match &ctx.command_text {
+        Some(cmd) => cmd.to_lowercase().contains("test"),
         None => false,
     }
 }
@@ -301,7 +306,7 @@ pub fn evaluate(profile: &PolicyProfile, ctx: &ActionContext) -> PolicyDecision 
                     Verdict::Deny
                 }
                 ActionType::BashCommand => {
-                    if is_test_command(&ctx.tool_name) {
+                    if is_test_command(ctx) {
                         rules.push("test_command_exception".to_string());
                         rules.push("verdict:allow".to_string());
                         Verdict::Allow
@@ -356,7 +361,7 @@ pub fn evaluate(profile: &PolicyProfile, ctx: &ActionContext) -> PolicyDecision 
                 ActionType::FileWrite if is_memory_or_doc(&ctx.file_paths) => {
                     "release-guarded: memory/doc files allowed".to_string()
                 }
-                ActionType::BashCommand if is_test_command(&ctx.tool_name) => {
+                ActionType::BashCommand if is_test_command(ctx) => {
                     "release-guarded: test command allowed".to_string()
                 }
                 ActionType::WebFetch => "release-guarded: web fetch requires approval".to_string(),
@@ -416,6 +421,7 @@ mod tests {
             action_type,
             file_paths: vec!["src/main.rs".to_string()],
             tool_name: None,
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -522,6 +528,7 @@ mod tests {
             action_type: ActionType::FileWrite,
             file_paths: vec![".memory/state.md".to_string()],
             tool_name: None,
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -537,6 +544,7 @@ mod tests {
             action_type: ActionType::FileWrite,
             file_paths: vec!["README.md".to_string()],
             tool_name: None,
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -554,6 +562,7 @@ mod tests {
                 "src/main.rs".to_string(),
             ],
             tool_name: None,
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -570,6 +579,7 @@ mod tests {
             action_type: ActionType::ToolCall,
             file_paths: vec![],
             tool_name: Some("custom_tool".to_string()),
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -585,6 +595,7 @@ mod tests {
             action_type: ActionType::ToolCall,
             file_paths: vec![],
             tool_name: Some("any_tool".to_string()),
+            command_text: None,
             product_phase: ProductPhase::Build,
             is_destructive: false,
             is_reversible: true,
@@ -600,7 +611,8 @@ mod tests {
         let ctx = ActionContext {
             action_type: ActionType::BashCommand,
             file_paths: vec![],
-            tool_name: Some("cargo test".to_string()),
+            tool_name: Some("Bash".to_string()),
+            command_text: Some("cargo test".to_string()),
             product_phase: ProductPhase::Release,
             is_destructive: false,
             is_reversible: true,
@@ -615,7 +627,8 @@ mod tests {
         let ctx = ActionContext {
             action_type: ActionType::BashCommand,
             file_paths: vec![],
-            tool_name: Some("rm -rf /".to_string()),
+            tool_name: Some("Bash".to_string()),
+            command_text: Some("cargo build".to_string()),
             product_phase: ProductPhase::Release,
             is_destructive: false,
             is_reversible: true,
@@ -643,10 +656,19 @@ mod tests {
 
     #[test]
     fn test_is_test_command() {
-        assert!(is_test_command(&Some("cargo test".to_string())));
-        assert!(is_test_command(&Some("npm test".to_string())));
-        assert!(!is_test_command(&Some("cargo build".to_string())));
-        assert!(!is_test_command(&None));
+        let mut ctx = make_ctx(ActionType::BashCommand);
+
+        ctx.command_text = Some("cargo test".to_string());
+        assert!(is_test_command(&ctx));
+
+        ctx.command_text = Some("npm test".to_string());
+        assert!(is_test_command(&ctx));
+
+        ctx.command_text = Some("cargo build".to_string());
+        assert!(!is_test_command(&ctx));
+
+        ctx.command_text = None;
+        assert!(!is_test_command(&ctx));
     }
 
     // ── Profile utility tests ──────────────────────────────────────
