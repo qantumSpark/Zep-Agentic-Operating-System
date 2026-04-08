@@ -3,7 +3,16 @@
     "allow": [
       "Bash(python -c *)",
       "Bash(\"C:/Users/apeze/Documents/Claude/Projects/Workflow/Zep Agentic Operating System/zaos/.zaos/bin/zaos-hooks.exe\" --help)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(claude --version)",
+      "Bash(claude auth:*)",
+      "Bash(echo \"EXIT_CODE: $?\")",
+      "Bash(claude doctor:*)",
+      "Bash(claude setup-token:*)",
+      "Bash(npm list:*)",
+      "Bash(bun pm:*)",
+      "Read(//c/Users/apeze/.local/lib/node_modules/**)",
+      "Read(//c/Users/apeze/.local/**)"
     ]
   }
 }
